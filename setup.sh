@@ -20,7 +20,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# --- Remove any existing container with the same name (optional) ---
+# --- Remove any existing container with the same name ---
 if [ "$(docker ps -a -q -f name=${CONTAINER_NAME})" ]; then
     echo "Removing existing container named ${CONTAINER_NAME}..."
     docker rm -f ${CONTAINER_NAME}
@@ -50,9 +50,7 @@ echo "  Database: ${MYSQL_DATABASE}"
 echo "  User: ${MYSQL_USER}"
 echo "  Password: ${MYSQL_PASSWORD}"
 
-# --- Next Steps ---
-echo "You can now configure your .NET application's connection string to use these credentials."
-echo "For example, in appsettings.json:"
+
 echo '{
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Port=3306;Database=MyProjectDB;User=MyUser;Password=MyUser@Passw0rd;"
