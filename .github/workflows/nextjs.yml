@@ -17,66 +17,64 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Set default working directory for all run steps to 'frontend'
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # All subsequent steps run within the 'frontend' directory
       - name: Detect package manager
         id: detect-package-manager
-        working-directory: frontend
         run: |
           if [ -f "yarn.lock" ]; then
             echo "manager=yarn" >> $GITHUB_OUTPUT
             echo "command=install" >> $GITHUB_OUTPUT
             echo "runner=yarn" >> $GITHUB_OUTPUT
-            exit 0
           elif [ -f "package.json" ]; then
             echo "manager=npm" >> $GITHUB_OUTPUT
             echo "command=ci" >> $GITHUB_OUTPUT
             echo "runner=npx --no-install" >> $GITHUB_OUTPUT
-            exit 0
           else
             echo "Unable to determine package manager"
             exit 1
           fi
 
       - name: Setup Node
-        # working-directory: frontend
+        # This action doesn't support a custom working directory,
+        # so we point it to the lock file using a relative path.
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Pages
-        # working-directory: frontend
         uses: actions/configure-pages@v5
         with:
           static_site_generator: next
 
       - name: Restore cache
-        # working-directory: frontend
         uses: actions/cache@v4
         with:
-          path: |
-            .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          # Cache the Next.js build cache (located in frontend/.next/cache)
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json', 'frontend/yarn.lock') }}-${{ hashFiles('frontend/**.[jt]s', 'frontend/**.[jt]sx') }}
           restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json', 'frontend/yarn.lock') }}-
 
       - name: Install dependencies
-        working-directory: frontend
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
 
       - name: Build with Next.js
-        working-directory: frontend
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
 
       - name: Upload artifact
-        # working-directory: frontend
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          # Reference the 'out' folder in the frontend directory (relative to repo root)
+          path: frontend/out
 
   deploy:
     environment:
