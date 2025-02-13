@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "predeploy": "next build && next export --outdir ../out",
-    "deploy": "gh-pages -d ../out"
+    "predeploy": "next build",
+    "deploy": "gh-pages -d out"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
