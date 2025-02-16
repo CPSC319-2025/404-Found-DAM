@@ -1,3 +1,6 @@
+import Image from 'next/image';
+import ProjectsTable from '../components/ProjectsTable';
+
 // This function tells Next.js which dynamic routes to generate
 export async function generateStaticParams() {
 	// Replace this hardcoded array with your actual data fetching logic if needed.
@@ -8,5 +11,5 @@ type ProjectPageProps = {
 };
 
 export default function ProjectPage({ params }: ProjectPageProps) {
-	return <div></div>;
+	return <ProjectsTable />;
 }
