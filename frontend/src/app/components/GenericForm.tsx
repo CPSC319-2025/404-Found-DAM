@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import Multiselect from "multiselect-react-dropdown";
 
 interface Field {
   name: string;
@@ -7,10 +8,13 @@ interface Field {
   placeholder?: string;
   value?: string | string[];
   isMulti?: boolean;
+  isMultiSelect?: boolean;
   required?: boolean;
+  options?: { name: string; id: string | number }[];
 }
 
 interface GenericFormProps {
+  title: string;
   fields: Field[];
   onSubmit: (formData: Record<string, string | string[]>) => void;
   onCancel: () => void;
@@ -18,6 +22,7 @@ interface GenericFormProps {
 }
 
 export default function GenericForm({
+  title,
   fields,
   onSubmit,
   onCancel,
@@ -26,7 +31,7 @@ export default function GenericForm({
   const formRef = useRef<HTMLDivElement>(null);
 
   const initialState = fields.reduce((acc, field) => {
-    acc[field.name] = field.value || (field.isMulti ? [] : "");
+    acc[field.name] = field.value || (field.isMulti || field.isMultiSelect ? [] : "");
     return acc;
   }, {} as Record<string, string | string[]>);
 
@@ -35,7 +40,7 @@ export default function GenericForm({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     setFormErrors((prevErrors) => {
       const updatedErrors = { ...prevErrors };
       if (updatedErrors[name]) {
@@ -79,7 +84,6 @@ export default function GenericForm({
     }
   };
 
-
   const removeEntry = (name: string, entry: string) => {
     setFormData((prevData) => ({
       ...prevData,
@@ -94,7 +98,7 @@ export default function GenericForm({
       const fieldValue = formData[field.name];
 
       if (field.required) {
-        if (field.isMulti) {
+        if (field.isMulti || field.isMultiSelect) {
           if (!Array.isArray(fieldValue) || (fieldValue as string[]).length === 0) {
             errors[field.name] = `${field.label} is required`;
           }
@@ -110,16 +114,36 @@ export default function GenericForm({
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    console.log("submitting!")
     e.preventDefault();
 
     const errors = validateForm();
-    console.log("Errors", errors);
     setFormErrors(errors);
 
     if (Object.keys(errors).length === 0) {
       onSubmit(formData);
     }
+  };
+
+  const handleSelect = (selectedList: any[], name: string) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: selectedList.map((item) => item.id),
+    }));
+
+    setFormErrors((prevErrors) => {
+      const updatedErrors = { ...prevErrors };
+      if (updatedErrors[name] && selectedList.length > 0) {
+        delete updatedErrors[name];
+      }
+      return updatedErrors;
+    });
+  };
+
+  const handleRemove = (selectedList: any[], name: string) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: selectedList.map((item) => item.id),
+    }));
   };
 
   useEffect(() => {
@@ -138,15 +162,25 @@ export default function GenericForm({
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
       <div ref={formRef} className="bg-white p-6 rounded shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Create New</h2>
+        <h2 className="text-xl font-bold mb-4">{title}</h2>
 
         <form onSubmit={handleSubmit}>
           {fields.map((field) => (
             <div key={field.name} className="mb-4">
               <label className="block mb-2" htmlFor={field.name}>
-                {field.label}
+                {`${field.label} ${field.required ? ' *' : ''}`}
               </label>
-              {field.isMulti ? (
+              {field.isMultiSelect ? (
+                <Multiselect
+                  options={field.options || []}
+                  onSelect={(selectedList) => handleSelect(selectedList, field.name)}
+                  onRemove={(selectedList) => handleRemove(selectedList, field.name)}
+                  displayValue="name"
+                  className="custom-multiselect w-full p-2 border rounded"
+                  closeIcon="cancel"
+                  avoidHighlightFirstOption
+                />
+              ) : field.isMulti ? (
                 <div>
                   <input
                     id={field.name}
@@ -160,12 +194,12 @@ export default function GenericForm({
                     {(formData[field.name] as string[]).map((entry, index) => (
                       <span
                         key={index}
-                        className="bg-blue-500 text-white px-2 py-1 rounded-full mr-2 mt-1 flex items-center"
+                        className="chip"
                       >
                         {entry}
                         <button
                           type="button"
-                          className="ml-2 text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center"
+                          className="ml-2 text-2xl text-white bg-transparent border-none cursor-pointer"
                           onClick={() => removeEntry(field.name, entry)}
                         >
                           ×
@@ -190,6 +224,8 @@ export default function GenericForm({
               )}
             </div>
           ))}
+
+          <div><i className="opacity-50">* Required field</i></div>
 
           <div className="flex justify-end space-x-2">
             <button

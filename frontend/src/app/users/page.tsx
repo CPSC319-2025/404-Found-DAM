@@ -47,6 +47,7 @@ export default function UsersPage() {
 
       {isModalOpen && (
         <GenericForm
+          title="Add New User"
           fields={fields}
           onSubmit={handleAddUser}
           onCancel={() => setIsModalOpen(false)}
