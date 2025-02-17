@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
-import { ViewfinderCircleIcon, ChartBarIcon, ArrowUpTrayIcon } from '@heroicons/react/24/solid';
+import { ViewfinderCircleIcon, ChartBarIcon, ArrowUpTrayIcon, UsersIcon } from '@heroicons/react/24/solid';
 
 interface Page {
   path: string;
@@ -9,10 +9,13 @@ interface Page {
   icon: ReactNode;
 }
 
+const isSuperAdmin = true;
+
 const pages: Page[] = [
-  { path: "projects", title: "My Projects", mobileTitle: "Projects", icon: <ViewfinderCircleIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
+  { path: "projects", title: "Projects", mobileTitle: "Projects", icon: <ViewfinderCircleIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
   { path: "activity", title: "Activity Monitor", mobileTitle: "Activity", icon: <ChartBarIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
   { path: "upload", title: "Upload Palette", mobileTitle: "Upload", icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
+  ...(isSuperAdmin ? [{ path: "users", title: "Users", mobileTitle: "Users", icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" /> }] : [])
 ];
 
 export default function Navbar() {
@@ -21,13 +24,13 @@ export default function Navbar() {
       <div className="block sm:hidden">
         <ul className="flex justify-around space-x-4">
           {pages.map((page) => (
-            <li key={page.path}>
+            <li key={page.path} className="text-center">
               <Link
                 href={`/${page.path}`}
-                className="flex items-center hover:bg-gray-200 p-2 rounded"
+                className="flex flex-col items-center hover:bg-gray-200 p-2 rounded"
               >
                 <span className="mr-2">{page.icon}</span>
-                {page.mobileTitle}
+                <span className="text-xs">{page.mobileTitle}</span>
               </Link>
             </li>
           ))}

@@ -39,9 +39,9 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
 								className="size-6"
 							>
 								<path
-									fill-rule="evenodd"
+									fillRule="evenodd"
 									d="M10.5 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
-									clip-rule="evenodd"
+									clipRule="evenodd"
 								/>
 							</svg>
 						</div>
