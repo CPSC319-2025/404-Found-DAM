@@ -1,0 +1,92 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\APIs\\APIs.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\APIs\\APIs.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\APIs\\APIs.csproj",
+        "projectName": "APIs",
+        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\APIs\\APIs.csproj",
+        "packagesPath": "C:\\Users\\swlco\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\APIs\\obj\\",
+        "projectStyle": "PackageReference",
+        "centralPackageVersionsManagementEnabled": true,
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\swlco\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[8.0.13, )",
+              "versionCentrallyManaged": true
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[6.6.2, )",
+              "versionCentrallyManaged": true
+            }
+          },
+          "centralPackageVersions": {
+            "Microsoft.AspNetCore.OpenApi": "8.0.13",
+            "Swashbuckle.AspNetCore": "6.6.2"
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

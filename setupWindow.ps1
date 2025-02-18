@@ -1,6 +1,6 @@
 # Setup Script for Windows 10 using PowerShell
+# May need to run "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process" to run only for the current PowerShell session
 $ErrorActionPreference = "Stop"
-
 
 
 #############################################
@@ -19,25 +19,25 @@ $AZURE_STORAGE_CONTAINER = "dam-assets-container"
 $ENVIRONMENT = "Production"
 
 # .NET and Node.js versions
-$DOTNET_VERSION = "7.0.100"
+$DOTNET_VERSION = "8.0.406"
 $NODE_VERSION = "18.16.0"
 
 Write-Host "Setting environment variables and configuration..."
 Write-Host "MySQL container will run on port ${MYSQL_PORT}"
 Write-Host "Using .NET SDK version ${DOTNET_VERSION} and Node.js version ${NODE_VERSION}"
 
-#############################################
-# Check if Docker is Installed
-#############################################
+# #############################################
+# # Check if Docker is Installed
+# #############################################
 Write-Host "Checking for Docker installation..."
 if (-Not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Host "Error: Docker is not installed. Please install Docker for Windows and re-run this script."
     exit 1
 }
 
-#############################################
-# Start/Restart MySQL Docker Container
-#############################################
+# #############################################
+# # Start/Restart MySQL Docker Container
+# #############################################
 Write-Host "Setting up MySQL container '${CONTAINER_NAME}'..."
 $existingContainer = docker ps -a -q -f "name=${CONTAINER_NAME}"
 if ($existingContainer) {
@@ -66,16 +66,48 @@ Write-Host "  Database: $MYSQL_DATABASE"
 Write-Host "  User: $MYSQL_USER"
 Write-Host "  Password: $MYSQL_PASSWORD"
 
+
 #############################################
 # Install .NET SDK (via Winget or direct installer)
 #############################################
+# Check if .NET is installed
 Write-Host "Checking if .NET SDK is installed..."
-if (-Not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    Write-Host "Installing .NET SDK (version $DOTNET_VERSION)..."
-    winget install --id Microsoft.DotNet.SDK -e --source winget
+
+$isDotnetInstalled = Get-Command dotnet -ErrorAction SilentlyContinue
+
+if (-Not $isDotnetInstalled) {
+    # Try to Install .NET SDK using winget
+    try {
+        Write-Host ".NET SDK is not installed. Installing .NET SDK version '${DOTNET_VERSION}'..."
+        winget install --id Microsoft.DotNet.SDK.8 --version $DOTNET_VERSION -e --source winget
+        
+        # Check if the installation was successful
+        $isDotnetInstalled = Get-Command dotnet -ErrorAction SilentlyContinue
+
+        if ($isDotnetInstalled) {
+            Write-Host ".NET SDK version '${DOTNET_VERSION}' installation successful."
+        } else {
+            Write-Host "Installation failed. Please check for errors."
+            exit
+        }
+    } catch {
+        Write-Host "An error occurred during installation: $_"
+    }
 } else {
-    Write-Host ".NET SDK is already installed: $(dotnet --version)"
+        # Verify if the installed datnet version matches the expected one.
+        $required_dotnet = $DOTNET_VERSION
+        $installed_dotnet = dotnet --version
+        if ($installed_dotnet -ne $required_dotnet) {
+            Write-Host "Warning: Your dotnet version is $installed_dotnet. This project requires dotnet v$required_dotnet."
+            exit
+        } else {
+            Write-Host "The expected version $installed_dotnet of .NET was already installed."
+        }
+
+        # If error message like "The command could not be loaded, possibly because:..." pops up,
+        # try to delete the dotnet.exe and run the script again.
 }
+
 
 #############################################
 # Install Node.js (via Winget or direct installer)
@@ -88,17 +120,27 @@ if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
     Write-Host "Node.js is already installed: $(node --version)"
 }
 
+
 #############################################
-# Create .NET Backend Project
+# Create .NET Backend Solution
 #############################################
 $BACKEND_DIR = "dotnet-backend"
+$SolutionName = "AssetManagement"
+
 if (-Not (Test-Path $BACKEND_DIR)) {
-    Write-Host "Creating .NET backend project in '${BACKEND_DIR}'..."
+    # Create Solution
+    Write-Host "Creating .NET backend solution AssetManagement in '${BACKEND_DIR}'..."
     New-Item -ItemType Directory -Force -Path $BACKEND_DIR
-    Set-Location $BACKEND_DIR
-    dotnet new webapi --no-https -o .
+    dotnet new sln --name $SolutionName -o $BACKEND_DIR 
     
-    # Create appsettings.json with MySQL connection string
+    # Create Class Library 'APIs'
+    Write-Host "Creating Class Library 'APIs' and add it to the solution..."
+    $APIsProjectPath = Join-Path $BACKEND_DIR "APIs"
+    $AppsettingsPath = Join-Path $APIsProjectPath "appsettings.json"
+    dotnet new webapi --no-https -o $APIsProjectPath -n APIs
+    dotnet sln $BACKEND_DIR add $APIsProjectPath\APIs.csproj
+
+    
     $appsettings = @"
 {
   "ConnectionStrings": {
@@ -113,12 +155,60 @@ if (-Not (Test-Path $BACKEND_DIR)) {
   }
 }
 "@
-    $appsettings | Set-Content -Path "appsettings.json"
-    Set-Location -Path ".."  # Go back to previous directory
+    $appsettings | Set-Content -Path $AppsettingsPath -Encoding UTF8
+
+    # Create Class Library 'Core' and internal folders
+    Write-Host "Creating Class Library 'Core' and add it to the solution..."
+    $CoreProjectPath = Join-Path $BACKEND_DIR "Core"
+    dotnet new classlib -o $CoreProjectPath -n Core
+    dotnet sln $BACKEND_DIR add $CoreProjectPath\Core.csproj
+
+    $directories = @("Entities", "Interfaces", "Services")
+    foreach ($dir in $directories) {
+        Write-Host "Creating directory '$dir' inside Class Library 'Core'..."
+        $DirPath = Join-Path $CoreProjectPath $dir
+        New-Item -ItemType Directory -Force -Path $DirPath
+    
+        Write-Host "Creating dummy.cs file in '$dir'..."
+        $DummyFilePath = Join-Path $DirPath "dummy$dir.cs"
+        New-Item -ItemType File -Path $DummyFilePath -Force  
+        if ($dir -eq "Interfaces") {
+            $DummyFilePath = Join-Path $DirPath "IDummyRepository.cs"
+            New-Item -ItemType File -Path $DummyFilePath -Force 
+        } 
+    }
+
+    # Create Class Library 'Infrastructure' and internal folders
+    Write-Host "Creating Class Library 'Infrastructure' and add it to the solution..."
+    $InfrastructureProjectPath = Join-Path $BACKEND_DIR "Infrastructure"
+    dotnet new classlib -o $InfrastructureProjectPath -n Infrastructure
+    dotnet sln $BACKEND_DIR add $InfrastructureProjectPath\Infrastructure.csproj
+
+    $directories = @("DataAccess")
+    foreach ($dir in $directories) {
+        Write-Host "Creating directory '$dir' inside Class Library 'Infrastructure'..."
+        $DirPath = Join-Path $InfrastructureProjectPath $dir
+        New-Item -ItemType Directory -Force -Path $DirPath
+    
+        Write-Host "Creating dummy cs file in '$dir'..."
+        $DummyFilePath = Join-Path $DirPath "dummyDbContext.cs"
+        New-Item -ItemType File -Path $DummyFilePath -Force
+        $DummyFilePath = Join-Path $DirPath "dummyRepository.cs"
+        New-Item -ItemType File -Path $DummyFilePath -Force
+    }
+
+
+    # Create Class Library 'Tests'
+    Write-Host "Creating Class Library 'Tests' and add it to the solution..."
+    $TestsProjectPath = Join-Path $BACKEND_DIR "Tests"
+    dotnet new classlib -o $TestsProjectPath -n Tests
+    dotnet sln $BACKEND_DIR add $TestsProjectPath\Tests.csproj
+
     Write-Host ".NET backend project created."
 } else {
     Write-Host ".NET backend directory '${BACKEND_DIR}' already exists; skipping creation."
 }
+
 
 #############################################
 # Verify Node and npm Versions for React Frontend (if applicable)
@@ -143,6 +233,8 @@ if ($installed_npm -ne $required_npm) {
 } else {
     Write-Host "npm version $installed_npm is as expected."
 }
+
+
 
 #############################################
 # Final Message
