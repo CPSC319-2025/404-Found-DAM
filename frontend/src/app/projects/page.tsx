@@ -18,7 +18,7 @@ export default function ProjectsPage() {
 			<div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
 				{projects.map(project => (
 					<div key={project.id} className="w-full h-full">
-						<ProjectCard id={project.id} name={project.name} />
+						<ProjectCard id={`project-${project.id}`} name={project.name} />
 					</div>
 				))}
 			</div>
