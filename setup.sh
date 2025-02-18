@@ -1,113 +1,104 @@
-#!/bin/bash
-set -e
+# Setup Script for Windows 10 using PowerShell
+$ErrorActionPreference = "Stop"
 
-# --- Ensure the script runs on macOS ---
-if [[ "$OSTYPE" != "darwin"* ]]; then
-    echo "This setup script is only intended for macOS (Darwin). Exiting."
-    exit 1
-fi
+
 
 #############################################
 # Configuration Variables and Versions
 #############################################
-# MySQL Docker container settings
-MYSQL_ROOT_PASSWORD="YourRootPass"
-MYSQL_DATABASE="MyProjectDB"
-MYSQL_USER="MyUser"
-MYSQL_PASSWORD="MyUser@Passw0rd"
-CONTAINER_NAME="mysql_dev"
-MYSQL_PORT=3306
-MYSQL_IMAGE="mysql:8.0.33"  # Using MySQL 8.0.33
+$MYSQL_ROOT_PASSWORD = "YourRootPass"
+$MYSQL_DATABASE = "MyProjectDB"
+$MYSQL_USER = "MyUser"
+$MYSQL_PASSWORD = "MyUser@Passw0rd"
+$CONTAINER_NAME = "mysql_dev"
+$MYSQL_PORT = 3306
+$MYSQL_IMAGE = "mysql:8.0.33"  # Using MySQL 8.0.33
 
-# Azure Storage connection string (if applicable)
-export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=yourstorageaccount;AccountKey=yourAccountKey;EndpointSuffix=core.windows.net"
-export AZURE_STORAGE_CONTAINER="dam-assets-container"
-export ENVIRONMENT="Production"
+$AZURE_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=yourstorageaccount;AccountKey=yourAccountKey;EndpointSuffix=core.windows.net"
+$AZURE_STORAGE_CONTAINER = "dam-assets-container"
+$ENVIRONMENT = "Production"
 
-# Versions for .NET and Node.js (for React)
-DOTNET_VERSION="7.0.100"   # Expected .NET SDK version
-NODE_VERSION="18.16.0"     # Expected Node.js version
+# .NET and Node.js versions
+$DOTNET_VERSION = "7.0.100"
+$NODE_VERSION = "18.16.0"
 
-echo "Setting environment variables and configuration..."
-echo "MySQL container will run on port ${MYSQL_PORT}"
-echo "Using .NET SDK version ${DOTNET_VERSION} and Node.js version ${NODE_VERSION}"
+Write-Host "Setting environment variables and configuration..."
+Write-Host "MySQL container will run on port ${MYSQL_PORT}"
+Write-Host "Using .NET SDK version ${DOTNET_VERSION} and Node.js version ${NODE_VERSION}"
 
 #############################################
-# Ensure Homebrew is Installed
+# Check if Docker is Installed
 #############################################
-if ! command -v brew &> /dev/null; then
-    echo "Error: Homebrew is required but not installed. Please install Homebrew from https://brew.sh/ and re-run this script."
+Write-Host "Checking for Docker installation..."
+if (-Not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: Docker is not installed. Please install Docker for Windows and re-run this script."
     exit 1
-fi
-
-#############################################
-# Install .NET SDK via Homebrew (if not installed)
-#############################################
-if ! command -v dotnet &> /dev/null; then
-    echo "Installing .NET SDK (expected version ${DOTNET_VERSION}) via Homebrew..."
-    brew install --cask dotnet-sdk
-else
-    echo ".NET SDK is already installed: $(dotnet --version)"
-fi
-
-#############################################
-# Install Node.js via Homebrew (if not installed)
-#############################################
-if ! command -v node &> /dev/null; then
-    echo "Installing Node.js (expected version ${NODE_VERSION}) via Homebrew..."
-    brew install node
-else
-    echo "Node.js is already installed: $(node --version)"
-fi
-
-#############################################
-# Check for Docker Installation
-#############################################
-if ! command -v docker &> /dev/null; then
-    echo "Error: Docker is not installed. Please install Docker for Mac and re-run this script."
-    exit 1
-fi
+}
 
 #############################################
 # Start/Restart MySQL Docker Container
 #############################################
-echo "Setting up MySQL container '${CONTAINER_NAME}'..."
-if [ "$(docker ps -a -q -f name=${CONTAINER_NAME})" ]; then
-    echo "Removing existing container named ${CONTAINER_NAME}..."
-    docker rm -f ${CONTAINER_NAME}
-fi
+Write-Host "Setting up MySQL container '${CONTAINER_NAME}'..."
+$existingContainer = docker ps -a -q -f "name=${CONTAINER_NAME}"
+if ($existingContainer) {
+    Write-Host "Removing existing container named ${CONTAINER_NAME}..."
+    docker rm -f $existingContainer
+}
 
-echo "Starting MySQL container '${CONTAINER_NAME}' with image ${MYSQL_IMAGE}..."
-docker run --name ${CONTAINER_NAME} \
-  -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
-  -e MYSQL_DATABASE=${MYSQL_DATABASE} \
-  -e MYSQL_USER=${MYSQL_USER} \
-  -e MYSQL_PASSWORD=${MYSQL_PASSWORD} \
-  -p ${MYSQL_PORT}:3306 \
-  -d ${MYSQL_IMAGE}
+Write-Host "Starting MySQL container '${CONTAINER_NAME}' with image ${MYSQL_IMAGE}..."
+docker run --name $CONTAINER_NAME `
+  -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD `
+  -e MYSQL_DATABASE=$MYSQL_DATABASE `
+  -e MYSQL_USER=$MYSQL_USER `
+  -e MYSQL_PASSWORD=$MYSQL_PASSWORD `
+  -p $MYSQL_PORT:3306 `
+  -d $MYSQL_IMAGE
 
-echo "Waiting for MySQL to initialize (this may take a few seconds)..."
-sleep 30
+Write-Host "Waiting for MySQL to initialize (this may take a few seconds)..."
+Start-Sleep -Seconds 30
 
-echo "MySQL container '${CONTAINER_NAME}' is now running."
-echo "Connection details:"
-echo "  Host: localhost"
-echo "  Port: ${MYSQL_PORT}"
-echo "  Database: ${MYSQL_DATABASE}"
-echo "  User: ${MYSQL_USER}"
-echo "  Password: ${MYSQL_PASSWORD}"
+Write-Host "MySQL container '${CONTAINER_NAME}' is now running."
+Write-Host "Connection details:"
+Write-Host "  Host: localhost"
+Write-Host "  Port: $MYSQL_PORT"
+Write-Host "  Database: $MYSQL_DATABASE"
+Write-Host "  User: $MYSQL_USER"
+Write-Host "  Password: $MYSQL_PASSWORD"
+
+#############################################
+# Install .NET SDK (via Winget or direct installer)
+#############################################
+Write-Host "Checking if .NET SDK is installed..."
+if (-Not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing .NET SDK (version $DOTNET_VERSION)..."
+    winget install --id Microsoft.DotNet.SDK -e --source winget
+} else {
+    Write-Host ".NET SDK is already installed: $(dotnet --version)"
+}
+
+#############################################
+# Install Node.js (via Winget or direct installer)
+#############################################
+Write-Host "Checking if Node.js is installed..."
+if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing Node.js (version $NODE_VERSION)..."
+    winget install --id OpenJS.NodeJS -e --source winget
+} else {
+    Write-Host "Node.js is already installed: $(node --version)"
+}
 
 #############################################
 # Create .NET Backend Project
 #############################################
-BACKEND_DIR="dotnet-backend"
-if [ ! -d "${BACKEND_DIR}" ]; then
-    echo "Creating .NET backend project in '${BACKEND_DIR}'..."
-    mkdir "${BACKEND_DIR}"
-    pushd "${BACKEND_DIR}" > /dev/null
+$BACKEND_DIR = "dotnet-backend"
+if (-Not (Test-Path $BACKEND_DIR)) {
+    Write-Host "Creating .NET backend project in '${BACKEND_DIR}'..."
+    New-Item -ItemType Directory -Force -Path $BACKEND_DIR
+    Set-Location $BACKEND_DIR
     dotnet new webapi --no-https -o .
+    
     # Create appsettings.json with MySQL connection string
-    cat > appsettings.json <<EOF
+    $appsettings = @"
 {
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Port=${MYSQL_PORT};Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};"
@@ -120,64 +111,43 @@ if [ ! -d "${BACKEND_DIR}" ]; then
     }
   }
 }
-EOF
-    popd > /dev/null
-    echo ".NET backend project created."
-else
-    echo ".NET backend directory '${BACKEND_DIR}' already exists; skipping creation."
-fi
+"@
+    $appsettings | Set-Content -Path "appsettings.json"
+    Set-Location -Path ".."  # Go back to previous directory
+    Write-Host ".NET backend project created."
+} else {
+    Write-Host ".NET backend directory '${BACKEND_DIR}' already exists; skipping creation."
+}
 
 #############################################
-# Check node version before creating React Frontend Project
+# Verify Node and npm Versions for React Frontend (if applicable)
 #############################################
-# FRONTEND_DIR="react-frontend"
-# if [ ! -d "${FRONTEND_DIR}" ]; then
-#     echo "Creating React frontend project in '${FRONTEND_DIR}'..."
-#     mkdir "${FRONTEND_DIR}"
-#     pushd "${FRONTEND_DIR}" > /dev/null
-#     # Use create-react-app to scaffold the project
-#     npx create-react-app . --template cra-template
-#     popd > /dev/null
-#     echo "React frontend project created."
-# else
-#     echo "React frontend directory '${FRONTEND_DIR}' already exists; skipping creation."
-# fi
-
-#############################################
-# Verify Node and npm Versions for React Frontend
-#############################################
-echo "Verifying Node and npm versions for the React frontend..."
+Write-Host "Verifying Node and npm versions for the React frontend..."
 
 # Required versions
-required_node="18.18.0"
-required_npm="9.8.1"
+$required_node = "18.18.0"
+$required_npm = "9.8.1"
 
-# Get the installed versions (strip the leading "v" from Node's version)
-installed_node=$(node --version | sed 's/^v//')
-installed_npm=$(npm --version)
+$installed_node = node --version
+$installed_npm = npm --version
 
-# Check Node version
-if [ "$installed_node" != "$required_node" ]; then
-    echo "Warning: Your Node version is $installed_node. This project requires Node v$required_node."
-else
-    echo "Node version v$installed_node is as expected."
-fi
+if ($installed_node -ne "v$required_node") {
+    Write-Host "Warning: Your Node version is $installed_node. This project requires Node v$required_node."
+} else {
+    Write-Host "Node version $installed_node is as expected."
+}
 
-# Check npm version
-if [ "$installed_npm" != "$required_npm" ]; then
-    echo "Warning: Your npm version is $installed_npm. This project requires npm v$required_npm."
-else
-    echo "npm version v$installed_npm is as expected."
-fi
-
+if ($installed_npm -ne $required_npm) {
+    Write-Host "Warning: Your npm version is $installed_npm. This project requires npm v$required_npm."
+} else {
+    Write-Host "npm version $installed_npm is as expected."
+}
 
 #############################################
 # Final Message
 #############################################
-echo "--------------------------------------------------"
-echo "Setup complete!"
-echo "MySQL container '${CONTAINER_NAME}' is running."
-echo ".NET backend project is in the '${BACKEND_DIR}' directory."
-echo "React frontend project is in the '${FRONTEND_DIR}' directory."
-echo "Remember to update your backend code to connect to MySQL using the connection string in appsettings.json."
-echo "--------------------------------------------------"
+Write-Host "--------------------------------------------------"
+Write-Host "Setup complete!"
+Write-Host "MySQL container '${CONTAINER_NAME}' is running."
+Write-Host ".NET backend project is in the '${BACKEND_DIR}' directory."
+Write-Host "--------------------------------------------------"
