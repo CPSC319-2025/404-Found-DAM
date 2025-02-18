@@ -21,6 +21,42 @@ const ProjectsTable = () => {
 
 	return (
 		<div>
+			<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 bg-white w-full h-full p-3">
+				<div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
+					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+						<select className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<option value="">Filter by Status</option>
+							<option value="active">Active</option>
+							<option value="inactive">Inactive</option>
+						</select>
+					</div>
+					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+						<select className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+							<option value="">Filter by Posted By</option>
+							<option value="user1">User 1</option>
+							<option value="user2">User 2</option>
+							<option value="user3">User 3</option>
+						</select>
+					</div>
+					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+						<input
+							type="date"
+							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							placeholder="Filter by Date"
+						/>
+					</div>
+					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+						<input
+							type="text"
+							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							placeholder="Search by Tags"
+						/>
+					</div>
+					<button className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap">
+						Apply Filters
+					</button>
+				</div>
+			</div>
 			<div className="overflow-x-auto">
 				<table className="min-w-full bg-white border border-gray-200">
 					<thead className="bg-gray-50">
