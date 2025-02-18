@@ -5,5 +5,9 @@ type ProjectPageProps = {
 };
 
 export default function ProjectPage({ params }: ProjectPageProps) {
-	return <ProjectsTable />;
+	return (
+		<div className="p-6 min-h-screen">
+			<ProjectsTable />
+		</div>
+	);
 }
