@@ -19,19 +19,32 @@ const ProjectsTable = () => {
 		setCurrentPage(page);
 	};
 
+	const [selectedStatus, setSelectedStatus] = useState('');
+	const [selectedPostedBy, setSelectedPostedBy] = useState('');
+	const [selectedDate, setSelectedDate] = useState('');
+	const [searchTags, setSearchTags] = useState('');
+
 	return (
 		<div>
 			<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 bg-white w-full h-full p-3">
 				<div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
 					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-						<select className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+						<select
+							className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							value={selectedStatus}
+							onChange={e => setSelectedStatus(e.target.value)}
+						>
 							<option value="">Filter by Status</option>
 							<option value="active">Active</option>
 							<option value="inactive">Inactive</option>
 						</select>
 					</div>
 					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-						<select className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+						<select
+							className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							value={selectedPostedBy}
+							onChange={e => setSelectedPostedBy(e.target.value)}
+						>
 							<option value="">Filter by Posted By</option>
 							<option value="user1">User 1</option>
 							<option value="user2">User 2</option>
@@ -43,6 +56,8 @@ const ProjectsTable = () => {
 							type="date"
 							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 							placeholder="Filter by Date"
+							value={selectedDate}
+							onChange={e => setSelectedDate(e.target.value)}
 						/>
 					</div>
 					<div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
@@ -50,9 +65,26 @@ const ProjectsTable = () => {
 							type="text"
 							className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 							placeholder="Search by Tags"
+							value={searchTags}
+							onChange={e => setSearchTags(e.target.value)}
 						/>
 					</div>
-					<button className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap">
+					<button
+						disabled={
+							!selectedStatus &&
+							!selectedPostedBy &&
+							!selectedDate &&
+							!searchTags
+						}
+						className={`w-full md:w-auto px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap ${
+							!selectedStatus &&
+							!selectedPostedBy &&
+							!selectedDate &&
+							!searchTags
+								? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+								: 'bg-indigo-600 text-white hover:bg-blue-600'
+						}`}
+					>
 						Apply Filters
 					</button>
 				</div>
