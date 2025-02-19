@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { ReactNode } from "react";
-import { ViewfinderCircleIcon, ChartBarIcon, ArrowUpTrayIcon, UsersIcon } from '@heroicons/react/24/solid';
+import {
+  ViewfinderCircleIcon,
+  ChartBarIcon,
+  ArrowUpTrayIcon,
+  UsersIcon,
+} from "@heroicons/react/24/solid";
 
 interface Page {
   path: string;

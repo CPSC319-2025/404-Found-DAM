@@ -1,8 +1,8 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 interface ProjectCardProps {
-	name: string;
-	id: string;
+  name: string;
+  id: string;
 }
 
 const isAdmin = true;

@@ -1,7 +1,7 @@
-import ProjectsTable from '../components/ProjectsTable';
+import ProjectsTable from "../components/ProjectsTable";
 
 type ProjectPageProps = {
-	params: { slug: string };
+  params: { slug: string };
 };
 
 export default function ProjectPage({ params }: ProjectPageProps) {

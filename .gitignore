@@ -2,3 +2,5 @@
 
 # User-specific files
 .vs/
+.bin/
+.obj/
