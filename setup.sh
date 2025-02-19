@@ -25,7 +25,7 @@ export AZURE_STORAGE_CONTAINER="dam-assets-container"
 export ENVIRONMENT="Production"
 
 # Versions for .NET and Node.js (for React)
-DOTNET_VERSION="7.0.100"   # Expected .NET SDK version
+DOTNET_VERSION="8.0.100"   # Expected .NET SDK version
 NODE_VERSION="18.16.0"     # Expected Node.js version
 
 echo "Setting environment variables and configuration..."
