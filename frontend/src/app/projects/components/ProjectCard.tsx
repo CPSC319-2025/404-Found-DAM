@@ -1,9 +1,11 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 interface ProjectCardProps {
-	name: string;
-	id: string;
+  name: string;
+  id: string;
 }
+
+const isAdmin = true;
 
 export default function ProjectCard({ name, id }: ProjectCardProps) {
 	return (
@@ -31,7 +33,11 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
 								</p>
 							</div>
 						</div>
-						<div className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer">
+						<Link 
+							href={`/projects/edit/${id}`} 
+							onClick={(e) => e.stopPropagation() }
+							className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 24 24"
@@ -39,12 +45,12 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
 								className="size-6"
 							>
 								<path
-									fill-rule="evenodd"
+									fillRule="evenodd"
 									d="M10.5 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
-									clip-rule="evenodd"
+									clipRule="evenodd"
 								/>
 							</svg>
-						</div>
+						</Link>
 					</div>
 					<div>
 						<div className="flex justify-between items-center">
