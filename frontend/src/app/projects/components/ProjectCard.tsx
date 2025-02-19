@@ -5,6 +5,8 @@ interface ProjectCardProps {
 	id: string;
 }
 
+const isAdmin = true;
+
 export default function ProjectCard({ name, id }: ProjectCardProps) {
 	return (
 		<Link href={`/projects/${id}`} passHref>
@@ -31,7 +33,11 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
 								</p>
 							</div>
 						</div>
-						<div className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer">
+						<Link 
+							href={`/projects/edit/${id}`} 
+							onClick={(e) => e.stopPropagation() }
+							className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer"
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 24 24"
@@ -44,7 +50,7 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
 									clipRule="evenodd"
 								/>
 							</svg>
-						</div>
+						</Link>
 					</div>
 					<div>
 						<div className="flex justify-between items-center">

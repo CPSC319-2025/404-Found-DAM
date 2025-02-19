@@ -13,6 +13,20 @@ const projects = [
   { id: "5", name: "Project Five" },
 ];
 
+const newProjectFormFields = [
+	{ name: "name", label: "Project Name", type: "text", placeholder: "Enter project name", required: true },
+	{ name: "location", label: "Project Location", type: "text", placeholder: "Enter project location", required: true },
+	{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)", required: true },
+	{
+		name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
+		options: [{ id: 0, name: "dave" }, { id: 1, name: "nehemiah" }, { id: 2, name: "susan" }]
+	},
+	{
+		name: "users", label: "Users", type: "select", isMultiSelect: true, 
+		options: [{ id: 0, name: "alice" }, { id: 1, name: "bob" }, { id: 2, name: "charlie" }]
+	},
+];
+
 const isSuperAdmin = true;
 
 export default function ProjectsPage() {
@@ -24,20 +38,6 @@ export default function ProjectsPage() {
     setProjectList([...projectList, newProject]);
     setNewProjectModalOpen(false);
   };
-
-	const fields = [
-		{ name: "name", label: "Project Name", type: "text", placeholder: "Enter project name", required: true },
-		{ name: "location", label: "Project Location", type: "text", placeholder: "Enter project location", required: true },
-		{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)", required: true },
-		{
-			name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
-			options: [{ id: 0, name: "dave" }, { id: 1, name: "ben" }, { id: 2, name: "susan" }]
-		},
-		{
-			name: "users", label: "Users", type: "select", isMultiSelect: true, 
-			options: [{ id: 0, name: "alice" }, { id: 1, name: "bob" }, { id: 2, name: "charlie" }]
-		},
-	];
 
   return (
     <div className="p-6 min-h-screen">
@@ -65,7 +65,7 @@ export default function ProjectsPage() {
       {newProjectModalOpen && (
         <GenericForm
 					title="Create New Project"
-          fields={fields}
+          fields={newProjectFormFields}
           onSubmit={handleAddProject}
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"

@@ -6,7 +6,7 @@ interface Field {
   label: string;
   type: string;
   placeholder?: string;
-  value?: string | string[];
+  value?: string | number | string[];
   isMulti?: boolean;
   isMultiSelect?: boolean;
   required?: boolean;
@@ -19,6 +19,7 @@ interface GenericFormProps {
   onSubmit: (formData: Record<string, string | string[]>) => void;
   onCancel: () => void;
   submitButtonText: string;
+  isModal?: boolean; 
 }
 
 export default function GenericForm({
@@ -27,16 +28,22 @@ export default function GenericForm({
   onSubmit,
   onCancel,
   submitButtonText,
+  isModal = true,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
   const initialState = fields.reduce((acc, field) => {
-    acc[field.name] = field.value || (field.isMulti || field.isMultiSelect ? [] : "");
+    if (field.isMulti || field.isMultiSelect) {
+      acc[field.name] = Array.isArray(field.value) ? field.value : [];
+    } else {
+      acc[field.name] = field.value || "";
+    }
     return acc;
   }, {} as Record<string, string | string[]>);
 
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [hasEdited, setHasEdited] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,6 +57,10 @@ export default function GenericForm({
     });
 
     setFormData((prevData) => ({ ...prevData, [name]: value }));
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
   };
 
   const handleMultiValueChange = (e: React.KeyboardEvent<HTMLInputElement>, name: string) => {
@@ -81,6 +92,10 @@ export default function GenericForm({
           return updatedErrors;
         });
       }
+
+      if (!hasEdited) {
+        setHasEdited(() => true);
+      }
     }
   };
 
@@ -89,6 +104,10 @@ export default function GenericForm({
       ...prevData,
       [name]: (prevData[name] as string[]).filter((e) => e !== entry),
     }));
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
   };
 
   const validateForm = () => {
@@ -137,6 +156,10 @@ export default function GenericForm({
       }
       return updatedErrors;
     });
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
   };
 
   const handleRemove = (selectedList: any[], name: string) => {
@@ -144,24 +167,30 @@ export default function GenericForm({
       ...prevData,
       [name]: selectedList.map((item) => item.id),
     }));
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
   };
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        onCancel();
+    if (isModal) {
+      function handleClickOutside(event: MouseEvent) {
+        if (formRef.current && !formRef.current.contains(event.target as Node)) {
+          onCancel();
+        }
       }
-    }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [onCancel]);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [onCancel, isModal]);
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
-      <div ref={formRef} className="bg-white p-6 rounded shadow-lg w-96">
+    <div className={isModal ? "fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center" : "container mx-auto p-0"}>
+      <div ref={formRef} className={isModal ? "bg-white p-6 rounded shadow-lg w-96" : "bg-white p-6 shadow-lg max-w-lg mr-auto"}>
         <h2 className="text-xl font-bold mb-4">{title}</h2>
 
         <form onSubmit={handleSubmit}>
@@ -173,6 +202,9 @@ export default function GenericForm({
               {field.isMultiSelect ? (
                 <Multiselect
                   options={field.options || []}
+                  selectedValues={field.options?.filter((option) => 
+                    formData[field.name].includes(option.id)
+                  )}
                   onSelect={(selectedList) => handleSelect(selectedList, field.name)}
                   onRemove={(selectedList) => handleRemove(selectedList, field.name)}
                   displayValue="name"
@@ -192,10 +224,7 @@ export default function GenericForm({
                   />
                   <div className="flex flex-wrap mt-2">
                     {(formData[field.name] as string[]).map((entry, index) => (
-                      <span
-                        key={index}
-                        className="chip"
-                      >
+                      <span key={index} className="chip">
                         {entry}
                         <button
                           type="button"
@@ -228,17 +257,10 @@ export default function GenericForm({
           <div><i className="opacity-50">* Required field</i></div>
 
           <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="bg-gray-300 text-black p-2 rounded"
-            >
+            {(isModal || hasEdited) && <button type="button" onClick={onCancel} className="bg-gray-300 text-black p-2 rounded">
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="bg-blue-500 text-white p-2 rounded"
-            >
+            </button>}
+            <button type="submit" className="bg-blue-500 text-white p-2 rounded">
               {submitButtonText}
             </button>
           </div>
