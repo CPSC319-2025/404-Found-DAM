@@ -30,10 +30,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <div className="flex min-h-screen flex-col sm:flex-row">
-          <Navbar/>
-          <main className="p-4 flex-1 mt-20 sm:mt-0 md:sm-64">
-            {children}
-          </main>
+          <Navbar />
+          <main className="p-4 flex-1 mt-20 sm:mt-0 md:sm-64">{children}</main>
         </div>
       </body>
     </html>
