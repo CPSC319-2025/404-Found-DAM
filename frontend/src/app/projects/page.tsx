@@ -19,11 +19,11 @@ const newProjectFormFields = [
 	{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)", required: true },
 	{
 		name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
-		options: [{ id: 0, name: "dave" }, { id: 1, name: "nehemiah" }, { id: 2, name: "susan" }]
+		options: [{ id: "0", name: "dave" }, { id: "1", name: "nehemiah" }, { id: "2", name: "susan" }]
 	},
 	{
 		name: "users", label: "Users", type: "select", isMultiSelect: true, 
-		options: [{ id: 0, name: "alice" }, { id: 1, name: "bob" }, { id: 2, name: "charlie" }]
+		options: [{ id: "0", name: "alice" }, { id: "1", name: "bob" }, { id: "2", name: "charlie" }]
 	},
 ];
 

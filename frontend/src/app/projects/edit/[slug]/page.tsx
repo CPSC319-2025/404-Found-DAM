@@ -15,14 +15,26 @@ const editProjectFormFields = [
 	},
 	{
 		name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
-		options: [{ id: 0, name: "dave" }, { id: 1, name: "nehemiah" }, { id: 2, name: "susan" }],
-		value: [2]
+		options: [{ id: "0", name: "dave" }, { id: "1", name: "nehemiah" }, { id: "2", name: "susan" }],
+		value: ["2"]
 	},
 	{
 		name: "users", label: "Users", type: "select", isMultiSelect: true, 
-		options: [{ id: 0, name: "alice" }, { id: 1, name: "bob" }, { id: 2, name: "charlie" }],
-		value: [0, 1]
+		options: [{ id: "0", name: "alice" }, { id: "1", name: "bob" }, { id: "2", name: "charlie" }],
+		value: ["0", "1"]
 	},
+	{
+    name: "metadata",
+    label: "Custom Metadata",
+    type: "custom",
+    isCustomMetadata: true,
+    value: [
+			{ id: "0", name: "Photo Taker", type: "string", enabled: true },
+			{ id: "1", name: "Obsolete", type: "boolean", enabled: false },
+			{ id: "2", name: "Day of week", type: "number", enabled: true }
+		],
+		// TODO: handle duplicate names (maybe just handle on backend)
+  },
 ];
 
 interface MetadataField {
@@ -31,10 +43,16 @@ interface MetadataField {
 	type: string;
 }
 
+const isNewMetadataField = id => typeof id === 'string' && id.startsWith("new_");
+
 export default function ProjectPage({ params }: ProjectPageProps) {
 	const handleEditProject = (formData) => { 
+		const newMetadataFields = formData.metadata?.filter(item => isNewMetadataField(item.id)) ?? [];
+		const existingMetadataFields = formData.metadata?.filter(item => !isNewMetadataField(item.id)) ?? [];
+
+		// TODO: when submitting, we need to separate in query
+		console.log({ newMetadataFields, existingMetadataFields })
 		window.location.reload();
-		// TODO: add new metadata field (choose name + type)
 	};
 
 	const onCancel = () => {
@@ -42,7 +60,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 	}
 
 	return (
-		<div className="p-6 min-h-screen">
+		<div className="sm:p-6 min-h-screen">
       <h1 className="text-2xl fond-bold mb-4">{"Edit Project: " + params.slug}</h1>
 			<GenericForm
 				isModal={false}

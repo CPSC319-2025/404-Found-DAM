@@ -1,16 +1,26 @@
 import { useState, useRef, useEffect } from "react";
 import Multiselect from "multiselect-react-dropdown";
 
+type AvailableFieldTypes = "number" | "string" | "boolean";
+
+interface CustomMetadataField {
+  id: string;
+  name: string;
+  type: AvailableFieldTypes;
+  enabled: boolean;
+}
+
 interface Field {
   name: string;
   label: string;
   type: string;
   placeholder?: string;
-  value?: string | number | string[];
+  value?: string | string[] | CustomMetadataField[];
   isMulti?: boolean;
   isMultiSelect?: boolean;
+  isCustomMetadata?: boolean; // hardcoding this type for now. Cant really think of reason to make more generic
   required?: boolean;
-  options?: { name: string; id: string | number }[];
+  options?: { name: string; id: number }[]; // TODO: this may need to change depending on database!
 }
 
 interface GenericFormProps {
@@ -110,6 +120,45 @@ export default function GenericForm({
     }
   };
 
+  const handleComplexChange = (
+    index: number,
+    fieldName: string,
+    key: keyof CustomMetadataField,
+    value: string
+  ) => {
+    setFormData((prevData) => {
+      const updatedArray = [...(prevData[fieldName] as CustomMetadataField[])];
+      updatedArray[index] = { ...updatedArray[index], [key]: value };
+      return { ...prevData, [fieldName]: updatedArray };
+    });
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
+  };
+
+  const addComplexEntry = (fieldName: string) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [fieldName]: [...(prevData[fieldName] as CustomMetadataField[]), { id: "new_" + Date.now(), name: "", type: "string", enabled: true }]
+    }));
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
+  };
+
+  const removeComplexEntry = (fieldName: string, index: number) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [fieldName]: (prevData[fieldName] as CustomMetadataField[]).filter((_, i) => i !== index),
+    }));
+
+    if (!hasEdited) {
+      setHasEdited(() => true);
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
@@ -127,6 +176,8 @@ export default function GenericForm({
           }
         }
       }
+
+      // TODO: error for empty metadata field name
     });
 
     return errors;
@@ -190,7 +241,7 @@ export default function GenericForm({
 
   return (
     <div className={isModal ? "fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center" : "container mx-auto p-0"}>
-      <div ref={formRef} className={isModal ? "bg-white p-6 rounded shadow-lg w-96" : "bg-white p-6 shadow-lg max-w-lg mr-auto"}>
+      <div ref={formRef} className={isModal ? "bg-white p-6 rounded shadow-lg w-96" : "bg-white p-6 shadow-lg max-w-xl"}>
         <h2 className="text-xl font-bold mb-4">{title}</h2>
 
         <form onSubmit={handleSubmit}>
@@ -236,6 +287,63 @@ export default function GenericForm({
                       </span>
                     ))}
                   </div>
+                </div>
+              ) : field.isCustomMetadata ? (
+                <div>
+                  {(formData[field.name] as CustomMetadataField[] || []).map((entry, index) => (
+                    <div key={entry.id} className="flex mb-2 items-center border p-2 rounded-md w-full">
+                      <input
+                        type="text"
+                        placeholder="Metadata Name"
+                        value={entry.name}
+                        onChange={(e) => handleComplexChange(index, field.name, "name", e.target.value)}
+                        className="p-2 border rounded w-full sm:max-w-3xs"
+                      />
+
+                      <select
+                        value={entry.type}
+                        onChange={(e) => handleComplexChange(index, field.name, "type", e.target.value)}
+                        className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
+                      >
+                        <option value="string">Text</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Yes / No</option>
+                      </select>
+
+                      <div className="flex items-center ml-2 sm:ml-2 space-x-3">
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={entry.enabled}
+                            onChange={(e) => handleComplexChange(index, field.name, "enabled", e.target.checked)}
+                            className="hidden"
+                          />
+                          <span
+                            className={`w-10 h-5 flex items-center rounded-full p-1 transition duration-300 ${
+                              entry.enabled ? "bg-green-500" : "bg-gray-300"
+                            }`}
+                          >
+                            <span
+                              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition duration-300 ${
+                                entry.enabled ? "translate-x-5" : ""
+                              }`}
+                            ></span>
+                          </span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => removeComplexEntry(field.name, index)}
+                          className="text-red-500"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addComplexEntry(field.name)} className="text-blue-500">
+                    + Add Entry
+                  </button>
                 </div>
               ) : (
                 <input
