@@ -1,0 +1,25 @@
+[
+  {
+    "ContainingType": "APIs.Controllers.ProjectController",
+    "Method": "RetrieveProject",
+    "RelativePath": "projects/{projectID}",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectID",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ],
+    "EndpointName": "RetrieveProject"
+  }
+]
