@@ -231,7 +231,7 @@ export default function UploadPage() {
                         <p className="text-xl mb-2">Drag and Drop here</p>
                         <p className="text-gray-500 mb-4">or</p>
                         <button className="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">
-                            Select files
+                            Select files!
                         </button>
                     </div>
                     <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800">
