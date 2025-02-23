@@ -11,8 +11,12 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectId}/images", GetImages).WithName("GetImages").WithOpenApi();
             app.MapGet("/projects/{projectID}", RetrieveProject).WithName("RetrieveProject").WithOpenApi();
             app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
+            app.MapPost("/projects/{projectId}/assign-images", AddImagesToProject).WithName("AddImagesToProject").WithOpenApi();
             app.MapPost("/projects/{projectId}/images/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
             app.MapPost("/projects/logs", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
+            app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
+            app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+
         }
 
         private static IResult GetImages(string projectID, ITestService projectService)
@@ -38,12 +42,27 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
+        private static IResult AddImagesToProject(ITestService projectService)
+        {
+            return Results.NotFound("stub"); // Stub
+        }
+
         private static IResult AddTagsToAssets(ITestService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
         private static IResult ArchiveProjects(ITestService projectService)
+        {
+            return Results.NotFound("stub"); // Stub
+        }
+
+                private static IResult ExportProject(ExportProjectReq req, ITestService projectService)
+        {
+            return Results.NotFound("stub"); // Stub
+        }
+
+                private static IResult ImportProject(ImportProjectReq req, ITestService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }

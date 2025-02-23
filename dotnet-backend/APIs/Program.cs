@@ -21,6 +21,8 @@ if (app.Environment.IsDevelopment())
 
 // Extension methods to register and group endpoints by controller
 app.MapProjectEndpoints(); 
+app.MapNotificationEndpoints(); 
+app.MapAdminEndpoints(); 
 
 app.Run();
 
