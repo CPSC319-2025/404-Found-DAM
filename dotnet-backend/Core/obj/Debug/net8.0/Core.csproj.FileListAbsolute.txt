@@ -1,0 +1,12 @@
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/bin/Debug/net8.0/Core.deps.json
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/bin/Debug/net8.0/Core.dll
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/bin/Debug/net8.0/Core.pdb
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.AssemblyInfoInputs.cache
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.AssemblyInfo.cs
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.csproj.CoreCompileInputs.cache
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.sourcelink.json
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.dll
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/refint/Core.dll
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/Core.pdb
+/Users/weixu/Desktop/CPSC319AE-DAMtheseanx/404-Found-DAM/dotnet-backend/Core/obj/Debug/net8.0/ref/Core.dll
