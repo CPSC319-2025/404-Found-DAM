@@ -45,10 +45,12 @@ fi
 #############################################
 if ! command -v dotnet &> /dev/null; then
     echo "Installing .NET SDK (expected version ${DOTNET_VERSION}) via Homebrew..."
-    brew install --cask dotnet-sdk
+    brew install dotnet@8
+    echo "export PATH=\"/opt/homebrew/opt/dotnet@8/bin:\$PATH\"" >> ~/.bash_profile
 else
     echo ".NET SDK is already installed: $(dotnet --version)"
 fi
+
 
 #############################################
 # Install Node.js via Homebrew (if not installed)
