@@ -107,6 +107,16 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
+      },
+      "Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Core.dll": {}
+        }
       }
     }
   },
@@ -473,10 +483,16 @@
         "swashbuckle.aspnetcore.swaggerui.6.6.2.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggerui.nuspec"
       ]
+    },
+    "Core/1.0.0": {
+      "type": "project",
+      "path": "../Core/Core.csproj",
+      "msbuildProject": "../Core/Core.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "Core >= 1.0.0",
       "Microsoft.AspNetCore.OpenApi >= 8.0.13",
       "Swashbuckle.AspNetCore >= 6.6.2"
     ]
@@ -513,7 +529,11 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj": {
+              "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

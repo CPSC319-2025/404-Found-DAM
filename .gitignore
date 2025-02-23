@@ -1,6 +1,9 @@
 /.history
+.DS_Store
 
 # User-specific files
 .vs/
-.bin/
-.obj/
+
+# .NET Specific
+bin/
+obj/
