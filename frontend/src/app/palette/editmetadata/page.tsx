@@ -38,37 +38,53 @@ export default function EditMetadataPage() {
 
     return (
         <div className="p-6 min-h-screen">
-            <h1 className="text-2xl font-bold mb-4 text-gray-600">Edit Metadata</h1>
-            <div className="bg-white p-6 rounded shadow-md max-w-lg">
+{/*             <h1 className="bg-gray-200 p-4 mb-4 rounded">Edit Metadata</h1>
+            
+ */}            
+            <div className="bg-gray-200 p-4 mb-4 rounded">
                 <p className="text-lg font-semibold mb-2">Editing metadata for:</p>
-                <p className="text-gray-800 mb-4">{fileData.file.name}</p>
+                <div className="flex items-center mb-4">
+                <label className="block text-gray-700 w-32">File Name:</label>
+                <p className="block text-gray-700 w-32">{fileData.file.name}</p>
+                </div>
+                {/* Description Input */}
+                <div className="flex items-center mb-4">
+                    <label className="block text-gray-700 w-32">Description:</label>
+                    <input
+                        type="text"
+                        className="w-full p-2 border rounded"
+                        placeholder="Enter description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
 
-                <label className="block text-gray-700">Description:</label>
-                <input
-                    type="text"
-                    className="w-full p-2 border rounded mb-4"
-                    placeholder="Enter description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
+                {/* Location Input */}
+                <div className="flex items-center mb-4">
+                    <label className="block text-gray-700 w-32">Location:</label>
+                    <input
+                        type="text"
+                        className="w-full p-2 border rounded"
+                        placeholder="Where was this created?"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                    />
+                </div>
 
-                <label className="block text-gray-700">Location:</label>
-                <input
-                    type="text"
-                    className="w-full p-2 border rounded mb-4"
-                    placeholder="Where was this created?"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                />
+                {/* Tags Input */}
+                <div className="flex items-center mb-4">
+                    <label className="block text-gray-700 w-32">Tags (comma-separated):</label>
+                    <input
+                        type="text"
+                        className="w-full p-2 border rounded"
+                        placeholder="e.g. big, lion, fly"
+                        value={tags}
+                        onChange={(e) => setTags(e.target.value)}
+                    />
+                </div>
 
-                <label className="block text-gray-700">Tags (comma-separated):</label>
-                <input
-                    type="text"
-                    className="w-full p-2 border rounded mb-4"
-                    placeholder="e.g. big, lion, fly"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                />
+                <p className="text-lg font-semibold mb-2">File size:</p>
+                <p className="text-gray-800 mb-4">{fileData.fileSize}</p>
 
                 <button
                     onClick={handleSave}
