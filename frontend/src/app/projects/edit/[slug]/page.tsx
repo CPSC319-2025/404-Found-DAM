@@ -10,9 +10,6 @@ type ProjectPageProps = {
 const editProjectFormFields = [
 	{ name: "location", label: "Project Location", type: "text", placeholder: "Enter project location", required: true, 
 		value: "Vancouver, BC" },
-	{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)",
-		value: ["tag1", "tag2"]
-	},
 	{
 		name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
 		options: [{ id: "0", name: "dave" }, { id: "1", name: "nehemiah" }, { id: "2", name: "susan" }],
@@ -22,6 +19,9 @@ const editProjectFormFields = [
 		name: "users", label: "Users", type: "select", isMultiSelect: true, 
 		options: [{ id: "0", name: "alice" }, { id: "1", name: "bob" }, { id: "2", name: "charlie" }],
 		value: ["0", "1"]
+	},
+	{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)",
+		value: ["tag1", "tag2"]
 	},
 	{
     name: "metadata",
