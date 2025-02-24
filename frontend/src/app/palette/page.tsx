@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import FileTable from "./components";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,12 @@ export default function PalettePage() {
     const router = useRouter();
     const { files, setFiles } = useFileContext();
 
-    // Remove by index
+    // Track dropdown open/close
+    const [showDropdown, setShowDropdown] = useState(false);
+    // Track which project was chosen
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+
+    // Remove a file by index
     function removeFile(index: number) {
         setFiles((prev) => {
             const updated = [...prev];
@@ -19,22 +24,19 @@ export default function PalettePage() {
         });
     }
 
-    // Accept dropped files (optional)
+    // Handle dropped files
     const onDrop = useCallback((acceptedFiles: File[]) => {
         acceptedFiles.forEach((file) => {
             const fileSize = (file.size / 1024).toFixed(2) + " KB";
-
-            // Construct initial FileMetadata
             const fileMeta: FileMetadata = {
                 file,
                 fileSize,
                 description: "",
                 location: "",
-                tags: ["red", 'blue'],
+                tags: [],
             };
 
             if (file.type.startsWith("image/")) {
-                // Load image to get width & height
                 const img = new Image();
                 img.onload = () => {
                     fileMeta.width = img.width;
@@ -43,7 +45,6 @@ export default function PalettePage() {
                 };
                 img.src = URL.createObjectURL(file);
             } else if (file.type.startsWith("video/")) {
-                // Load video to get duration, width & height
                 const video = document.createElement("video");
                 video.preload = "metadata";
                 video.onloadedmetadata = () => {
@@ -54,20 +55,18 @@ export default function PalettePage() {
                 };
                 video.src = URL.createObjectURL(file);
             } else {
-                // Fallback if neither image nor video
                 setFiles((prev) => [...prev, fileMeta]);
             }
         });
     }, [setFiles]);
-
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: { "image/*": [], "video/*": [] },
     });
 
+    // Example upload function
     function handleUpload() {
-        // Example: call some /api route
         fetch("/api/upload-all", { method: "POST" })
             .then((res) => {
                 if (!res.ok) console.error("API call failed");
@@ -77,6 +76,19 @@ export default function PalettePage() {
             .finally(() => router.push("/palette"));
     }
 
+    // Toggle dropdown
+    function handleSelectProject() {
+        setShowDropdown((prev) => !prev);
+    }
+
+    // User picks a project from dropdown
+    function handleProjectChoice(projectName: string) {
+        setSelectedProject(projectName);
+        setShowDropdown(false);
+        console.log("Selected project:", projectName);
+    }
+
+    // Optional: go back
     function handleGoBack() {
         router.push("/upload");
     }
@@ -85,12 +97,62 @@ export default function PalettePage() {
         <div className="p-2 min-h-screen">
             <h1 className="text-2xl font-bold mb-4 text-gray-600">Palette</h1>
 
-            {/* File Table */}
-            <div className="p-0">
+            {/* Table Container */}
+            <div className="p-0 relative">
                 <FileTable files={files} removeFile={removeFile} />
+
+                {/* Button + Project Name Row */}
+                <div className="mt-4 flex items-center w-full">
+                    {/* Left Column: Button + Dropdown */}
+                    <div className="basis-1/3 relative">
+                        <button
+                            onClick={handleSelectProject}
+                            className="bg-slate-200 px-4 py-2 rounded hover:bg-slate-300"
+                        >
+                            Select Project
+                        </button>
+
+                        {showDropdown && (
+                            <div className="absolute left-0 mt-2 w-40 bg-white border border-gray-300 rounded shadow">
+                                <div
+                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleProjectChoice("Project1")}
+                                >
+                                    Project1
+                                </div>
+                                <div
+                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleProjectChoice("Project2")}
+                                >
+                                    Project2
+                                </div>
+                                <div
+                                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleProjectChoice("Project3")}
+                                >
+                                    Project3
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Middle Column: Centered Selected Project */}
+                    <div className="basis-1/3 text-center">
+                        {selectedProject ? (
+                            <span className="text-gray-700 font-bold">
+                Selected Project: {selectedProject}
+              </span>
+                        ) : (
+                            <span className="text-gray-400">No project selected</span>
+                        )}
+                    </div>
+
+                    {/* Right Column: (empty) or add another button */}
+                    <div className="basis-1/3 text-right"></div>
+                </div>
             </div>
 
-            {/* Optional drag-and-drop area */}
+            {/* Drag-and-Drop area (optional) */}
             <div className="flex-grow p-6 flex items-center justify-center">
                 <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
                     <div
@@ -107,7 +169,9 @@ export default function PalettePage() {
                                 <button className="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">
                                     Select files
                                 </button>
-                                <p className="text-sm text-gray-400 mt-2">(Images &amp; Videos Only)</p>
+                                <p className="text-sm text-gray-400 mt-2">
+                                    (Images &amp; Videos Only)
+                                </p>
                             </>
                         )}
                     </div>
@@ -118,12 +182,7 @@ export default function PalettePage() {
                     >
                         Upload Assets
                     </button>
-                    {/*<button*/}
-                    {/*    onClick={handleGoBack}*/}
-                    {/*    className="mt-6 ml-4 px-4 py-2 rounded border border-black text-black hover:bg-gray-100"*/}
-                    {/*>*/}
-                    {/*    Back to Upload*/}
-                    {/*</button>*/}
+
                 </div>
             </div>
         </div>
