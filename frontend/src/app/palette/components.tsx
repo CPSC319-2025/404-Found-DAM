@@ -14,7 +14,6 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
     const { setFiles } = useFileContext();
     const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
-    // Toggle "Select All"
     function handleSelectAll(e: ChangeEvent<HTMLInputElement>) {
         if (e.target.checked) {
             setSelectedIndices(files.map((_, idx) => idx));
@@ -23,7 +22,6 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
         }
     }
 
-    // Toggle single row selection
     function handleSelectRow(index: number) {
         setSelectedIndices((prev) =>
             prev.includes(index)
@@ -32,8 +30,8 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
         );
     }
 
-    // Remove a single tag by index on a FileMetadata
     function handleRemoveTag(fileMeta: FileMetadata, tagIndex: number) {
+        // Remove a specific tag from fileMeta
         setFiles((prevFiles) =>
             prevFiles.map((f) =>
                 f.file.name === fileMeta.file.name
@@ -43,13 +41,12 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
         );
     }
 
-    // Navigate to the editmetadata route (folder: app/palette/editmetadata/page.tsx)
-    function handleEditMetadata(fileName: string) {
-        router.push(`/palette/editmetadata?file=${encodeURIComponent(fileName)}`);
+    function handleEditMetadata(rawFileName: string) {
+        router.push(`/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`);
     }
 
     return (
-        <div className="max-w-[1080px] overflow-auto">
+        <div className=" overflow-auto">
             <table className="min-w-full bg-white border border-gray-200">
                 <thead className="bg-gray-100 text-gray-600">
                 <tr>
@@ -74,10 +71,10 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                     <th className="p-3">Action</th>
                 </tr>
                 </thead>
-
                 <tbody>
                 {files.map((fileMeta, index) => {
-                    const rawFile = fileMeta.file; // the actual File object
+                    const rawFile = fileMeta.file;
+                    const displayName = rawFile.name;
                     const isImage = rawFile.type.startsWith("image/");
                     const isVideo = rawFile.type.startsWith("video/");
 
@@ -90,7 +87,7 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
 
                     return (
                         <tr key={index} className="border-b last:border-none">
-                            {/* Row checkbox */}
+                            {/* Checkbox */}
                             <td className="p-3 text-center">
                                 <input
                                     type="checkbox"
@@ -99,7 +96,7 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                                 />
                             </td>
 
-                            {/* Preview column */}
+                            {/* Preview */}
                             <td className="p-3">
                                 {isImage && previewUrl && (
                                     <img
@@ -117,22 +114,26 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                                 )}
                             </td>
 
-                            {/* File Info */}
-                            <td className="p-3">{rawFile.name}</td>
+                            {/* File name (custom) */}
+                            <td className="p-3">{displayName}</td>
+
+                            {/* File type */}
                             <td className="p-3">{rawFile.type}</td>
+
+                            {/* File size */}
                             <td className="p-3">{fileMeta.fileSize}</td>
 
-                            {/* Tags */}
+                            {/* Tags + remove tag buttons */}
                             <td className="p-3">
                                 {fileMeta.tags.length > 0 ? (
-                                    fileMeta.tags.map((tag, tagIdx) => (
+                                    fileMeta.tags.map((tag, tagIndex) => (
                                         <span
-                                            key={tagIdx}
+                                            key={tagIndex}
                                             className="relative bg-red-400 text-white px-2 py-1 rounded mr-1 inline-flex items-center"
                                         >
                         {tag}
                                             <button
-                                                onClick={() => handleRemoveTag(fileMeta, tagIdx)}
+                                                onClick={() => handleRemoveTag(fileMeta, tagIndex)}
                                                 className="ml-1 text-xs bg-white text-red-500 rounded-full w-4 h-4 flex items-center justify-center font-bold"
                                             >
                           ✕
