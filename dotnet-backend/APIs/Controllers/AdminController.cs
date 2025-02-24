@@ -1,4 +1,5 @@
 ﻿using Core.Interfaces;
+using Core.Entities.Dtos;
 
 // Use Task<T> or Task for async operations
 
@@ -47,7 +48,7 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult UpdateProjectAccessControl(ProjectAcessRequest req, ITestService projectService)
+        private static IResult UpdateProjectAccessControl(UpdateProjectAcessRequest req, ITestService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
