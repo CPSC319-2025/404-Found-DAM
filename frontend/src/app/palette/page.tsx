@@ -65,16 +65,67 @@ export default function PalettePage() {
         accept: { "image/*": [], "video/*": [] },
     });
 
-    // Example upload function
-    function handleUpload() {
-        fetch("/api/upload-all", { method: "POST" })
-            .then((res) => {
-                if (!res.ok) console.error("API call failed");
-                else console.log("API call successful");
-            })
-            .catch((err) => console.error("Error:", err))
-            .finally(() => router.push("/palette"));
+    // When "Upload Assets" is clicked, call the API
+
+    async function handleUpload() {
+        // Check if a project is selected (you might store this in state)
+        if (!selectedProject) {
+            alert("Please select a project first!");
+            return;
+        }
+
+        // Map each FileMetadata into the object your API expects.
+        // Here we generate a random id for each image if not already present.
+        const assignedImages = files.map((fileMeta) => {
+            // Generate an ID using crypto.randomUUID() if available, otherwise fallback.
+            const id =
+                (fileMeta as any).id ||
+                (typeof crypto !== "undefined" && crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : "img-" + Math.random().toString(36).substring(2, 10));
+
+            return {
+                id,
+                filename: fileMeta.file.name,
+                fileSize: fileMeta.fileSize,
+                description: fileMeta.description,
+                location: fileMeta.location,
+                tags: fileMeta.tags,
+                width: fileMeta.width,
+                height: fileMeta.height,
+                duration: fileMeta.duration,
+            };
+        });
+
+        const requestBody = {
+            projectId: selectedProject, // e.g., "proj123"
+            assignedImages,
+        };
+
+        try {
+            const res = await fetch("/projects/assign-images", {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer YOUR_TOKEN_HERE", // Replace with your actual token
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (!res.ok) {
+                console.error("API call failed:", res.status);
+                return;
+            }
+
+            const data = await res.json();
+            console.log("Upload successful:", data);
+            // Optionally navigate or update UI here.
+            router.push("/palette");
+        } catch (err) {
+            console.error("Error in upload:", err);
+        }
     }
+
 
     // Toggle dropdown
     function handleSelectProject() {
@@ -148,7 +199,7 @@ export default function PalettePage() {
                     </div>
 
                     {/* Right Column: (empty) or add another button */}
-                    <div className="basis-1/3 text-right"></div>
+                    <div className="basis-1/3 text-right" />
                 </div>
             </div>
 
@@ -182,7 +233,6 @@ export default function PalettePage() {
                     >
                         Upload Assets
                     </button>
-
                 </div>
             </div>
         </div>
