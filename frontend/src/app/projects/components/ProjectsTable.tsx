@@ -30,7 +30,7 @@ const ProjectsTable = () => {
       name: "",
       status: "active",
       postedBy: "Hoi",
-      datePosted: "2024-01-15",
+      datePosted: "2025-02-26",
       tags: ["sports", "soccer", "ball"],
       thumbnail: "/images/image1.jpg",
       description: "A modern web application with React and TypeScript",
@@ -40,7 +40,7 @@ const ProjectsTable = () => {
       name: "Project Beta",
       status: "active",
       postedBy: "Hoi",
-      datePosted: "2024-01-14",
+      datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image2.jpg",
       description: "Cross-platform mobile app development",
@@ -50,7 +50,7 @@ const ProjectsTable = () => {
       name: "Project Gamma",
       status: "active",
       postedBy: "Hoi",
-      datePosted: "2024-01-13",
+      datePosted: "2025-02-26",
       tags: ["travel", "fast", "usa"],
       thumbnail: "/images/image3.jpg",
       description: "RESTful API service with Node.js",
@@ -60,7 +60,7 @@ const ProjectsTable = () => {
       name: "Project Delta",
       status: "active",
       postedBy: "Hoi",
-      datePosted: "2024-01-12",
+      datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image4.jpg",
       description: "Database optimization and management system",
@@ -70,7 +70,7 @@ const ProjectsTable = () => {
       name: "Project Epsilon",
       status: "active",
       postedBy: "Hoi",
-      datePosted: "2024-01-11",
+      datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image5.jpg",
       description: "AI-powered data analysis platform",
@@ -99,9 +99,7 @@ const ProjectsTable = () => {
               onChange={(e) => setSelectedPostedBy(e.target.value)}
             >
               <option value="">Filter by Posted By</option>
-              <option value="user1">User 1</option>
-              <option value="user2">User 2</option>
-              <option value="user3">User 3</option>
+              <option value="user1">Hoi</option>
             </select>
           </div>
           <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
