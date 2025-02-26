@@ -114,32 +114,28 @@ export default function UploadPage() {
         <Search />
       </div>
 
-
-            <main className="flex-grow p-6 flex items-center justify-center">
-                <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
-                    <div
-                        {...getRootProps()}
-                        className="border-2 border-dashed border-gray-300 p-8 rounded-lg mb-4 cursor-pointer"
-                    >
-                        <input {...getInputProps()} />
-                        {isDragActive ? (
-                            <p className="text-xl text-teal-600">
-                                Drop the files here...
-                            </p>
-                        ) : (
-                            <>
-                                <p className="text-xl mb-2">Drag and Drop here</p>
-                                <p className="text-gray-500 mb-4">or</p>
-                                <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded ">
-                                    Select files
-                                </button>
-                                <p className="text-sm text-gray-400 mt-2">
-                                    (Images &amp; Videos Only)
-                                </p>
-                            </>
-                        )}
-                    </div>
-
+      <main className="flex-grow p-6 flex items-center justify-center">
+        <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
+          <div
+            {...getRootProps()}
+            className="border-2 border-dashed border-gray-300 p-8 rounded-lg mb-4 cursor-pointer"
+          >
+            <input {...getInputProps()} />
+            {isDragActive ? (
+              <p className="text-xl text-teal-600">Drop the files here...</p>
+            ) : (
+              <>
+                <p className="text-xl mb-2">Drag and Drop here</p>
+                <p className="text-gray-500 mb-4">or</p>
+                <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded ">
+                  Select files
+                </button>
+                <p className="text-sm text-gray-400 mt-2">
+                  (Images &amp; Videos Only)
+                </p>
+              </>
+            )}
+          </div>
 
           {/* Display chosen files */}
           {files.length > 0 && (
@@ -155,16 +151,13 @@ export default function UploadPage() {
             </div>
           )}
 
-
-                    {/* Navigate to /palette */}
-                    <button
-                        onClick={handleUpload}
-                        className="mt-6 px-4 py-2 rounded border border-black bg-indigo-600 text-white hover:bg-indigo-700"
-                    >
-                        Upload to Palette
-                    </button>
-                </div>
-            </main>
+          {/* Navigate to /palette */}
+          <button
+            onClick={handleUpload}
+            className="mt-6 px-4 py-2 rounded border border-black bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            Upload to Palette
+          </button>
         </div>
       </main>
     </div>
