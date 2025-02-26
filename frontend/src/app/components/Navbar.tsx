@@ -17,10 +17,34 @@ interface Page {
 const isSuperAdmin = true;
 
 const pages: Page[] = [
-  { path: "projects", title: "Projects", mobileTitle: "Projects", icon: <ViewfinderCircleIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
-  { path: "activity", title: "Activity Monitor", mobileTitle: "Activity", icon: <ChartBarIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
-  { path: "upload", title: "Upload Palette", mobileTitle: "Upload", icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-6 sm:h-6" /> },
-  ...(isSuperAdmin ? [{ path: "users", title: "Users", mobileTitle: "Users", icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" /> }] : [])
+  {
+    path: "projects",
+    title: "Projects",
+    mobileTitle: "Projects",
+    icon: <ViewfinderCircleIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+  },
+  {
+    path: "activity",
+    title: "Activity Monitor",
+    mobileTitle: "Activity",
+    icon: <ChartBarIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+  },
+  {
+    path: "upload",
+    title: "Upload Palette",
+    mobileTitle: "Upload",
+    icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+  },
+  ...(isSuperAdmin
+    ? [
+      {
+        path: "users",
+        title: "Users",
+        mobileTitle: "Users",
+        icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+      },
+    ]
+    : []),
 ];
 
 export default function Navbar() {
