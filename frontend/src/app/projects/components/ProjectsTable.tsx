@@ -8,7 +8,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 const ProjectsTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const totalItems = 5;
+  const totalItems = 7;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleRowClick = (imageId: string) => {
@@ -27,53 +27,59 @@ const ProjectsTable = () => {
   const initialImages = [
     {
       id: "1",
-      name: "",
+      status: "inactive",
+      postedBy: "John Doe",
+      datePosted: "2025-01-26",
+      tags: ["construction", "building"],
+      thumbnail: "/images/image1.jpg",
+    },
+    {
+      id: "2",
+      status: "inactive",
+      postedBy: "Jane Smith",
+      datePosted: "2025-01-29",
+      tags: ["office", "building"],
+      thumbnail: "/images/image2.jpg",
+    },
+    {
+      id: "3",
       status: "active",
       postedBy: "Hoi",
       datePosted: "2025-02-26",
       tags: ["sports", "soccer", "ball"],
-      thumbnail: "/images/image1.jpg",
-      description: "A modern web application with React and TypeScript",
-    },
-    {
-      id: "2",
-      name: "Project Beta",
-      status: "active",
-      postedBy: "Hoi",
-      datePosted: "2025-02-26",
-      tags: [],
-      thumbnail: "/images/image2.jpg",
-      description: "Cross-platform mobile app development",
-    },
-    {
-      id: "3",
-      name: "Project Gamma",
-      status: "active",
-      postedBy: "Hoi",
-      datePosted: "2025-02-26",
-      tags: ["travel", "fast", "usa"],
       thumbnail: "/images/image3.jpg",
-      description: "RESTful API service with Node.js",
     },
     {
       id: "4",
-      name: "Project Delta",
       status: "active",
       postedBy: "Hoi",
       datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image4.jpg",
-      description: "Database optimization and management system",
     },
     {
       id: "5",
-      name: "Project Epsilon",
+      status: "active",
+      postedBy: "Hoi",
+      datePosted: "2025-02-26",
+      tags: ["travel", "fast", "usa"],
+      thumbnail: "/images/image5.jpg",
+    },
+    {
+      id: "6",
       status: "active",
       postedBy: "Hoi",
       datePosted: "2025-02-26",
       tags: [],
-      thumbnail: "/images/image5.jpg",
-      description: "AI-powered data analysis platform",
+      thumbnail: "/images/image6.jpg",
+    },
+    {
+      id: "7",
+      status: "active",
+      postedBy: "Hoi",
+      datePosted: "2025-02-26",
+      tags: [],
+      thumbnail: "/images/image7.jpg",
     },
   ];
 
@@ -162,6 +168,8 @@ const ProjectsTable = () => {
               onChange={(e) => setSelectedPostedBy(e.target.value)}
             >
               <option value="">Filter by Posted By</option>
+              <option value="John Doe">John Doe</option>
+              <option value="Jane Smith">Jane Smith</option>
               <option value="Hoi">Hoi</option>
             </select>
           </div>
