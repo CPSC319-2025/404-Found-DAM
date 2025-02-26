@@ -7,6 +7,7 @@ import FileTable from "./components"; // assumes FileTable is in a file named co
 import { useFileContext, FileMetadata } from "@/app/FileContext";
 
 export default function PalettePage() {
+
     const router = useRouter();
     const { files, setFiles } = useFileContext();
 
@@ -120,7 +121,25 @@ export default function PalettePage() {
         } catch (err) {
             console.error("Error in upload:", err);
         }
+      });
+    },
+    [setFiles]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { "image/*": [], "video/*": [] },
+  });
+
+  // When "Upload Assets" is clicked, call the API
+
+  async function handleUpload() {
+    // Check if a project is selected (you might store this in state)
+    if (!selectedProject) {
+      alert("Please select a project first!");
+      return;
     }
+
 
     function handleSelectProject() {
         setShowDropdown((prev) => !prev);
@@ -227,5 +246,7 @@ export default function PalettePage() {
             </div>
 
         </div>
-    );
+      </div>
+    </div>
+  );
 }

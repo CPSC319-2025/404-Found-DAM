@@ -21,25 +21,25 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-                                     children,
-                                   }: {
+  children,
+}: {
   children: React.ReactNode;
 }) {
   return (
-      <html lang="en">
+    <html lang="en">
       <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-      {/* Wrap entire layout in FileProvider */}
-      <FileProvider>
-        <div className="flex min-h-screen flex-col sm:flex-row">
-          <Navbar />
-          <main className="p-4 flex-1 mt-20 sm:mt-0 md:sm-64">
-            {children}
-          </main>
-        </div>
-      </FileProvider>
+        {/* Wrap entire layout in FileProvider */}
+        <FileProvider>
+          <div className="flex min-h-screen flex-col sm:flex-row">
+            <Navbar />
+            <main className="p-4 flex-1 mt-20 sm:mt-0 md:sm-64">
+              {children}
+            </main>
+          </div>
+        </FileProvider>
       </body>
-      </html>
+    </html>
   );
 }

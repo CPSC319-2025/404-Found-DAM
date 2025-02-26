@@ -6,11 +6,12 @@ import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/FileContext";
 
 type FileTableProps = {
-    files: FileMetadata[];
-    removeFile: (index: number) => void;
+  files: FileMetadata[];
+  removeFile: (index: number) => void;
 };
 
 export default function FileTable({ files, removeFile }: FileTableProps) {
+
     const router = useRouter();
     const { setFiles } = useFileContext();
 
@@ -27,8 +28,9 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
         } else {
             setSelectedIndices([]);
         }
-    }
 
+    }
+  }
     function handleSelectRow(index: number) {
         setSelectedIndices((prev) =>
             prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
