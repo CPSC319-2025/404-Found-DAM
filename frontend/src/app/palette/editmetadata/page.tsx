@@ -27,6 +27,7 @@ export default function EditMetadataPage() {
     const [description, setDescription] = useState(fileData.description || "");
     const [location, setLocation] = useState(fileData.location || "");
     const [tags, setTags] = useState(fileData.tags.join(", ") || "");
+    
 
     function handleSave() {
         // Update context with new metadata

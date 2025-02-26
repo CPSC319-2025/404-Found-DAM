@@ -14,6 +14,12 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
     const { setFiles } = useFileContext();
     const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
+
+    // State to manage dropdown for projects
+    const [showDropdowns, setShowDropdowns] = useState<boolean[]>(new Array(files.length).fill(false));
+    const [selectedProjects, setSelectedProjects] = useState<string[]>(new Array(files.length).fill(""));
+
+
     function handleSelectAll(e: ChangeEvent<HTMLInputElement>) {
         if (e.target.checked) {
             setSelectedIndices(files.map((_, idx) => idx));
@@ -45,6 +51,21 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
         router.push(`/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`);
     }
 
+    function toggleDropdown(index: number) {
+        const updatedDropdowns = [...showDropdowns];
+        updatedDropdowns[index] = !updatedDropdowns[index];
+        setShowDropdowns(updatedDropdowns);
+    }
+
+    // Handle project selection
+    function handleProjectSelect(index: number, projectName: string) {
+        const updatedProjects = [...selectedProjects];
+        updatedProjects[index] = projectName;
+        setSelectedProjects(updatedProjects);
+        setShowDropdowns((prev) => prev.map((_, i) => (i === index ? false : _))); // Close dropdown after selection
+    }
+
+
     return (
         <div className=" overflow-auto">
             <table className="min-w-full bg-white border border-gray-200">
@@ -68,6 +89,7 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                     <th className="p-3">File Size</th>
                     <th className="p-3">Tags</th>
                     <th className="p-3">Edit Metadata</th>
+                    <th className="p-3">Projects</th>
                     <th className="p-3">Action</th>
                 </tr>
                 </thead>
@@ -154,6 +176,39 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                                     Edit Metadata
                                 </button>
                             </td>
+
+                             {/* Project */}
+                             <td className="p-3">
+                                    <button
+                                        onClick={() => toggleDropdown(index)}
+                                        className="bg-gray-600 text-white px-2 py-0.5 rounded"
+                                    >
+                                        {selectedProjects[index] || "Select Project"}
+                                    </button>
+
+                                    {showDropdowns[index] && (
+                                        <div className="absolute bg-white border border-gray-300 rounded mt-2">
+                                            <div
+                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleProjectSelect(index, "Project 1")}
+                                            >
+                                                Project 1
+                                            </div>
+                                            <div
+                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleProjectSelect(index, "Project 2")}
+                                            >
+                                                Project 2
+                                            </div>
+                                            <div
+                                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                                onClick={() => handleProjectSelect(index, "Project 3")}
+                                            >
+                                                Project 3
+                                            </div>
+                                        </div>
+                                    )}
+                                </td>
 
                             {/* Remove File */}
                             <td className="p-3">

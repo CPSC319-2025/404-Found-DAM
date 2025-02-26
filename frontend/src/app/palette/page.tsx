@@ -149,20 +149,26 @@ export default function PalettePage() {
             <h1 className="text-2xl font-bold mb-4 text-gray-600">Palette</h1>
 
             {/* Table Container */}
+            
+            
+            
             <div className="p-0 relative">
                 <FileTable files={files} removeFile={removeFile} />
-
+            
                 {/* Button + Project Name Row */}
                 <div className="mt-4 flex items-center w-full">
                     {/* Left Column: Button + Dropdown */}
                     <div className="basis-1/3 relative">
+
+                        
+                        {/*
                         <button
                             onClick={handleSelectProject}
                             className="bg-slate-200 px-4 py-2 rounded hover:bg-slate-300"
                         >
                             Select Project
                         </button>
-
+                        */}
                         {showDropdown && (
                             <div className="absolute left-0 mt-2 w-40 bg-white border border-gray-300 rounded shadow">
                                 <div
@@ -188,6 +194,7 @@ export default function PalettePage() {
                     </div>
 
                     {/* Middle Column: Centered Selected Project */}
+                    {/*
                     <div className="basis-1/3 text-center">
                         {selectedProject ? (
                             <span className="text-gray-700 font-bold">
@@ -197,12 +204,12 @@ export default function PalettePage() {
                             <span className="text-gray-400">No project selected</span>
                         )}
                     </div>
-
+                    */}
                     {/* Right Column: (empty) or add another button */}
                     <div className="basis-1/3 text-right" />
                 </div>
-            </div>
-
+            </div> 
+            
             {/* Drag-and-Drop area (optional) */}
             <div className="flex-grow p-6 flex items-center justify-center">
                 <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
