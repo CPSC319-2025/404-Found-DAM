@@ -129,7 +129,7 @@ export default function UploadPage() {
                             <>
                                 <p className="text-xl mb-2">Drag and Drop here</p>
                                 <p className="text-gray-500 mb-4">or</p>
-                                <button className="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">
+                                <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded ">
                                     Select files
                                 </button>
                                 <p className="text-sm text-gray-400 mt-2">
@@ -156,7 +156,7 @@ export default function UploadPage() {
                     {/* Navigate to /palette */}
                     <button
                         onClick={handleUpload}
-                        className="mt-6 px-4 py-2 rounded border border-black text-black hover:bg-gray-100"
+                        className="mt-6 px-4 py-2 rounded border border-black bg-indigo-600 text-white hover:bg-indigo-700"
                     >
                         Upload to Palette
                     </button>
