@@ -1,6 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
-using DataModel;
+using Core.Entities;
 
 namespace Infrastructure.DataAccess {
     public class MyDbContext : DbContext {

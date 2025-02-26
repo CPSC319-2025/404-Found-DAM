@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace DataModel
+namespace Core.Entities
 {
     // --------------------------
     // Entity Classes
@@ -15,9 +12,9 @@ namespace DataModel
         [Key]
         public int UserID { get; set; }
         
-        public string Name { get; set; }
+        public required string Name { get; set; }
         
-        public string Email { get; set; }
+        public required string Email { get; set; }
         
         public bool IsSuperAdmin { get; set; }
         
@@ -34,9 +31,9 @@ namespace DataModel
         [Key]
         public int BlobID { get; set; }
         
-        public string FileName { get; set; }
+        public required string FileName { get; set; }
         
-        public string MimeType { get; set; }
+        public required string MimeType { get; set; }
 
         // Foreign keys
         public int ProjectID { get; set; }
@@ -44,10 +41,10 @@ namespace DataModel
         
         // Navigation properties
         [ForeignKey("ProjectID")]
-        public virtual Project Project { get; set; }
+        public virtual Project? Project { get; set; }
         
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public required virtual User User { get; set; }
         
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();
     }
@@ -57,13 +54,13 @@ namespace DataModel
         [Key]
         public int ProjectID { get; set; }
         
-        public string Name { get; set; }
+        public required string Name { get; set; }
         
-        public string Version { get; set; }
+        public required string Version { get; set; }
         
-        public string Location { get; set; }
+        public required string Location { get; set; }
         
-        public string Description { get; set; }
+        public required string Description { get; set; }
         
         public DateTime CreationTime { get; set; }
         
@@ -74,7 +71,7 @@ namespace DataModel
         public virtual ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
         public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
         
-        // Each project can have one Palette
+        // Each project can have one Palette ??
         public virtual Palette Palette { get; set; }
     }
 
@@ -83,7 +80,7 @@ namespace DataModel
         [Key]
         public int LogID { get; set; }
         
-        public string Action { get; set; }
+        public required string Action { get; set; }
         
         public DateTime Timestamp { get; set; }
         
@@ -92,7 +89,7 @@ namespace DataModel
         
         // Navigation property
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public required virtual User User { get; set; }
     }
 
     // Junction table for many-to-many between Project and User.
@@ -102,10 +99,10 @@ namespace DataModel
         public int UserID { get; set; }
         
         [ForeignKey("ProjectID")]
-        public virtual Project Project { get; set; }
+        public required virtual Project Project { get; set; }
         
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public required virtual User User { get; set; }
     }
 
     public class Palette
@@ -116,6 +113,7 @@ namespace DataModel
         // Assume each Palette belongs to a Project.
         public int ProjectID { get; set; }
         
+        // Why project has palette ??
         [ForeignKey("ProjectID")]
         public virtual Project Project { get; set; }
         
@@ -128,13 +126,14 @@ namespace DataModel
         [Key]
         public int FieldID { get; set; }
         
-        public string FieldName { get; set; }
+        public required string FieldName { get; set; }
         
-        public string FieldType { get; set; }
+        public required string FieldType { get; set; }
         
         // Optionally, associate a field with a Palette.
         public int? PaletteID { get; set; }
         
+        // Why metadata has palette ??
         [ForeignKey("PaletteID")]
         public virtual Palette Palette { get; set; }
         
@@ -148,13 +147,13 @@ namespace DataModel
         public int ProjectID { get; set; }
         public int FieldID { get; set; }
         
-        public string FieldValue { get; set; }
+        public required string FieldValue { get; set; }
         
         [ForeignKey("ProjectID")]
-        public virtual Project Project { get; set; }
+        public required virtual Project Project { get; set; }
         
         [ForeignKey("FieldID")]
-        public virtual MetadataField MetadataField { get; set; }
+        public required virtual MetadataField MetadataField { get; set; }
     }
 
     // Junction table between Asset and MetadataField.
@@ -163,13 +162,13 @@ namespace DataModel
         public int BlobID { get; set; }
         public int FieldID { get; set; }
         
-        public string FieldValue { get; set; }
+        public required string FieldValue { get; set; }
         
         [ForeignKey("BlobID")]
-        public virtual Asset Asset { get; set; }
+        public required virtual Asset Asset { get; set; }
         
         [ForeignKey("FieldID")]
-        public virtual MetadataField MetadataField { get; set; }
+        public required virtual MetadataField MetadataField { get; set; }
     }
 
     // Optional: A simple Tag table.
@@ -178,7 +177,7 @@ namespace DataModel
         [Key]
         public int TagID { get; set; }
         
-        public string Name { get; set; }
+        public required string Name { get; set; }
     }
 
 }
