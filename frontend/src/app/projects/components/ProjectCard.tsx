@@ -79,11 +79,11 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
                   </div>
                 ))}
                 <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                  +52
+                  +9
                 </div>
               </div>
               <div className="w-16 h-8 rounded-md bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                128
+                5
               </div>
             </div>
           </div>

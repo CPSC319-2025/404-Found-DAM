@@ -97,7 +97,6 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
-      <h1 className="text-2xl font-semibold mb-4 py-6">Recent Files</h1>
 
       {newProjectModalOpen && (
         <GenericForm
