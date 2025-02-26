@@ -8,7 +8,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 const ProjectsTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const totalItems = 100;
+  const totalItems = 5;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleRowClick = (imageId: string) => {
@@ -23,6 +23,59 @@ const ProjectsTable = () => {
   const [selectedPostedBy, setSelectedPostedBy] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTags, setSearchTags] = useState("");
+
+  const [images] = useState([
+    {
+      id: "1",
+      name: "",
+      status: "active",
+      postedBy: "user1",
+      datePosted: "2024-01-15",
+      tags: ["sports", "soccer", "ball"],
+      thumbnail: "/images/image1.jpg",
+      description: "A modern web application with React and TypeScript",
+    },
+    {
+      id: "2",
+      name: "Project Beta",
+      status: "active",
+      postedBy: "user2",
+      datePosted: "2024-01-14",
+      tags: [],
+      thumbnail: "/images/image2.jpg",
+      description: "Cross-platform mobile app development",
+    },
+    {
+      id: "3",
+      name: "Project Gamma",
+      status: "active",
+      postedBy: "user1",
+      datePosted: "2024-01-13",
+      tags: ["travel", "fast", "usa"],
+      thumbnail: "/images/image3.jpg",
+      description: "RESTful API service with Node.js",
+    },
+    {
+      id: "4",
+      name: "Project Delta",
+      status: "active",
+      postedBy: "user3",
+      datePosted: "2024-01-12",
+      tags: [],
+      thumbnail: "/images/image4.jpg",
+      description: "Database optimization and management system",
+    },
+    {
+      id: "5",
+      name: "Project Epsilon",
+      status: "active",
+      postedBy: "user2",
+      datePosted: "2024-01-11",
+      tags: [],
+      thumbnail: "/images/image5.jpg",
+      description: "AI-powered data analysis platform",
+    },
+  ]);
 
   return (
     <div>
@@ -117,68 +170,82 @@ const ProjectsTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            <tr
-              onClick={() => handleRowClick("IMG_001")}
-              className="cursor-pointer hover:bg-gray-50"
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">IMG_001</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="h-20 w-20 relative">
-                  <Image
-                    src="/images/project1image1.jpeg"
-                    alt="Asset thumbnail"
-                    width={120}
-                    height={120}
-                    className="object-cover rounded w-full h-full"
-                  />
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                2024-03-20
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">John Doe</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex gap-1">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                    landscape
-                  </span>
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                    nature
-                  </span>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                  Active
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex gap-3">
-                  <button
-                    className="text-indigo-600 hover:text-indigo-900"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // EDIT LOGIC
-                    }}
+            {images.map((image) => (
+              <tr
+                key={image.id}
+                onClick={() => handleRowClick(image.id)}
+                className="cursor-pointer hover:bg-gray-50"
+              >
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {image.id}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-20 w-20 relative">
+                    <Image
+                      src={image.thumbnail}
+                      alt={`${image.name} thumbnail`}
+                      width={120}
+                      height={120}
+                      className="object-cover rounded w-full h-full"
+                    />
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {image.datePosted}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">{image.postedBy}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-1">
+                    {image.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      image.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
                   >
-                    <PencilIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    className="text-red-600 hover:text-red-900"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // DELETE LOGIC
-                    }}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
+                    {image.status.charAt(0).toUpperCase() +
+                      image.status.slice(1)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex gap-3">
+                    <button
+                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // EDIT LOGIC
+                      }}
+                    >
+                      <PencilIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      className="text-red-600 hover:text-red-900"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // DELETE LOGIC
+                      }}
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
