@@ -24,7 +24,7 @@ const ProjectsTable = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTags, setSearchTags] = useState("");
 
-  const [images] = useState([
+  const [images, setImages] = useState([
     {
       id: "1",
       name: "",
@@ -237,7 +237,16 @@ const ProjectsTable = () => {
                       className="text-red-600 hover:text-red-900"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // DELETE LOGIC
+                        if (
+                          confirm(
+                            "Are you sure you want to delete this project?"
+                          )
+                        ) {
+                          const updatedImages = images.filter(
+                            (img) => img.id !== image.id
+                          );
+                          setImages(updatedImages);
+                        }
                       }}
                     >
                       <TrashIcon className="h-5 w-5" />
