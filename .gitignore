@@ -1,6 +1,7 @@
 /.history
 
 # User-specific files
-.vs/
-.bin/
-.obj/
+
+
+bin/
+obj/
