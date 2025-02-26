@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
@@ -24,7 +24,7 @@ const ProjectsTable = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTags, setSearchTags] = useState("");
 
-  const [images, setImages] = useState([
+  const initialImages = [
     {
       id: "1",
       name: "",
@@ -75,7 +75,59 @@ const ProjectsTable = () => {
       thumbnail: "/images/image5.jpg",
       description: "AI-powered data analysis platform",
     },
+  ];
+
+  const [originalImages, setOriginalImages] = useState(initialImages);
+  const [images, setImages] = useState(initialImages);
+
+  const applyFilters = useCallback(() => {
+    let filtered = [...originalImages];
+
+    // Status filter
+    if (selectedStatus && selectedStatus !== "All") {
+      filtered = filtered.filter((image) => image.status === selectedStatus);
+    }
+
+    // Posted By filter
+    if (selectedPostedBy) {
+      filtered = filtered.filter(
+        (image) => image.postedBy === selectedPostedBy
+      );
+    }
+
+    // Date filter
+    if (selectedDate) {
+      filtered = filtered.filter((image) => image.datePosted === selectedDate);
+    }
+
+    // Tags filter with multiple tag support
+    if (searchTags) {
+      const tagsArray = searchTags
+        .split(",")
+        .map((tag) => tag.trim().toLowerCase())
+        .filter((tag) => tag.length > 0);
+      if (tagsArray.length > 0) {
+        filtered = filtered.filter((image) =>
+          image.tags.some((tag) =>
+            tagsArray.some((searchTag) => tag.toLowerCase().includes(searchTag))
+          )
+        );
+      }
+    }
+
+    setImages(filtered);
+    setCurrentPage(1); // Reset to first page on filter change
+  }, [
+    originalImages,
+    selectedStatus,
+    selectedPostedBy,
+    selectedDate,
+    searchTags,
   ]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   return (
     <div>
@@ -85,7 +137,18 @@ const ProjectsTable = () => {
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                if (e.target.value === "") {
+                  setImages(originalImages);
+                } else {
+                  const filteredImages = originalImages.filter(
+                    (image) => image.status === e.target.value
+                  );
+                  setImages(filteredImages);
+                }
+                setCurrentPage(1);
+              }}
             >
               <option value="">Filter by Status</option>
               <option value="active">Active</option>
@@ -99,7 +162,7 @@ const ProjectsTable = () => {
               onChange={(e) => setSelectedPostedBy(e.target.value)}
             >
               <option value="">Filter by Posted By</option>
-              <option value="user1">Hoi</option>
+              <option value="Hoi">Hoi</option>
             </select>
           </div>
           <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
@@ -120,24 +183,6 @@ const ProjectsTable = () => {
               onChange={(e) => setSearchTags(e.target.value)}
             />
           </div>
-          <button
-            disabled={
-              !selectedStatus &&
-              !selectedPostedBy &&
-              !selectedDate &&
-              !searchTags
-            }
-            className={`w-full md:w-auto px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap ${
-              !selectedStatus &&
-              !selectedPostedBy &&
-              !selectedDate &&
-              !searchTags
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-indigo-600 text-white hover:bg-blue-600"
-            }`}
-          >
-            Apply Filters
-          </button>
         </div>
       </div>
       <div className="overflow-x-auto">
