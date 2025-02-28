@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Core.Entities;
 
 namespace Infrastructure.DataAccess {
-    public class MyDbContext : DbContext {
-        public MyDbContext(DbContextOptions<MyDbContext> options)
+    public class DAMDbContext : DbContext {
+        public DAMDbContext(DbContextOptions<DAMDbContext> options)
             : base(options)
         { }
 

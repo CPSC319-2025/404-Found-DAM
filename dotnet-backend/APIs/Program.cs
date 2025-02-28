@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.DataAccess;
+using APIs.Controllers;
+using Core.Interfaces;
+// using Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,8 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // dotnet ef migrations add InitialCreate --startup-project ../APIs
-builder.Services.AddDbContext<MyDbContext>(options =>
+builder.Services.AddDbContext<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// builder.Services.AddScoped<ITestService, TestService>();
 
 var app = builder.Build();
 
@@ -20,29 +25,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// Extension methods to register and group endpoints by controller
+app.MapPaletteEndpoints(); 
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
