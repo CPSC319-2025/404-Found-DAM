@@ -184,6 +184,6 @@ echo "React frontend project is in the '${FRONTEND_DIR}' directory."
 echo "Remember to update your backend code to connect to MySQL using the connection string in appsettings.json."
 echo "--------------------------------------------------"
 
-dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
+# dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
 docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-dotnet ef database update --project ../Infrastructure --startup-project .
+dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
