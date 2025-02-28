@@ -1,4 +1,4 @@
-namespace Core.Entities.Dtos
+namespace Core.Dtos
 {
     public class ToggleMetadataStateRequest
     {

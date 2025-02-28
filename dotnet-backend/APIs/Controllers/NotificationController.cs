@@ -1,5 +1,5 @@
 using Core.Interfaces;
-using Core.Entities.Dtos;
+using Core.Dtos;
 
 // Use Task<T> or Task for async operations
 

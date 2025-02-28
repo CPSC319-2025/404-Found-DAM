@@ -3,7 +3,7 @@ using System.IO;
 using System.IO.Compression;
 
 
-namespace Core.Entities.Dtos
+namespace Core.Dtos
 {
     public class ImportProjectReq
     {
