@@ -36,10 +36,10 @@ namespace APIs.Controllers
         }
 
         // TODO: Bring back ITestService projectService 
-        private static IResult GetPaletteAssets([AsParameters] GetPaletteAssetsReq req)
-        {
-            return Results.NotFound("stub"); // Stub
-        }
+        // private static IResult GetPaletteAssets([AsParameters] GetPaletteAssetsReq req)
+        // {
+        //     return Results.NotFound("stub"); // Stub
+        // }
         // TODO: Bring back ITestService projectService
         // private static IResult AssignAssetsToProjects([FromQuery] AssignAssetsToProjectsReq req)
         // {

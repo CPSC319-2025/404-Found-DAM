@@ -1,17 +1,13 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Xunit;
 
 namespace Tests.ControllerTests
 {
     // Using IClassFixture<T> to share a single WebApplicationFactory<Program>
-    public class PaletteControllerTest : IClassFixture<WebApplicationFactory<Program>>
+    public class PaletteControllerTest(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
     {
-        private readonly HttpClient _client;
-
-        public PaletteControllerTest(WebApplicationFactory<Program> factory)
-        {
-            // Create an in-memory test server
-            _client = factory.CreateClient();
-        }
+        // Initialize _client directly using the primary constructor parameter
+        private readonly HttpClient _client = factory.CreateClient();
 
         [Fact]
         public async Task Get_PaletteAssets_ReturnsSuccessAndExpectedResponse()
@@ -24,7 +20,7 @@ namespace Tests.ControllerTests
 
             // Assert: verify status and content type.
             response.EnsureSuccessStatusCode();
-            Assert.Equal("application/json; charset=utf-8", 
+            Assert.Equal("application/json; charset=utf-8",
                 response.Content.Headers.ContentType.ToString());
         }
     }

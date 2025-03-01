@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using APIs.Controllers;
+using Infrastructure.DataAccess;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,7 @@ builder.Services.AddSwaggerGen();
 // dotnet ef migrations add InitialCreate --startup-project ../APIs
 builder.Services.AddDbContext<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<ITestService, TestService>();
+// builder.Services.AddScoped<ITestService, TestService>();
 
 // builder.Services.AddScoped<ITestService, TestService>();
 
@@ -25,11 +26,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // Extension methods to register and group endpoints by controller
-app.MapProjectEndpoints(); 
-app.MapNotificationEndpoints(); 
-app.MapAdminEndpoints(); 
-
-// Extension methods to register and group endpoints by controller
+// app.MapProjectEndpoints(); 
+// app.MapNotificationEndpoints(); 
+// app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
 
 app.Run();
