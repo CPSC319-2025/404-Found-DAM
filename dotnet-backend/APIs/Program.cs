@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.DataAccess;
 using APIs.Controllers;
-using Core.Interfaces;
 // using Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,3 +29,5 @@ if (app.Environment.IsDevelopment())
 app.MapPaletteEndpoints(); 
 
 app.Run();
+
+public partial class Program { }

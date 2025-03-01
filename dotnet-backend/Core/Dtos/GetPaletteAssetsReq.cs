@@ -2,7 +2,7 @@ namespace Core.Dtos
 {
     public class GetPaletteAssetsReq
     {
-        public required string name { get; set; }
-        public required string type { get; set; }
+        public string name { get; set; } = string.Empty;
+        public string type { get; set; } = string.Empty;
     }
 }
