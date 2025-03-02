@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Core.Interfaces;
 using Core.Dtos;
+using DataModel;
 
 namespace Infrastructure.DataAccess
 {
@@ -14,65 +15,35 @@ namespace Infrastructure.DataAccess
             _context = context;
         }
 
-        public AddAssetsToProjectRes AddAssetsToProject(string projectId, List<string> imageIds)
+        public async Task<bool> AddAssetsToProjectInDb(string projectId, List<string> imageIds)
         {
             //TODO
-            if (projectId == "") {
-                throw new Exception("Empty project Id.");
-            } else {
-                List<AssignedAsset> assignedAssets = new List<AssignedAsset>();
-                foreach (var imageId in imageIds)
-                {
-                    AssignedAsset assignedAsset = new AssignedAsset
-                    {
-                        id = imageId,
-                        filename = imageId+".jpg"
-                    };
-                    assignedAssets.Add(assignedAsset);
-                }
-                AddAssetsToProjectRes result = new AddAssetsToProjectRes
-                {
-                    projectId = projectId, 
-                    assignedAssets = assignedAssets, 
-                    UploadedAt = DateTime.UtcNow
-                };
-                return result;
-            }
+            return projectId != "" ? true : false;
         }
 
-        public ArchiveProjectsRes ArchiveProjects(List<string> projectIds)
+        public async Task<bool> ArchiveProjectsInDb(List<string> projectIds)
          {
             //TODO
-            if (projectIds.Count == 0) {
-                throw new Exception("Empty projectIds.");
-            } else {
-                ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
-                return result;
-            }
+            return projectIds.Count != 0 ? true : false;
         }
 
-        public GetArchivedProjectLogsRes GetArchivedProjectLogs()
+        public async Task<List<Log>> GetArchivedProjectLogsInDb()
         {
             //TODO
-            ArchivedProjectLog log1 = new ArchivedProjectLog
-            {
-                projectId = "123",
-                projectName = "P1",
-                archivedAt = DateTime.UtcNow,
-                admin = "John"
-            };
-            ArchivedProjectLog log2 = new ArchivedProjectLog
-            {
-                projectId = "456",
-                projectName = "P2",
-                archivedAt = DateTime.UtcNow,
-                admin = "Betty"
-            };
-            List<ArchivedProjectLog> logs = new List<ArchivedProjectLog>();
-            logs.Add(log1);
-            logs.Add(log2);
-            GetArchivedProjectLogsRes result = new GetArchivedProjectLogsRes{logs = logs};
-            return result;
+            return null;
+        }
+
+        public async Task<Project> RetrieveProjectInDb(string projectId) 
+        {
+            //TODO 
+            return null;
+        }
+
+
+        public async Task<List<Asset>> GetProjectAssetsInDb(string projectId, string type, int offset, int pageSize)
+        {
+            //TODO
+            return null;
         }
     }
 }
