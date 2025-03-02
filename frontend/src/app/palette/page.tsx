@@ -4,7 +4,7 @@ import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
 import FileTable from "./components"; // assumes FileTable is in a file named components.tsx (adjust the path as needed)
-import { useFileContext, FileMetadata } from "@/app/FileContext";
+import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 
 export default function PalettePage() {
   const router = useRouter();
