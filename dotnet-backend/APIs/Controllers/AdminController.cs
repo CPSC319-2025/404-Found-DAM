@@ -23,32 +23,32 @@ namespace APIs.Controllers
 
         }
 
-        private static IResult GetRoleDetails(string userId, ITestService projectService)
+        private static IResult GetRoleDetails(string userId, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult CreateProject(CreateProjectReq req, ITestService projectService)
+        private static IResult CreateProject(CreateProjectReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult AddMetaDataToProject(AddMetadataReq req, ITestService projectService)
+        private static IResult AddMetaDataToProject(AddMetadataReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult ModifyRole(ModifyRoleReq req, ITestService projectService)
+        private static IResult ModifyRole(ModifyRoleReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult ToggleMetadataCategoryActivation(ToggleMetadataStateRequest req, ITestService projectService)
+        private static IResult ToggleMetadataCategoryActivation(ToggleMetadataStateRequest req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult UpdateProjectAccessControl(UpdateProjectAcessRequest req, ITestService projectService)
+        private static IResult UpdateProjectAccessControl(UpdateProjectAcessRequest req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Core.Interfaces
 {
-    public interface ITestService
+    public interface IProjectService
     {
-        int RetrieveProject();
+        int AddAssetsToProject();
     }
 }

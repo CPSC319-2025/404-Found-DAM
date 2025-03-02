@@ -15,7 +15,11 @@ builder.Services.AddSwaggerGen();
 // dotnet ef migrations add InitialCreate --startup-project ../APIs
 builder.Services.AddDbContext<MyDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<ITestService, TestService>();
+
+// Register services with the dependency injection container
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+
 
 var app = builder.Build();
 

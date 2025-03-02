@@ -14,18 +14,18 @@ namespace APIs.Controllers
             app.MapPost("/notifications/status", SendStatusUpdate).WithName("SendStatusUpdate").WithOpenApi();
         }
 
-        private static IResult RetrieveNotification(string userId, ITestService notificationService)
+        private static IResult RetrieveNotification(string userId)
         {
             return Results.NotFound("stub"); // Stub
 
         }
 
-        private static IResult SendNotifications(SendNotificationReq req, ITestService notificationService)
+        private static IResult SendNotifications(SendNotificationReq req)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult SendStatusUpdate(SendStatusUpdateReq req, ITestService notificationService)
+        private static IResult SendStatusUpdate(SendStatusUpdateReq req)
         {
             return Results.NotFound("stub"); // Stub
         }

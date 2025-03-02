@@ -12,59 +12,61 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectId}/images", GetImages).WithName("GetImages").WithOpenApi();
             app.MapGet("/projects/{projectID}", RetrieveProject).WithName("RetrieveProject").WithOpenApi();
             app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
-            app.MapPost("/projects/{projectId}/assign-images", AddImagesToProject).WithName("AddImagesToProject").WithOpenApi();
+           
             app.MapPost("/projects/{projectId}/images/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
             app.MapPost("/projects/logs", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+
+            app.MapPatch("/projects/assign-images", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
         }
 
-        private static IResult GetImages(string projectID, ITestService projectService)
+        private static IResult GetImages(string projectID, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
-        private static IResult RetrieveProject(string projectID, ITestService projectService)
-        {
-            var project = projectService.RetrieveProject();
-            return Results.Ok(project); // Return a 200 OK with response body being project
-            //if (project > 0) 
-            //{
-            //    return Results.Ok(project);
-            //}
-            //else
-            //{
-            //    return Results.NotFound();
-            //}
-        }
-
-        private static IResult RetrieveAllProjects(ITestService projectService)
+        private static IResult RetrieveProject(string projectID, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult AddImagesToProject(ITestService projectService)
+        private static IResult RetrieveAllProjects(IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult AddTagsToAssets(ITestService projectService)
+        private static IResult AddTagsToAssets(IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult ArchiveProjects(ITestService projectService)
+        private static IResult ArchiveProjects(IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-                private static IResult ExportProject(ExportProjectReq req, ITestService projectService)
+        private static IResult ExportProject(ExportProjectReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
         }
 
-                private static IResult ImportProject(ImportProjectReq req, ITestService projectService)
+        private static IResult ImportProject(ImportProjectReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
+        }
+
+        private static IResult AddAssetsToProject(AddAssetsToProjectReq req, IProjectRepository projectRepository)
+        {
+            // May need to add varification to check if client data is bad.
+            try 
+            {
+                AddAssetsToProjectRes result = projectRepository.AddAssetsToProject(req.projectId, req.ImageIds);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.StatusCode(500);
+            }
         }
     }
 }
