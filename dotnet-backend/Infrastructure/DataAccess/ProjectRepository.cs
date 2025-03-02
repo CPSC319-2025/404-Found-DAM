@@ -39,5 +39,16 @@ namespace Infrastructure.DataAccess
                 return result;
             }
         }
+
+        public ArchiveProjectsRes ArchiveProjects(List<string> projectIds)
+         {
+            //TODO
+            if (projectIds.Count == 0) {
+                throw new Exception("Empty projectIds.");
+            } else {
+                ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
+                return result;
+            }
+        }
     }
 }

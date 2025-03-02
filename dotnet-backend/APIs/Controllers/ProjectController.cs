@@ -14,10 +14,10 @@ namespace APIs.Controllers
             app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
            
             app.MapPost("/projects/{projectId}/images/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
-            app.MapPost("/projects/logs", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
 
+            app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapPatch("/projects/assign-images", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
         }
 
@@ -40,11 +40,6 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static IResult ArchiveProjects(IProjectService projectService)
-        {
-            return Results.NotFound("stub"); // Stub
-        }
-
         private static IResult ExportProject(ExportProjectReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub
@@ -55,6 +50,20 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
+        private static IResult ArchiveProjects(ArchiveProjectsReq req, IProjectRepository projectRepository)
+        {
+            // May need to add varification to check if client data is bad.
+            try 
+            {
+                ArchiveProjectsRes result = projectRepository.ArchiveProjects(req.projectIds);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.StatusCode(500);
+            }
+        }
+        
         private static IResult AddAssetsToProject(AddAssetsToProjectReq req, IProjectRepository projectRepository)
         {
             // May need to add varification to check if client data is bad.
