@@ -7,9 +7,14 @@ namespace APIs.Controllers
 {
     public static class ProjectController
     {
+        public const string DefaultAssetType = "image";
+        public const int DefaultPageNumber = 1;
+        public const int DefaultLimit = 10;
+
+
         public static void MapProjectEndpoints(this WebApplication app)
         {
-            app.MapGet("/projects/{projectId}/images", GetImages).WithName("GetImages").WithOpenApi();
+            app.MapGet("/projects/{projectId}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
             app.MapGet("/projects/{projectID}", RetrieveProject).WithName("RetrieveProject").WithOpenApi();
             app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
@@ -22,10 +27,32 @@ namespace APIs.Controllers
             app.MapPatch("/projects/assign-images", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
         }
 
-        private static IResult GetImages(string projectID, IProjectService projectService)
+        private static async Task<IResult> GetProjectAssets
+        (
+            string projectId, 
+            IProjectService projectService, // Place required parameters before optional parameters
+            string type = DefaultAssetType, 
+            int page = DefaultPageNumber, 
+            int limit = DefaultLimit
+        )
         {
-            return Results.NotFound("stub"); // Stub
+            // Validate user input
+            if (page <= 0 || limit <= 0)
+            {
+                return Results.BadRequest("Page and limit must be positive integers.");
+            }
+
+            // Call Project Service to handle request
+            try
+            {
+                GetProjectAssetsRes result = await projectService.GetProjectAssets(projectId, type, page, limit);
+                return Results.Ok(result);
+            } catch (Exception ex) 
+            {
+                return Results.StatusCode(500);
+            }
         }
+
         private static IResult RetrieveProject(string projectID, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub

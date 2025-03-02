@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Core.Dtos;
 
 namespace Core.Interfaces
 {
     public interface IProjectService
     {
-        int AddAssetsToProject();
+        Task<GetProjectAssetsRes> GetProjectAssets(string projectId, string type, int pageNumber, int pageSize);
     }
 }
