@@ -50,5 +50,29 @@ namespace Infrastructure.DataAccess
                 return result;
             }
         }
+
+        public GetArchivedProjectLogsRes GetArchivedProjectLogs()
+        {
+            //TODO
+            ArchivedProjectLog log1 = new ArchivedProjectLog
+            {
+                projectId = "123",
+                projectName = "P1",
+                archivedAt = DateTime.UtcNow,
+                admin = "John"
+            };
+            ArchivedProjectLog log2 = new ArchivedProjectLog
+            {
+                projectId = "456",
+                projectName = "P2",
+                archivedAt = DateTime.UtcNow,
+                admin = "Betty"
+            };
+            List<ArchivedProjectLog> logs = new List<ArchivedProjectLog>();
+            logs.Add(log1);
+            logs.Add(log2);
+            GetArchivedProjectLogsRes result = new GetArchivedProjectLogsRes{logs = logs};
+            return result;
+        }
     }
 }

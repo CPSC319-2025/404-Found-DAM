@@ -6,5 +6,6 @@ namespace Core.Interfaces
     {
         AddAssetsToProjectRes AddAssetsToProject(string projectId, List<string> imageIds);
         ArchiveProjectsRes ArchiveProjects(List<string> projectIds);
+        GetArchivedProjectLogsRes GetArchivedProjectLogs();
     }
 }
