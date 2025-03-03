@@ -7,10 +7,10 @@ using DataModel;
 
 namespace Infrastructure.DataAccess
 {
-    public class ProjectRepository : IProjectRepository
+    public class EFCoreProjectRepository : IProjectRepository
     {
         private MyDbContext _context;
-        public ProjectRepository(MyDbContext context)
+        public EFCoreProjectRepository(MyDbContext context)
         {
             _context = context;
         }

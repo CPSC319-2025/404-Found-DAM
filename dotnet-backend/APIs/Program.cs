@@ -18,7 +18,7 @@ builder.Services.AddDbContext<MyDbContext>(options =>
 
 // Register services with the dependency injection container
 builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IProjectRepository, EFCoreProjectRepository>();
 
 
 var app = builder.Build();
