@@ -90,9 +90,19 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static async Task<IResult> ExportProject(ExportProjectReq req, IProjectService projectService)
+        private static async Task<IResult> ExportProject(string projectId, IProjectService projectService)
         {
-            return Results.NotFound("stub"); // Stub
+            try 
+            {
+                byte[] result = await projectService.ExportProject(projectId);
+                return result == null 
+                    ? Results.NotFound("No project is found to be exported") 
+                    : Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.StatusCode(500);
+            }  
         }
 
         private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)

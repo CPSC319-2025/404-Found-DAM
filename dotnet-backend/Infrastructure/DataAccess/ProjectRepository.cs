@@ -39,6 +39,11 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
+        public async Task<List<Asset>> GetProjectAssetsInDb(string projectId)
+        {
+            //TODO
+            return null;
+        }
 
         public async Task<List<Asset>> GetProjectAssetsInDb(string projectId, string type, int offset, int pageSize)
         {

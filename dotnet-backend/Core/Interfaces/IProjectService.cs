@@ -9,5 +9,6 @@ namespace Core.Interfaces
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<RetrieveProjectRes> RetrieveProject(string projectId);
         Task<GetProjectAssetsRes> GetProjectAssets(string projectId, string type, int pageNumber, int pageSize);
+        Task<byte[]> ExportProject(string projectId);
     }
 }

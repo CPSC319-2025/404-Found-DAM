@@ -7,3 +7,5 @@
 # .NET Specific
 bin/
 obj/
+
+*.xlsx
