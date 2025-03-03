@@ -22,6 +22,7 @@ namespace Core.Services
         public async Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> imageIds)
         {
             //TODO
+            //Assets will inherit project's metadata (at least tags)
             if (projectId == "") {
                 throw new Exception("Empty project Id.");
             } else {
