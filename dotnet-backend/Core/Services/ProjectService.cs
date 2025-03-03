@@ -8,6 +8,7 @@ using Core.Dtos;
 using DataModel;
 using ClosedXML.Excel;
 using System.Data; // For using DataTable
+using Core.Services.Utils;
 
 namespace Core.Services
 {
@@ -226,7 +227,8 @@ namespace Core.Services
                 {
                     workbook.SaveAs(stream);
                     byte[] fileContent = stream.ToArray();
-                    return fileContent;
+                    return fileContent; 
+                    // return ProjectServiceHelpers.CompressByteArray(fileContent); // Compress fileContent and return
                 }
             }
             catch (Exception ex)
