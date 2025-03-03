@@ -21,7 +21,6 @@ namespace DataModel
         
         public bool IsSuperAdmin { get; set; }
         
-        public DateTime LastUpdated { get; set; }
 
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
@@ -33,10 +32,19 @@ namespace DataModel
     {
         [Key]
         public int BlobID { get; set; }
+
+        public int CompressedID { get; set; }
         
         public string FileName { get; set; }
         
         public string MimeType { get; set; }
+
+        public DateTime LastUpdated { get; set; }
+
+        public int FileSize { get; set; }
+
+        public string Version { get; set; }
+
 
         // Foreign keys
         public int ProjectID { get; set; }
@@ -58,8 +66,6 @@ namespace DataModel
         public int ProjectID { get; set; }
         
         public string Name { get; set; }
-        
-        public string Version { get; set; }
         
         public string Location { get; set; }
         
@@ -98,6 +104,8 @@ namespace DataModel
     // Junction table for many-to-many between Project and User.
     public class ProjectMembership
     {
+
+        public string Role { get; set; }
         public int ProjectID { get; set; }
         public int UserID { get; set; }
         
@@ -132,11 +140,6 @@ namespace DataModel
         
         public string FieldType { get; set; }
         
-        // Optionally, associate a field with a Palette.
-        public int? PaletteID { get; set; }
-        
-        [ForeignKey("PaletteID")]
-        public virtual Palette Palette { get; set; }
         
         public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();
@@ -147,8 +150,8 @@ namespace DataModel
     {
         public int ProjectID { get; set; }
         public int FieldID { get; set; }
-        
-        public string FieldValue { get; set; }
+        public bool IsEnabled { get; set; }
+
         
         [ForeignKey("ProjectID")]
         public virtual Project Project { get; set; }

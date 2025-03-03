@@ -1,32 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj": {}
+    "/Users/sanobar/404-Found-DAM/dotnet-backend/Infrastructure/Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj": {
+    "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj",
+        "projectUniqueName": "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/Core.csproj",
         "projectName": "Core",
-        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj",
-        "packagesPath": "C:\\Users\\swlco\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\obj\\",
+        "projectPath": "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/Core.csproj",
+        "packagesPath": "/Users/sanobar/.nuget/packages/",
+        "outputPath": "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/obj/",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\swlco\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/sanobar/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -91,41 +85,35 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.406/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj": {
+    "/Users/sanobar/404-Found-DAM/dotnet-backend/Infrastructure/Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
+        "projectUniqueName": "/Users/sanobar/404-Found-DAM/dotnet-backend/Infrastructure/Infrastructure.csproj",
         "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\swlco\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\obj\\",
+        "projectPath": "/Users/sanobar/404-Found-DAM/dotnet-backend/Infrastructure/Infrastructure.csproj",
+        "packagesPath": "/Users/sanobar/.nuget/packages/",
+        "outputPath": "/Users/sanobar/404-Found-DAM/dotnet-backend/Infrastructure/obj/",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\swlco\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/sanobar/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj"
+              "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/Core.csproj": {
+                "projectPath": "/Users/sanobar/404-Found-DAM/dotnet-backend/Core/Core.csproj"
               }
             }
           }
@@ -167,7 +155,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.406/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
