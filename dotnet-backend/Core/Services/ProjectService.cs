@@ -7,7 +7,6 @@ using Core.Interfaces;
 using Core.Dtos;
 using DataModel;
 using ClosedXML.Excel;
-using System.Data; // For using DataTable
 using Core.Services.Utils;
 
 namespace Core.Services
@@ -177,19 +176,11 @@ namespace Core.Services
             }
         }
 
-        public async Task<byte[]> ExportProject(string projectId)
+        public async Task<(string, byte[])> ExportProject(string projectId)
         {
             //TODO
             try
             {
-                //Demo
-                var dataTable = new DataTable();
-                dataTable.Columns.Add("Name", typeof(string));
-                dataTable.Columns.Add("Sold", typeof(int));
-                dataTable.Rows.Add("Cheesecake", 14);
-                dataTable.Rows.Add("Medovik", 6);
-                dataTable.Rows.Add("Muffin", 10);
-
                 // Fetch project and assets
                 Project project = await _repository.RetrieveProjectInDb(projectId);
                 List<Asset> assets = await _repository.GetProjectAssetsInDb(projectId);
@@ -198,38 +189,8 @@ namespace Core.Services
                 //     return null;
                 // }
 
-                using var workbook = new XLWorkbook();
-                
-                //Sheet 1: project detail including flattened metadata
-                // Add worksheet
-                var wsProject = workbook.AddWorksheet("Project");
-                // Set headers; .Cell(row, column)
-                wsProject.Cell(2, 2).Value = "Dessert Name Proj"; 
-                wsProject.Cell(2, 3).Value = "Sales Proj";
-                // Insert dataTable
-                wsProject.Cell(3, 2).InsertTable(dataTable.AsEnumerable());
-
-                //Sheet 2: each asset detail including flattened metadata
-                // Add worksheet
-                var wsAssets = workbook.AddWorksheet("Assets");
-                // Set headers
-                wsAssets.Cell(2, 2).Value = "Dessert Name Assets"; 
-                wsAssets.Cell(2, 3).Value = "Sales Assets";
-                // Insert dataTable
-                wsAssets.Cell(3, 2).InsertTable(dataTable.AsEnumerable());
-
-                // Save the xlsx file to the current folder (APIs)
-                string fileName = projectId + "_export.xlsx";
-                workbook.SaveAs(fileName); 
-                
-                // Save the xlsx file as stream
-                using (var stream = new System.IO.MemoryStream())
-                {
-                    workbook.SaveAs(stream);
-                    byte[] fileContent = stream.ToArray();
-                    return fileContent; 
-                    // return ProjectServiceHelpers.CompressByteArray(fileContent); // Compress fileContent and return
-                }
+                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(projectId);
+                return (fileName, excelByteArray);
             }
             catch (Exception ex)
             {
@@ -238,3 +199,31 @@ namespace Core.Services
         }
     }
 }
+
+
+/*
+May Move the following to License
+
+-----------------------------------------------------------------------------
+MIT License
+
+Copyright (c) 2016 ClosedXML
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/

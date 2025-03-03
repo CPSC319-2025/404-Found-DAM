@@ -94,11 +94,11 @@ namespace APIs.Controllers
         {
             try 
             {
-                string fileName = projectId + "_export.xlsx";
-                byte[] result = await projectService.ExportProject(projectId);
-                return result == null 
+                // Get binary data of the Excel file containing details of the exported project
+                (string fileName, byte[] excelData) = await projectService.ExportProject(projectId);
+                return excelData == null 
                     ? Results.NotFound("No project is found to be exported") 
-                    : Results.File(result, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
             }
             catch (Exception ex)
             {
