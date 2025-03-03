@@ -11,6 +11,7 @@
     </PackageVersion>
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.2" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageVersion Include="ClosedXML" Version="0.104.2" />
     <!-- Add packages as needed, reference them in each .csproj, and run dotnet restore at root level to install-->
   </ItemGroup>
 </Project>
