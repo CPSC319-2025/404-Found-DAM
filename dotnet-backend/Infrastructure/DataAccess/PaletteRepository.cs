@@ -10,27 +10,17 @@ namespace Infrastructure.DataAccess {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
         private readonly bool _useZstd;
-        private Decompressor _decompressor;
 
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
             _contextFactory = contextFactory;
-            try {
-                _decompressor = new Decompressor();
-                _useZstd = true;
-            }
-            catch (Exception ex) {
-                Console.WriteLine($"ZstdSharp not available: {ex.Message}. Using fallback decompression.");
-                _useZstd = false;
-                _decompressor = null; // No need for a disposable object for fallback
-            }
         }
         
         private byte[] DecompressData(byte[] compressedData)
         {
             try
             {
-                // Try to decompress the data
+                Decompressor _decompressor = new Decompressor();
                 return _decompressor.Unwrap(compressedData).ToArray();
             }
             catch (Exception ex)
