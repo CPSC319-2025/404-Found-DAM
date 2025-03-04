@@ -3,7 +3,7 @@ namespace Core.Dtos
     public class AddAssetsToProjectReq
     {
         public int projectID { get; set; }
-        public List<int> assetIDs { get; set; }
+        public List<int> blobIDs { get; set; }
     }
 
     public class AddAssetsToProjectRes

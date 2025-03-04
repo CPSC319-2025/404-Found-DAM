@@ -10,9 +10,9 @@ namespace APIs.Controllers
         public static void MapAdminEndpoints(this WebApplication app)
         {
 
-            app.MapPatch("/projects/{projectID}/metadata/fields/{fieldId}", ToggleMetadataCategoryActivation).WithName("ToggleMetadataCategoryActivation").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/metadata/fields/{fieldID}", ToggleMetadataCategoryActivation).WithName("ToggleMetadataCategoryActivation").WithOpenApi();
 
-            app.MapGet("/credentials/accounts/{userId}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
+            app.MapGet("/credentials/accounts/{userID}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
   
             // app.MapPost("/projects/{projectId}/metadata", CreateProject).WithName("CreateProject").WithOpenApi();
            

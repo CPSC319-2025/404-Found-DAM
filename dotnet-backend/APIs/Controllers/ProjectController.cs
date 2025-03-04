@@ -18,10 +18,10 @@ namespace APIs.Controllers
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapGet("/projects/{projectID}", RetrieveProject).WithName("RetrieveProject").WithOpenApi();
-            app.MapGet("/projects/{projectId}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
+            app.MapGet("/projects/{projectID}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
             // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
            
-            app.MapPost("/projects/{projectId}/images/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
+            app.MapPost("/projects/{projectID}/assets/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
         }
@@ -130,7 +130,7 @@ namespace APIs.Controllers
             // May need to add varification to check if client data is bad.
             try 
             {
-                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectID, req.assetIDs);
+                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectID, req.blobIDs);
                 return Results.Ok(result);
             }
             catch (Exception ex)

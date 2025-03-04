@@ -9,7 +9,7 @@ namespace Core.Dtos
 
     public class ProjectAsset
     {
-        public int assetID { get; set; }
+        public int blobID { get; set; }
         public string thumbnailUrl { get; set; }
         public string filename { get; set; }
         public ProjectAssetMD projectAssetMD { get; set; }

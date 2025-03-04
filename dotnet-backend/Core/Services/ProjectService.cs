@@ -19,13 +19,13 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AddAssetsToProjectRes> AddAssetsToProject(int projectID, List<int> assetIDs)
+        public async Task<AddAssetsToProjectRes> AddAssetsToProject(int projectID, List<int> blobIDs)
         {
             //TODO
             //Assets will inherit project's metadata (at least tags)
             try 
             {
-                bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectID, assetIDs);
+                bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectID, blobIDs);
                 if (isSuccessul)
                 {
                     AddAssetsToProjectRes result = new AddAssetsToProjectRes
@@ -146,7 +146,7 @@ namespace Core.Services
 
                 ProjectAsset asset1 = new ProjectAsset
                 {
-                    assetID = 12356093, 
+                    blobID = 12356093, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img001.jpg",
                     filename = "image1.jpg",
                     projectAssetMD = metadata1
@@ -154,7 +154,7 @@ namespace Core.Services
 
                 ProjectAsset asset2 = new ProjectAsset
                 {
-                    assetID = 123560623, 
+                    blobID = 123560623, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img002.jpg",
                     filename = "image2.jpg",
                     projectAssetMD = metadata2
