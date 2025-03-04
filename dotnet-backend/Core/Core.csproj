@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-  <ProjectReference Include="../Infrastructure/Infrastructure.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Http" />
     <PackageReference Include="Microsoft.AspNetCore.Http" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />

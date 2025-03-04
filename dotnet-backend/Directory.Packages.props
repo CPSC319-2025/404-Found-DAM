@@ -20,7 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
     <PackageVersion Include="coverlet.collector" Version="6.0.0" />
-    <PackageVersion Include="ZstdNet" Version="1.4.5" />
+    <PackageVersion Include="ZstdSharp.Port" Version="0.8.5" />
     <!-- Add packages as needed, reference them in each .csproj, and run dotnet restore at root level to install -->
   </ItemGroup>
 </Project>

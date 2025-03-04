@@ -1,57 +1,99 @@
-
 using Core.Interfaces;
 using Core.Entities;
 using Microsoft.EntityFrameworkCore;
-using ZstdNet;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
+using ZstdSharp;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
 
-        private readonly DAMDbContext _context;
-        private readonly Decompressor decompressor;
+        private readonly IDbContextFactory<DAMDbContext> _contextFactory;
+        private readonly bool _useZstd;
+        private Decompressor _decompressor;
 
-        public PaletteRepository(DAMDbContext context) {
-            _context = context;
-            decompressor = new Decompressor();
+        public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
+        {
+            _contextFactory = contextFactory;
+            try {
+                _decompressor = new Decompressor();
+                _useZstd = true;
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"ZstdSharp not available: {ex.Message}. Using fallback decompression.");
+                _useZstd = false;
+                _decompressor = null; // No need for a disposable object for fallback
+            }
         }
+        
+        private byte[] DecompressData(byte[] compressedData)
+        {
+            try
+            {
+                // Try to decompress the data
+                return _decompressor.Unwrap(compressedData).ToArray();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Decompression error: {ex.Message}");
+                throw new Exception($"Failed to decompress data: {ex.Message}", ex);
+            }
+        }
+        
         public Task<List<Asset>> GetAssetsFromPalette() {
+            using var _context = _contextFactory.CreateDbContext();
             return _context.Assets.ToListAsync();
         }
+        
         public async Task<bool> UploadAssets(IFormFile file, UploadAssetsReq request)
         {
+            using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty");
 
             // Read the IFormFile into a byte array
             byte[] compressedData;
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                compressedData = ms.ToArray();
-            }
+            try {
+                using (var ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    compressedData = ms.ToArray();
+                }
 
-            // Decompress the data using Zstd (adjust based on your chosen library)
-            byte[] decompressedData;
-            using (var decompressor = new Decompressor())
-            {
-                decompressedData = decompressor.Unwrap(compressedData);
-            }
-            
-            // Create an Asset instance with the decompressed data
-            var asset = new Asset
-            {
-                Data = decompressedData,
-                FileName = file.FileName,
-                ProjectId = request.ProjectId,
-                // Set any additional properties as needed
-                UploadedAt = DateTime.UtcNow
-            };
+                // Decompress the data using ZstdSharp
+                byte[] decompressedData = DecompressData(compressedData);
+                
+                // Create storage directory if it doesn't exist
+                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+                if (!Directory.Exists(storageDirectory))
+                {
+                    Directory.CreateDirectory(storageDirectory);
+                }
+
+                // Generate a unique filename
+                string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+                string filePath = Path.Combine(storageDirectory, uniqueFileName);
+
+                // Save the decompressed data to a file
+                await File.WriteAllBytesAsync(filePath, decompressedData);
+                
+                // Create an Asset instance with the file path
+                var asset = new Asset
+                {
+                    FileName = file.FileName,
+                    MimeType = file.ContentType,
+                    ProjectID = null,
+                    UserID = request.UserId,
+                };
 
             // Add the asset to the database context and save changes
-            await _context.Assets.AddAsync(asset);
-            await _context.SaveChangesAsync();
+            
+                await _context.Assets.AddAsync(asset);
+                int num = await _context.SaveChangesAsync();
+            } catch (Exception ex) {
+                Console.WriteLine($"Error saving asset to database: {ex.Message}");
+                return false;
+            }
 
             return true;
         }

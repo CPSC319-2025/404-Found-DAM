@@ -8,6 +8,7 @@ namespace Core.Interfaces
 {
     public interface IPaletteService
     {
-        Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request);
+        Task<bool> ProcessUploadAsync(IFormFile file, UploadAssetsReq request);
+        Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request);
     }
 }

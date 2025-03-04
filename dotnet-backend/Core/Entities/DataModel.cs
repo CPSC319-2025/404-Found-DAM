@@ -36,15 +36,16 @@ namespace Core.Entities
         public required string MimeType { get; set; }
 
         // Foreign keys
-        public int ProjectID { get; set; }
-        public int UserID { get; set; }
+        public int? ProjectID { get; set; }
+        public int? UserID { get; set; }
         
         // Navigation properties
         [ForeignKey("ProjectID")]
         public virtual Project? Project { get; set; }
         
+        // TODO reveert
         [ForeignKey("UserID")]
-        public required virtual User User { get; set; }
+        public virtual User? User { get; set; }
         
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();
     }

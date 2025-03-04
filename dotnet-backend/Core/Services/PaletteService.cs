@@ -13,10 +13,22 @@ namespace Core.Services
         {
             _paletteRepository = paletteRepository;
         }
-        public Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
+
+        public async Task<bool> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
         {
-            
-            return _paletteRepository.UploadAssets(file, request);
+            try {
+                return await _paletteRepository.UploadAssets(file, request);
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Error uploading assets: {ex.Message}");
+                return false;
+            }
+        }
+        
+        public async Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
+        {
+            var tasks = files.Select(file => ProcessUploadAsync(file, request)).ToArray();
+            return await Task.WhenAll(tasks);
         }
     }
 }
