@@ -6,4 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Add proejct reference below -->
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+  
+  <!-- Reference packages included in Directory.Packages.props-->
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="NSubstitute" />
+  </ItemGroup>
+
 </Project>
