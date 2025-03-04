@@ -6,6 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
   <!-- Add proejct reference below -->
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
@@ -13,8 +17,11 @@
   
   <!-- Reference packages included in Directory.Packages.props-->
   <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="NSubstitute" />
+
   </ItemGroup>
 
 </Project>
