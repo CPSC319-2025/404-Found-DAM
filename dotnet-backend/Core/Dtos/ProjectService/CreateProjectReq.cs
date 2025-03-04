@@ -6,9 +6,9 @@ namespace Core.Dtos
 
         public class Metadata
         {
-            public required string ProjectName { get; set; }
-            public string? Location { get; set; }
-            public List<string>? Tags { get; set; }
+            public required string projectName { get; set; }
+            public string? location { get; set; }
+            public List<string>? tags { get; set; }
         }
     }
 }

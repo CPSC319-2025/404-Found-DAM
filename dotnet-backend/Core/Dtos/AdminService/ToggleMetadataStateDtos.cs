@@ -7,7 +7,7 @@ namespace Core.Dtos
 
     public class ToggleMetadataStateRes
     {
-        public int fieldId { get; set; }
+        public int fieldID { get; set; }
         public bool enabled { get; set; }
         public string message { get; set; }
     }  

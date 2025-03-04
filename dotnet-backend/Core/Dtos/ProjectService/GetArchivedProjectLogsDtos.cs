@@ -7,7 +7,7 @@ namespace Core.Dtos
 
     public class ArchivedProjectLog
     {
-        public string projectId { get; set; }
+        public int projectID { get; set; }
         public string projectName { get; set; }
         public DateTime archivedAt { get; set; }
         public string admin { get; set; }

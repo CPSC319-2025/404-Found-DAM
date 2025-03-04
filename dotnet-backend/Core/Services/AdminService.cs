@@ -17,17 +17,17 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectId, int metadataFieldId, bool setEnabled)
+        public async Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectID, int metadataFieldID, bool setEnabled)
         {
             //TODO
             try 
             {
-                (bool isSuccessul, string metadataCatagory) = await _repository.ToggleMetadataCategoryActivationInDb(projectId, metadataFieldId, setEnabled);
+                (bool isSuccessul, string metadataCatagory) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
                 if (isSuccessul)
                 {
                     ToggleMetadataStateRes result = new ToggleMetadataStateRes
                     {
-                        fieldId = metadataFieldId,
+                        fieldID = metadataFieldID,
                         enabled = setEnabled,
                         message = $"Metadata category {metadataCatagory} is now enabled."
                     };
@@ -58,7 +58,7 @@ namespace Core.Services
                 {
                     RoleDetailsRes result = new RoleDetailsRes
                     {
-                        userId = user.UserID,
+                        userID = user.UserID,
                         name = user.Name,
                         email = user.Email,
                         roles = userRoles,

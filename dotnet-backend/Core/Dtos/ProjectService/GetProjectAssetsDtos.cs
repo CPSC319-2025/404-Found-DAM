@@ -2,22 +2,22 @@ namespace Core.Dtos
 {
     public class GetProjectAssetsRes
     {
-        public string projectId {get; set; }
+        public int projectID {get; set; }
         public List<ProjectAsset> assets { get; set; }
         public ProjectAssetsPagination pagination {get; set; }
     }
 
     public class ProjectAsset
     {
-        public string id { get; set; }
+        public int assetID { get; set; }
         public string thumbnailUrl { get; set; }
         public string filename { get; set; }
-        public ProjectAssetMd projectAssetMd { get; set; }
+        public ProjectAssetMD projectAssetMD { get; set; }
     }
 
-    public class ProjectAssetMd
+    public class ProjectAssetMD
     {
-        public string date { get; set; }
+        public DateTime date { get; set; }
         public List<string> tags { get; set; }
     } 
 

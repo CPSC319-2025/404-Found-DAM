@@ -15,7 +15,7 @@ namespace Infrastructure.DataAccess
             _context = context;
         }
 
-        public async Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectId, int metadataFieldId, bool setEnabled)
+        public async Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled)
         {
             //TODO
             // get project first
@@ -23,7 +23,7 @@ namespace Infrastructure.DataAccess
             return (setEnabled, "DummyCategory");
         }
 
-        public async Task<(User, List<string>)> GetRoleDetailsInDb(int userId)
+        public async Task<(User, List<string>)> GetRoleDetailsInDb(int userID)
         {
             //TODO
             // get User

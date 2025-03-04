@@ -8,7 +8,7 @@ namespace Core.Services.Utils
 {
     public static class ProjectServiceHelpers 
     {  
-        public static (string, byte[]) GenerateProjectExportExcel(string projectId)
+        public static (string, byte[]) GenerateProjectExportExcel(int projectID)
         {
             //Demo
             var dataTable = new DataTable();
@@ -22,7 +22,7 @@ namespace Core.Services.Utils
             DateTime exportedAt = DateTime.Now;
             // Console.WriteLine(exportedAt.ToString("yyyyMMdd"));
             string exportedYMD = exportedAt.ToString("yyyyMMdd");
-            string fileName = "Project_" + projectId + "_export_" + exportedYMD + ".xlsx";
+            string fileName = $"Project_{projectID}_export_{exportedYMD}.xlsx";
 
             //Sheet 1: project detail including flattened metadata
             // Add worksheet

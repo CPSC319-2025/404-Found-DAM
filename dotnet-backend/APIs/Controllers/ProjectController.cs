@@ -28,7 +28,7 @@ namespace APIs.Controllers
 
         private static async Task<IResult> GetProjectAssets
         (
-            string projectId, 
+            int projectID, 
             IProjectService projectService, // Place required parameters before optional parameters
             string type = DefaultAssetType, 
             int page = DefaultPageNumber, 
@@ -44,7 +44,7 @@ namespace APIs.Controllers
             // Call Project Service to handle request
             try
             {
-                GetProjectAssetsRes result = await projectService.GetProjectAssets(projectId, type, page, limit);
+                GetProjectAssetsRes result = await projectService.GetProjectAssets(projectID, type, page, limit);
                 return Results.Ok(result);
             } 
             catch (Exception ex) 
@@ -53,11 +53,11 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> RetrieveProject(string projectId, IProjectService projectService)
+        private static async Task<IResult> RetrieveProject(int projectID, IProjectService projectService)
         {
             try 
             {
-                RetrieveProjectRes result = await projectService.RetrieveProject(projectId);
+                RetrieveProjectRes result = await projectService.RetrieveProject(projectID);
                 return Results.Ok(result);
             }
             catch (Exception ex) 
@@ -90,12 +90,12 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static async Task<IResult> ExportProject(string projectId, IProjectService projectService)
+        private static async Task<IResult> ExportProject(int projectID, IProjectService projectService)
         {
             try 
             {
                 // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await projectService.ExportProject(projectId);
+                (string fileName, byte[] excelData) = await projectService.ExportProject(projectID);
                 return excelData == null 
                     ? Results.NotFound("No project is found to be exported") 
                     : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
@@ -116,7 +116,7 @@ namespace APIs.Controllers
             // May need to add varification to check if client data is bad.
             try 
             {
-                ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIds);
+                ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
                 return Results.Ok(result);
             }
             catch (Exception ex)
@@ -130,7 +130,7 @@ namespace APIs.Controllers
             // May need to add varification to check if client data is bad.
             try 
             {
-                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectId, req.ImageIds);
+                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectID, req.assetIDs);
                 return Results.Ok(result);
             }
             catch (Exception ex)

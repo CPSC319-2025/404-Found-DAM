@@ -15,16 +15,16 @@ namespace Infrastructure.DataAccess
             _context = context;
         }
 
-        public async Task<bool> AddAssetsToProjectInDb(string projectId, List<string> assetIds)
+        public async Task<bool> AddAssetsToProjectInDb(int projectID, List<int> assetIDs)
         {
             //TODO
-            return projectId != "" ? true : false;
+            return projectID != 0 ? true : false;
         }
 
-        public async Task<bool> ArchiveProjectsInDb(List<string> projectIds)
+        public async Task<bool> ArchiveProjectsInDb(List<int> projectIDs)
          {
             //TODO
-            return projectIds.Count != 0 ? true : false;
+            return projectIDs.Count != 0 ? true : false;
         }
 
         public async Task<List<Log>> GetArchivedProjectLogsInDb()
@@ -33,19 +33,19 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<Project> RetrieveProjectInDb(string projectId) 
+        public async Task<Project> RetrieveProjectInDb(int projectID) 
         {
             //TODO 
             return null;
         }
 
-        public async Task<List<Asset>> GetProjectAssetsInDb(string projectId)
+        public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
         {
             //TODO
             return null;
         }
 
-        public async Task<List<Asset>> GetProjectAssetsInDb(string projectId, string type, int offset, int pageSize)
+        public async Task<List<Asset>> GetProjectAssetsInDb(int projectID, string type, int offset, int pageSize)
         {
             //TODO
             return null;

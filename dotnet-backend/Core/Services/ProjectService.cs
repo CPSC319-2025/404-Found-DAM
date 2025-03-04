@@ -19,45 +19,41 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> assetIds)
+        public async Task<AddAssetsToProjectRes> AddAssetsToProject(int projectID, List<int> assetIDs)
         {
             //TODO
             //Assets will inherit project's metadata (at least tags)
-            if (projectId == "") {
-                throw new Exception("Empty project Id.");
-            } else {
-                try 
+            try 
+            {
+                bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectID, assetIDs);
+                if (isSuccessul)
                 {
-                    bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectId, assetIds);
-                    if (isSuccessul)
+                    AddAssetsToProjectRes result = new AddAssetsToProjectRes
                     {
-                        AddAssetsToProjectRes result = new AddAssetsToProjectRes
-                        {
-                            UploadedAt = DateTime.UtcNow
-                        };
-                        return result;
-                    }
-                    else 
-                    {
-                        throw new Exception("Failed to add assets to project in database.");
-                    }
+                        UploadedAt = DateTime.UtcNow
+                    };
+                    return result;
                 }
-                catch (Exception ex) 
+                else 
                 {
-                    throw;
+                    throw new Exception("Failed to add assets to project in database.");
                 }
+            }
+            catch (Exception ex) 
+            {
+                throw;
             }
         }
 
-        public async Task<ArchiveProjectsRes> ArchiveProjects(List<string> projectIds)
+        public async Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs)
          {
             //TODO
-            if (projectIds.Count == 0) {
-                throw new Exception("Empty projectIds.");
+            if (projectIDs.Count == 0) {
+                throw new Exception("Empty projectIDs.");
             } else {
                 try 
                 {
-                    bool isSuccessul = await _repository.ArchiveProjectsInDb(projectIds);
+                    bool isSuccessul = await _repository.ArchiveProjectsInDb(projectIDs);
                     if (isSuccessul)
                     {
                         ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
@@ -84,14 +80,14 @@ namespace Core.Services
             
                 ArchivedProjectLog log1 = new ArchivedProjectLog
                 {
-                    projectId = "123",
+                    projectID = 123,
                     projectName = "P1",
                     archivedAt = DateTime.UtcNow,
                     admin = "John"
                 };
                 ArchivedProjectLog log2 = new ArchivedProjectLog
                 {
-                    projectId = "456",
+                    projectID = 456,
                     projectName = "P2",
                     archivedAt = DateTime.UtcNow,
                     admin = "Betty"
@@ -108,15 +104,15 @@ namespace Core.Services
             }
         }
 
-        public async Task<RetrieveProjectRes> RetrieveProject(string projectId) 
+        public async Task<RetrieveProjectRes> RetrieveProject(int projectID) 
         {
             //TODO
             try 
             {
-                Project Project = await _repository.RetrieveProjectInDb(projectId);
+                Project Project = await _repository.RetrieveProjectInDb(projectID);
                 RetrieveProjectRes result = new RetrieveProjectRes
                 {
-                    projectId = projectId,
+                    projectID = projectID,
                     projectName = "Project Name",
                     archived = true,
                     archivedAt = "2025-02-02T12:00:00Z",
@@ -131,44 +127,44 @@ namespace Core.Services
         }
 
 
-        public async Task<GetProjectAssetsRes> GetProjectAssets(string projectId, string type, int pageNumber, int pageSize)
+        public async Task<GetProjectAssetsRes> GetProjectAssets(int projectID, string type, int pageNumber, int pageSize)
         {
             //TODO
             int offset = (pageNumber - 1) * pageSize;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetProjectAssetsInDb(projectId, type, offset, pageSize);
+                List<Asset> retrievedAssets = await _repository.GetProjectAssetsInDb(projectID, type, offset, pageSize);
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination{page = pageNumber, limit = pageSize, total = 2};
                 List<string> tags1 = new List<string>();
                 tags1.Add("fieldwork");
                 tags1.Add("site");
-                ProjectAssetMd metadata1 = new ProjectAssetMd{date = "2025-01-30T10:20:00Z", tags = tags1};
+                ProjectAssetMD metadata1 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 20, 00, 1), tags = tags1};
 
                 List<string> tags2 = new List<string>();
                 tags2.Add("inspection");
-                ProjectAssetMd metadata2 = new ProjectAssetMd{date =  "2025-01-30T10:25:00Z", tags = tags2};
+                ProjectAssetMD metadata2 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 25, 00, 1), tags = tags2};
 
                 ProjectAsset asset1 = new ProjectAsset
                 {
-                    id = "img001", 
+                    assetID = 12356093, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img001.jpg",
                     filename = "image1.jpg",
-                    projectAssetMd = metadata1
+                    projectAssetMD = metadata1
                 };
 
                 ProjectAsset asset2 = new ProjectAsset
                 {
-                    id = "img002", 
+                    assetID = 123560623, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img002.jpg",
                     filename = "image2.jpg",
-                    projectAssetMd = metadata2
+                    projectAssetMD = metadata2
                 };
 
                 List<ProjectAsset> assets = new List<ProjectAsset>();
                 assets.Add(asset1);
                 assets.Add(asset2);
 
-                GetProjectAssetsRes result = new GetProjectAssetsRes{projectId = projectId, assets = assets, pagination = pagination};
+                GetProjectAssetsRes result = new GetProjectAssetsRes{projectID = projectID, assets = assets, pagination = pagination};
                 return result;
             }
             catch (Exception ex)
@@ -177,20 +173,20 @@ namespace Core.Services
             }
         }
 
-        public async Task<(string, byte[])> ExportProject(string projectId)
+        public async Task<(string, byte[])> ExportProject(int projectID)
         {
             //TODO
             try
             {
                 // Fetch project and assets
-                Project project = await _repository.RetrieveProjectInDb(projectId);
-                List<Asset> assets = await _repository.GetProjectAssetsInDb(projectId);
+                Project project = await _repository.RetrieveProjectInDb(projectID);
+                List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
 
                 // if (project == null) {
                 //     return null;
                 // }
 
-                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(projectId);
+                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(projectID);
                 return (fileName, excelByteArray);
             }
             catch (Exception ex)
