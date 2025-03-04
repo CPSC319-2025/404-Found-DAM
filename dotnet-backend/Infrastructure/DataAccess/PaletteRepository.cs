@@ -59,14 +59,6 @@ namespace Infrastructure.DataAccess {
                 {
                     Directory.CreateDirectory(storageDirectory);
                 }
-
-                // Generate a unique filename
-                string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
-                string filePath = Path.Combine(storageDirectory, uniqueFileName);
-
-                // Save the decompressed data to a file
-                await File.WriteAllBytesAsync(filePath, decompressedData);
-                
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
@@ -80,6 +72,7 @@ namespace Infrastructure.DataAccess {
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
+                await File.WriteAllBytesAsync(asset.BlobID + ".zst", decompressedData);
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return false;
