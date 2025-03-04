@@ -4,7 +4,8 @@ namespace Core.Interfaces
 {
     public interface IProjectService
     {
-        Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> imageIds);
+        // For ProjectController
+        Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> assetIds);
         Task<ArchiveProjectsRes> ArchiveProjects(List<string> projectIds);
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<RetrieveProjectRes> RetrieveProject(string projectId);

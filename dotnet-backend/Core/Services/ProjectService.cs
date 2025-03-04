@@ -19,7 +19,7 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> imageIds)
+        public async Task<AddAssetsToProjectRes> AddAssetsToProject(string projectId, List<string> assetIds)
         {
             //TODO
             //Assets will inherit project's metadata (at least tags)
@@ -28,7 +28,7 @@ namespace Core.Services
             } else {
                 try 
                 {
-                    bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectId, imageIds);
+                    bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectId, assetIds);
                     if (isSuccessul)
                     {
                         AddAssetsToProjectRes result = new AddAssetsToProjectRes
