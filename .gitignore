@@ -4,6 +4,7 @@
 # User-specific files
 .vs/
 
-# .NET Specific
+dotnet-backend/APIs/appsettings.json
 bin/
 obj/
+dotnet-backend/APIs/appsettings.json

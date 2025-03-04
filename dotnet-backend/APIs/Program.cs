@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Infrastructure.DataAccess;
-
 using APIs.Controllers;
+using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,10 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-// dotnet ef migrations add InitialCreate --startup-project ../APIs
-builder.Services.AddDbContext<MyDbContext>(options =>
+
+// Replace the existing DbContext registration with this:
+builder.Services.AddDbContextFactory<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Keep your other service registrations
 builder.Services.AddScoped<ITestService, TestService>();
+builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+builder.Services.AddScoped<IPaletteService, PaletteService>();
 
 var app = builder.Build();
 
@@ -27,10 +30,11 @@ if (app.Environment.IsDevelopment())
 }
 
 // Extension methods to register and group endpoints by controller
-app.MapProjectEndpoints(); 
-app.MapNotificationEndpoints(); 
-app.MapAdminEndpoints(); 
+// app.MapProjectEndpoints(); 
+// app.MapNotificationEndpoints(); 
+// app.MapAdminEndpoints(); 
+app.MapPaletteEndpoints(); 
 
 app.Run();
 
-
+public partial class Program { }

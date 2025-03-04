@@ -4,14 +4,14 @@
     "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj": {}
   },
   "projects": {
-    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj": {
+    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj",
-        "projectName": "Core",
-        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj",
+        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
+        "projectName": "Infrastructure",
+        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
         "packagesPath": "C:\\Users\\swlco\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\obj\\",
+        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
@@ -49,106 +49,8 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "dependencies": {
-            "Microsoft.EntityFrameworkCore": {
-              "target": "Package",
-              "version": "[9.0.2, )",
-              "versionCentrallyManaged": true
-            },
-            "Microsoft.EntityFrameworkCore.Design": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[9.0.2, )",
-              "versionCentrallyManaged": true
-            },
-            "Microsoft.EntityFrameworkCore.SqlServer": {
-              "target": "Package",
-              "version": "[9.0.2, )",
-              "versionCentrallyManaged": true
-            }
-          },
           "centralPackageVersions": {
             "Microsoft.AspNetCore.OpenApi": "8.0.13",
-            "Microsoft.EntityFrameworkCore": "9.0.2",
-            "Microsoft.EntityFrameworkCore.Design": "9.0.2",
-            "Microsoft.EntityFrameworkCore.SqlServer": "9.0.2",
-            "Swashbuckle.AspNetCore": "6.6.2"
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
-        "projectName": "Infrastructure",
-        "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\swlco\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Infrastructure\\obj\\",
-        "projectStyle": "PackageReference",
-        "centralPackageVersionsManagementEnabled": true,
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
-        "configFilePaths": [
-          "C:\\Users\\swlco\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
-        ],
-        "originalTargetFrameworks": [
-          "net8.0"
-        ],
-        "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net8.0": {
-            "targetAlias": "net8.0",
-            "projectReferences": {
-              "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj": {
-                "projectPath": "C:\\Users\\swlco\\OneDrive - UBC\\Documents\\UBC CPSC courses\\CPSC 319\\CPSC319_DAM_Project\\404-Found-DAM\\dotnet-backend\\Core\\Core.csproj"
-              }
-            }
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
-        }
-      },
-      "frameworks": {
-        "net8.0": {
-          "targetAlias": "net8.0",
-          "centralPackageVersions": {
-            "Microsoft.AspNetCore.OpenApi": "8.0.13",
-            "Microsoft.EntityFrameworkCore": "9.0.2",
-            "Microsoft.EntityFrameworkCore.Design": "9.0.2",
-            "Microsoft.EntityFrameworkCore.SqlServer": "9.0.2",
             "Swashbuckle.AspNetCore": "6.6.2"
           },
           "imports": [

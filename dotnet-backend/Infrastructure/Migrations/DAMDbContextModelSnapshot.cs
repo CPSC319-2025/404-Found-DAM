@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Infrastructure.Migrations
 {
-    [DbContext(typeof(MyDbContext))]
-    partial class MyDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(DAMDbContext))]
+    partial class DAMDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
@@ -22,7 +22,7 @@ namespace Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("DataModel.Asset", b =>
+            modelBuilder.Entity("Core.Entities.Asset", b =>
                 {
                     b.Property<int>("BlobID")
                         .ValueGeneratedOnAdd()
@@ -38,7 +38,7 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ProjectID")
+                    b.Property<int?>("ProjectID")
                         .HasColumnType("int");
 
                     b.Property<int>("UserID")
@@ -53,7 +53,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Assets");
                 });
 
-            modelBuilder.Entity("DataModel.AssetMetadata", b =>
+            modelBuilder.Entity("Core.Entities.AssetMetadata", b =>
                 {
                     b.Property<int>("BlobID")
                         .HasColumnType("int");
@@ -72,7 +72,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("AssetMetadata");
                 });
 
-            modelBuilder.Entity("DataModel.Log", b =>
+            modelBuilder.Entity("Core.Entities.Log", b =>
                 {
                     b.Property<int>("LogID")
                         .ValueGeneratedOnAdd()
@@ -97,7 +97,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Logs");
                 });
 
-            modelBuilder.Entity("DataModel.MetadataField", b =>
+            modelBuilder.Entity("Core.Entities.MetadataField", b =>
                 {
                     b.Property<int>("FieldID")
                         .ValueGeneratedOnAdd()
@@ -123,7 +123,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("MetadataFields");
                 });
 
-            modelBuilder.Entity("DataModel.Palette", b =>
+            modelBuilder.Entity("Core.Entities.Palette", b =>
                 {
                     b.Property<int>("PaletteID")
                         .ValueGeneratedOnAdd()
@@ -142,7 +142,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Palettes");
                 });
 
-            modelBuilder.Entity("DataModel.Project", b =>
+            modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Property<int>("ProjectID")
                         .ValueGeneratedOnAdd()
@@ -177,7 +177,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("DataModel.ProjectMembership", b =>
+            modelBuilder.Entity("Core.Entities.ProjectMembership", b =>
                 {
                     b.Property<int>("ProjectID")
                         .HasColumnType("int");
@@ -192,7 +192,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("ProjectMemberships");
                 });
 
-            modelBuilder.Entity("DataModel.ProjectMetadataField", b =>
+            modelBuilder.Entity("Core.Entities.ProjectMetadataField", b =>
                 {
                     b.Property<int>("ProjectID")
                         .HasColumnType("int");
@@ -211,7 +211,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("ProjectMetadataFields");
                 });
 
-            modelBuilder.Entity("DataModel.Tag", b =>
+            modelBuilder.Entity("Core.Entities.Tag", b =>
                 {
                     b.Property<int>("TagID")
                         .ValueGeneratedOnAdd()
@@ -228,7 +228,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Tags");
                 });
 
-            modelBuilder.Entity("DataModel.User", b =>
+            modelBuilder.Entity("Core.Entities.User", b =>
                 {
                     b.Property<int>("UserID")
                         .ValueGeneratedOnAdd()
@@ -255,34 +255,30 @@ namespace Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("DataModel.Asset", b =>
+            modelBuilder.Entity("Core.Entities.Asset", b =>
                 {
-                    b.HasOne("DataModel.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("Assets")
-                        .HasForeignKey("ProjectID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProjectID");
 
-                    b.HasOne("DataModel.User", "User")
+                    b.HasOne("Core.Entities.User", null)
                         .WithMany("Assets")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DataModel.AssetMetadata", b =>
+            modelBuilder.Entity("Core.Entities.AssetMetadata", b =>
                 {
-                    b.HasOne("DataModel.Asset", "Asset")
+                    b.HasOne("Core.Entities.Asset", "Asset")
                         .WithMany("AssetMetadata")
                         .HasForeignKey("BlobID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataModel.MetadataField", "MetadataField")
+                    b.HasOne("Core.Entities.MetadataField", "MetadataField")
                         .WithMany("AssetMetadata")
                         .HasForeignKey("FieldID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -293,9 +289,9 @@ namespace Infrastructure.Migrations
                     b.Navigation("MetadataField");
                 });
 
-            modelBuilder.Entity("DataModel.Log", b =>
+            modelBuilder.Entity("Core.Entities.Log", b =>
                 {
-                    b.HasOne("DataModel.User", "User")
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("Logs")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -304,35 +300,35 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DataModel.MetadataField", b =>
+            modelBuilder.Entity("Core.Entities.MetadataField", b =>
                 {
-                    b.HasOne("DataModel.Palette", "Palette")
+                    b.HasOne("Core.Entities.Palette", "Palette")
                         .WithMany("MetadataFields")
                         .HasForeignKey("PaletteID");
 
                     b.Navigation("Palette");
                 });
 
-            modelBuilder.Entity("DataModel.Palette", b =>
+            modelBuilder.Entity("Core.Entities.Palette", b =>
                 {
-                    b.HasOne("DataModel.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithOne("Palette")
-                        .HasForeignKey("DataModel.Palette", "ProjectID")
+                        .HasForeignKey("Core.Entities.Palette", "ProjectID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("DataModel.ProjectMembership", b =>
+            modelBuilder.Entity("Core.Entities.ProjectMembership", b =>
                 {
-                    b.HasOne("DataModel.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("ProjectMemberships")
                         .HasForeignKey("ProjectID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataModel.User", "User")
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("ProjectMemberships")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -343,15 +339,15 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DataModel.ProjectMetadataField", b =>
+            modelBuilder.Entity("Core.Entities.ProjectMetadataField", b =>
                 {
-                    b.HasOne("DataModel.MetadataField", "MetadataField")
+                    b.HasOne("Core.Entities.MetadataField", "MetadataField")
                         .WithMany("ProjectMetadataFields")
                         .HasForeignKey("FieldID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataModel.Project", "Project")
+                    b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("ProjectMetadataFields")
                         .HasForeignKey("ProjectID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -362,24 +358,24 @@ namespace Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("DataModel.Asset", b =>
+            modelBuilder.Entity("Core.Entities.Asset", b =>
                 {
                     b.Navigation("AssetMetadata");
                 });
 
-            modelBuilder.Entity("DataModel.MetadataField", b =>
+            modelBuilder.Entity("Core.Entities.MetadataField", b =>
                 {
                     b.Navigation("AssetMetadata");
 
                     b.Navigation("ProjectMetadataFields");
                 });
 
-            modelBuilder.Entity("DataModel.Palette", b =>
+            modelBuilder.Entity("Core.Entities.Palette", b =>
                 {
                     b.Navigation("MetadataFields");
                 });
 
-            modelBuilder.Entity("DataModel.Project", b =>
+            modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Navigation("Assets");
 
@@ -391,7 +387,7 @@ namespace Infrastructure.Migrations
                     b.Navigation("ProjectMetadataFields");
                 });
 
-            modelBuilder.Entity("DataModel.User", b =>
+            modelBuilder.Entity("Core.Entities.User", b =>
                 {
                     b.Navigation("Assets");
 
