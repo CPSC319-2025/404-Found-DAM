@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using APIs.Controllers;
 using Infrastructure.DataAccess;
+using Core.Interfaces;
+using Core.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,12 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-// dotnet ef migrations add InitialCreate --startup-project ../APIs
 builder.Services.AddDbContext<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-// builder.Services.AddScoped<ITestService, TestService>();
 
-// builder.Services.AddScoped<ITestService, TestService>();
+builder.Services.AddScoped<ITestService, TestService>();
+builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+builder.Services.AddScoped<IPaletteService, PaletteService>();
 
 var app = builder.Build();
 

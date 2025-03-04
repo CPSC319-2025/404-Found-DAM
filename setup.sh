@@ -47,6 +47,7 @@ if ! command -v dotnet &> /dev/null; then
     echo "Installing .NET SDK (expected version ${DOTNET_VERSION}) via Homebrew..."
     brew install dotnet@8
     echo "export PATH=\"/opt/homebrew/opt/dotnet@8/bin:\$PATH\"" >> ~/.bash_profile
+    # source ~/.bash_profile
 else
     echo ".NET SDK is already installed: $(dotnet --version)"
 fi
@@ -184,6 +185,8 @@ echo "React frontend project is in the '${FRONTEND_DIR}' directory."
 echo "Remember to update your backend code to connect to MySQL using the connection string in appsettings.json."
 echo "--------------------------------------------------"
 
-# dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
+dotnet tool install --global dotnet-ef
+echo "export PATH="$PATH:/Users/user/.dotnet/tools"" >> ~/.bash_profile
+dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
 docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
