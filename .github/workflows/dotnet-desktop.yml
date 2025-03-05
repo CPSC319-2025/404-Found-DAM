@@ -1,0 +1,51 @@
+name: Deploy .NET 8 API to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      # Set your Azure Web App and Resource Group names here
+      AZURE_WEBAPP_NAME: webappBackend
+      AZURE_RESOURCE_GROUP: DAM
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore dotnet-backend/AssetManagement.sln
+
+      - name: Build solution
+        run: dotnet build dotnet-backend/AssetManagement.sln --configuration Release --no-restore
+
+      - name: Publish API project
+        run: dotnet publish dotnet-backend/APIs/APIs.csproj --configuration Release --no-build --output ./publish
+
+      - name: Archive published output
+        run: zip -r deploy.zip ./publish
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Deploy to Azure Web App
+        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
