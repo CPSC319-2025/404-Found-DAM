@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Infrastructure.DataAccess;
-
 using APIs.Controllers;
+using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,15 +10,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-// dotnet ef migrations add InitialCreate --startup-project ../APIs
-builder.Services.AddDbContext<MyDbContext>(options =>
+
+// Replace the existing DbContext registration with this:
+builder.Services.AddDbContextFactory<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register services with the dependency injection container
 builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IProjectRepository, EFCoreProjectRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
+builder.Services.AddScoped<IPaletteService, PaletteService>();
+builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 
 
 
@@ -37,7 +38,8 @@ if (app.Environment.IsDevelopment())
 app.MapProjectEndpoints(); 
 app.MapNotificationEndpoints(); 
 app.MapAdminEndpoints(); 
+app.MapPaletteEndpoints(); 
 
 app.Run();
 
-
+public partial class Program { }

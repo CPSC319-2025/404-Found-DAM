@@ -14,17 +14,51 @@ const projects = [
 ];
 
 const newProjectFormFields = [
-	{ name: "name", label: "Project Name", type: "text", placeholder: "Enter project name", required: true },
-	{ name: "location", label: "Project Location", type: "text", placeholder: "Enter project location", required: true },
-	{ name: "tags", label: "Tags", type: "text", isMulti: true, placeholder: "Add tags (Press Enter to add one)", required: true },
-	{
-		name: "admins", label: "Admins", type: "select", isMultiSelect: true, required: true, 
-		options: [{ id: "0", name: "dave" }, { id: "1", name: "nehemiah" }, { id: "2", name: "susan" }]
-	},
-	{
-		name: "users", label: "Users", type: "select", isMultiSelect: true, 
-		options: [{ id: "0", name: "alice" }, { id: "1", name: "bob" }, { id: "2", name: "charlie" }]
-	},
+  {
+    name: "name",
+    label: "Project Name",
+    type: "text",
+    placeholder: "Enter project name",
+    required: true,
+  },
+  {
+    name: "location",
+    label: "Project Location",
+    type: "text",
+    placeholder: "Enter project location",
+    required: true,
+  },
+  {
+    name: "tags",
+    label: "Tags",
+    type: "text",
+    isMulti: true,
+    placeholder: "Add tags (Press Enter to add one)",
+    required: true,
+  },
+  {
+    name: "admins",
+    label: "Admins",
+    type: "select",
+    isMultiSelect: true,
+    required: true,
+    options: [
+      { id: "0", name: "dave" },
+      { id: "1", name: "nehemiah" },
+      { id: "2", name: "susan" },
+    ],
+  },
+  {
+    name: "users",
+    label: "Users",
+    type: "select",
+    isMultiSelect: true,
+    options: [
+      { id: "0", name: "alice" },
+      { id: "1", name: "bob" },
+      { id: "2", name: "charlie" },
+    ],
+  },
 ];
 
 const isSuperAdmin = true;
@@ -34,24 +68,27 @@ export default function ProjectsPage() {
   const [projectList, setProjectList] = useState(projects);
 
   const handleAddProject = (formData: { name: string }) => {
-    const newProject = { id: (projectList.length + 1).toString(), name: formData.name };
+    const newProject = {
+      id: (projectList.length + 1).toString(),
+      name: formData.name,
+    };
     setProjectList([...projectList, newProject]);
     setNewProjectModalOpen(false);
   };
 
   return (
     <div className="p-6 min-h-screen">
-			<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-				<Search />
-				{isSuperAdmin && (
-					<button
-						onClick={() => setNewProjectModalOpen(true)}
-						className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-					>
-						New Project
-					</button>
-				)}
-			</div>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
+        <Search />
+        {isSuperAdmin && (
+          <button
+            onClick={() => setNewProjectModalOpen(true)}
+            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+          >
+            New Project
+          </button>
+        )}
+      </div>
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
         {projectList.map((project) => (
@@ -60,11 +97,10 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
-      <h1 className="text-2xl font-semibold mb-4 py-6">Recent Files</h1>
 
       {newProjectModalOpen && (
         <GenericForm
-					title="Create New Project"
+          title="Create New Project"
           fields={newProjectFormFields}
           onSubmit={handleAddProject}
           onCancel={() => setNewProjectModalOpen(false)}

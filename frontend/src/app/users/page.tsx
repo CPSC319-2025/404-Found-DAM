@@ -13,6 +13,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([
     { id: "1", name: "John Doe", email: "john@example.com" },
     { id: "2", name: "Jane Smith", email: "jane@example.com" },
+    { id: "3", name: "Hoi", email: "hoi@example.com" },
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -22,8 +23,20 @@ export default function UsersPage() {
   };
 
   const fields: Field[] = [
-    { name: "name", label: "Name", type: "text", placeholder: "Enter name", required: true },
-    { name: "email", label: "Email", type: "email", placeholder: "Enter email", required: true },
+    {
+      name: "name",
+      label: "Name",
+      type: "text",
+      placeholder: "Enter name",
+      required: true,
+    },
+    {
+      name: "email",
+      label: "Email",
+      type: "email",
+      placeholder: "Enter email",
+      required: true,
+    },
   ];
 
   return (
@@ -39,8 +52,13 @@ export default function UsersPage() {
 
       <div className="space-y-2">
         {users.map((user) => (
-          <div key={user.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
-            <span>{user.name} - {user.email}</span>
+          <div
+            key={user.id}
+            className="flex justify-between items-center bg-gray-100 p-2 rounded"
+          >
+            <span>
+              {user.name} - {user.email}
+            </span>
           </div>
         ))}
       </div>
