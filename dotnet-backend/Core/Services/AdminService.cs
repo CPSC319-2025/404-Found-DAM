@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Core.Interfaces;
 using Core.Dtos;
-using DataModel;
+using Core.Entities;
 
 namespace Core.Services
 {

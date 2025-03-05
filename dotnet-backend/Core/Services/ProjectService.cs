@@ -32,7 +32,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Core.Interfaces;
 using Core.Dtos;
-using DataModel;
+using Core.Entities;
 using ClosedXML.Excel;
 using Core.Services.Utils;
 

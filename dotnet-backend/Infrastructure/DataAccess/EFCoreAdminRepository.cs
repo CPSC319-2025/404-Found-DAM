@@ -3,14 +3,14 @@ using System.Linq;
 using System.Collections.Generic;
 using Core.Interfaces;
 using Core.Dtos;
-using DataModel;
+using Core.Entities;
 
 namespace Infrastructure.DataAccess
 {
     public class EFCoreAdminRepository : IAdminRepository
     {
-        private MyDbContext _context;
-        public EFCoreAdminRepository(MyDbContext context)
+        private DAMDbContext _context;
+        public EFCoreAdminRepository(DAMDbContext context)
         {
             _context = context;
         }

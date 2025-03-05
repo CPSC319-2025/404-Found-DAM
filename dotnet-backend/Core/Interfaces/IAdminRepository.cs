@@ -1,4 +1,4 @@
-﻿using DataModel;
+﻿using Core.Entities;
 using System;
 
 namespace Core.Interfaces
