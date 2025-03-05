@@ -70,7 +70,21 @@ export default function GenericForm({
       return updatedErrors;
     });
 
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setFormData((prevData) => {
+      let newValue: string | number | boolean = value;
+
+      const field = fields.find((f) => f.name === name);
+
+      if (field) {
+        if (field.type === "number") {
+          newValue = Number(value);
+        } else if (field.type === "boolean") {
+          newValue = Boolean(value);
+        }
+      }
+
+      return { ...prevData, [name]: newValue };
+    });
 
     if (!hasEdited) {
       setHasEdited(() => true);
@@ -358,7 +372,7 @@ export default function GenericForm({
                           }
                           className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
                         >
-                          <option value="string">Text</option>
+                          <option value="text">Text</option>
                           <option value="number">Number</option>
                           <option value="boolean">Yes / No</option>
                         </select>
@@ -438,7 +452,7 @@ export default function GenericForm({
                 <input
                   id={field.name}
                   name={field.name}
-                  type={field.type}
+                  type="text"
                   placeholder={field.placeholder}
                   value={formData[field.name] as string}
                   onChange={(e) => handleChange(e.target)}
