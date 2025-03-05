@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,10 +9,15 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
+  <!-- Add proejct reference below -->
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+    <ProjectReference Include="..\APIs\APIs.csproj" />
+  </ItemGroup>
+
+  <!-- Reference packages included in Directory.Packages.props-->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-    <ProjectReference Include="..\APIs\APIs.csproj" />
-    <ProjectReference Include="..\Core\Core.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
@@ -23,6 +28,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="NSubstitute" />
   </ItemGroup>
 
 </Project>

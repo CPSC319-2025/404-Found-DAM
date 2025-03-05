@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Reference packages included in Directory.Packages.props-->
     <PackageReference Include="Microsoft.AspNetCore.Http" />
     <PackageReference Include="Microsoft.AspNetCore.Http" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
@@ -15,6 +16,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
 
 </Project>

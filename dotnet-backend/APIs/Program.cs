@@ -15,10 +15,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContextFactory<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Keep your other service registrations
-builder.Services.AddScoped<ITestService, TestService>();
-builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+// Register services with the dependency injection container
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IProjectRepository, EFCoreProjectRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
 builder.Services.AddScoped<IPaletteService, PaletteService>();
+builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+
+
 
 var app = builder.Build();
 
@@ -30,9 +35,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // Extension methods to register and group endpoints by controller
-// app.MapProjectEndpoints(); 
-// app.MapNotificationEndpoints(); 
-// app.MapAdminEndpoints(); 
+app.MapProjectEndpoints(); 
+app.MapNotificationEndpoints(); 
+app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
 
 app.Run();
