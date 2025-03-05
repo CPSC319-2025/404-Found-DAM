@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useFileContext } from "@/app/FileContext";
+import { useFileContext } from "@/app/context/FileContext";
 import { useState } from "react";
 
 export default function EditMetadataPage() {

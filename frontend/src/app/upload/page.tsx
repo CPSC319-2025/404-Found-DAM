@@ -1,6 +1,6 @@
 "use client";
 
-import { useFileContext, FileMetadata } from "@/app/FileContext";
+import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import { useDropzone } from "react-dropzone";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";

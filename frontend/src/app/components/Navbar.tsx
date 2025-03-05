@@ -5,6 +5,7 @@ import {
   ChartBarIcon,
   ArrowUpTrayIcon,
   UsersIcon,
+  UserIcon,
 } from "@heroicons/react/24/solid";
 
 interface Page {
@@ -34,6 +35,12 @@ const pages: Page[] = [
     title: "Upload Palette",
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+  },
+  {
+    path: "profile",
+    title: "Profile",
+    mobileTitle: "Profile",
+    icon: <UserIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
   },
   ...(isSuperAdmin
     ? [

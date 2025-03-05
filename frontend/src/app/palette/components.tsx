@@ -3,7 +3,7 @@
 import React, { useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useFileContext, FileMetadata } from "@/app/FileContext";
+import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 
 type FileTableProps = {
   files: FileMetadata[];
