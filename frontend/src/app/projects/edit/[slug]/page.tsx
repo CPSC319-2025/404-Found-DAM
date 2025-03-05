@@ -84,6 +84,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   ];
 
   const handleEditProject = async (updatedFormData) => {
+    console.log({updatedFormData});
     setLoading(true);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
