@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "jose": "^6.0.8",
     "multiselect-react-dropdown": "^2.0.25",
     "next": "14.2.23",
     "react": "^18",

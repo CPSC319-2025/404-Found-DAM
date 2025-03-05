@@ -52,7 +52,6 @@ export function FileProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook for easy usage
 export function useFileContext() {
   return useContext(FileContext);
 }
