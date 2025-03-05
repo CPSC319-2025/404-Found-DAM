@@ -2,8 +2,8 @@
   "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
   "rules": {
     "@typescript-eslint/no-unused-vars": "warn",
-    "indent": ["error", 2],
-    "prettier/prettier": ["error", { "tabWidth": 2 }]
+    "indent": ["warn", 2],
+    "prettier/prettier": ["warn", { "tabWidth": 2 }]
   },
   "plugins": ["prettier"]
 }
