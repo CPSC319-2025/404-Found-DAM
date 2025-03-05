@@ -371,7 +371,7 @@ export default function GenericForm({
                           }
                           className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
                         >
-                          <option value="string">Text</option>
+                          <option value="text">Text</option>
                           <option value="number">Number</option>
                           <option value="boolean">Yes / No</option>
                         </select>
