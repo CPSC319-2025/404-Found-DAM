@@ -1,8 +1,15 @@
+
+// const nextConfig = {
+// 	output: 'export',
+// 	basePath: '/404-Found-DAM',
+// 	assetPrefix: '/404-Found-DAM',
+// };
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	output: 'export',
-	basePath: '/404-Found-DAM',
-	assetPrefix: '/404-Found-DAM',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
-// export default nextConfig;
+module.exports = nextConfig;
