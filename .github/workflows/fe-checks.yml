@@ -26,7 +26,7 @@ jobs:
         working-directory: ./frontend
 
       - name: Check TypeScript types
-        run: npm run check-types
+        run: npm run type-check
         working-directory: ./frontend
 
       - name: Run lint and ignore errors/warnings
