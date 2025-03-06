@@ -4,13 +4,13 @@ import React, { useState, useEffect } from "react";
 // import Image from "next/image";
 // import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 // import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
-import Pagination from '@mui/material/Pagination';
+import Pagination from "@mui/material/Pagination";
 
 interface Log {
   id: string;
   user: { userId: string; name: string };
-  asset?: { blobId: string, filename: string };
-  project: { projectId: string, name: string };
+  asset?: { blobId: string; filename: string };
+  project: { projectId: string; name: string };
   action: string;
   timestamp: string;
 }
@@ -24,7 +24,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "1",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -41,7 +41,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "1",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -58,7 +58,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "1",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -75,7 +75,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -92,7 +92,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -109,7 +109,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -126,7 +126,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -143,7 +143,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -186,7 +186,7 @@ const TempLogs: Log[] = [
     },
     asset: {
       blobId: "2",
-      filename: "file1.jpg"
+      filename: "file1.jpg",
     },
     project: {
       projectId: "1",
@@ -213,28 +213,45 @@ const TempLogs: Log[] = [
 function Items({ currentItems }) {
   return (
     <div className="items min-h-[775px] overflow-y-auto">
-      {currentItems && currentItems.map((log) => (
-        <div key={log.id} className="flex border p-3 rounded-md shadow-sm mb-2">
-          <div className="flex-1 p-2">
-            <h3 className="text-lg font-semibold">Log ID: {log.id}</h3>
+      {currentItems &&
+        currentItems.map((log) => (
+          <div
+            key={log.id}
+            className="flex border p-3 rounded-md shadow-sm mb-2"
+          >
+            <div className="flex-1 p-2">
+              <h3 className="text-lg font-semibold">Log ID: {log.id}</h3>
+            </div>
+            <div className="flex-1 p-2">
+              <p>
+                <strong>User:</strong> {log.user.name}{" "}
+              </p>
+            </div>
+            <div className="flex-1 p-2">
+              {log.asset && (
+                <p>
+                  <strong>Asset:</strong> {log.asset.filename}{" "}
+                </p>
+              )}
+            </div>
+            <div className="flex-1 p-2">
+              <p>
+                <strong>Project:</strong> {log.project?.name}{" "}
+              </p>
+            </div>
+            <div className="flex-1 p-2">
+              <p>
+                <strong>Action:</strong> {log.action}{" "}
+              </p>
+            </div>
+            <div className="flex-1 p-2">
+              <p>
+                <strong>Timestamp:</strong>{" "}
+                {new Date(log.timestamp).toLocaleString()}{" "}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 p-2">
-            <p><strong>User:</strong> {log.user.name} </p>
-          </div>
-          <div className="flex-1 p-2">
-            {log.asset && <p><strong>Asset:</strong> {log.asset.filename} </p> }
-          </div>
-          <div className="flex-1 p-2">
-            <p><strong>Project:</strong> {log.project?.name} </p>
-          </div>
-          <div className="flex-1 p-2">
-            <p><strong>Action:</strong> {log.action} </p>
-          </div>
-          <div className="flex-1 p-2">
-            <p><strong>Timestamp:</strong> {new Date(log.timestamp).toLocaleString()} </p>
-          </div>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }
@@ -247,23 +264,29 @@ const LogsTable = () => {
   const [currentItems, setCurrentItems] = useState<Log[]>([]);
   const [filters, setFilters] = useState([]);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>, page: number) => {
+  const handleChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    page: number
+  ) => {
     // await mock api call
     // order by lastmodified
     const { items, totalPages } = await fetchLogs(page, []);
     setCurrentPage(page);
     setTotalPages(totalPages);
     setCurrentItems(items);
-  }
+  };
 
   const fetchLogs = async (page: number, filters: any) => {
     console.log("Fetching logs");
     // TODO: await fetch logs
     return {
-      items: TempLogs.slice(page * itemsPerPage - itemsPerPage, page * itemsPerPage),
+      items: TempLogs.slice(
+        page * itemsPerPage - itemsPerPage,
+        page * itemsPerPage
+      ),
       totalPages: totalPages,
-    }
-  }
+    };
+  };
 
   useEffect(() => {
     fetchLogs(currentPage, []).then(({ items, totalPages }) => {
@@ -284,7 +307,7 @@ const LogsTable = () => {
         color="standard"
       />
     </>
-  )
+  );
 };
 
 export default LogsTable;
