@@ -1,9 +1,9 @@
-"use client";
+import LogsTable from "./components/LogsTable";
 
-export default function ActivityPage() {
+export default function ProjectPage() {
   return (
-    <div>
-      <h1 className="text-2xl fond-bold mb-4">Activity Page</h1>
+    <div className="p-6 min-h-screen">
+      <LogsTable />
     </div>
   );
 }

@@ -12,7 +12,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@heroicons/react": "^2.2.0",
+    "@mui/material": "^6.4.7",
     "jose": "^6.0.8",
     "multiselect-react-dropdown": "^2.0.25",
     "next": "14.2.23",
