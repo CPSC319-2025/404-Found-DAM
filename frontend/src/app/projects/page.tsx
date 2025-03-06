@@ -3,8 +3,8 @@
 import { useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import Search from "./components/Search";
-import GenericForm, { FormData } from "@/app/components/GenericForm";
 import { useUser } from "@/app/context/UserContext";
+import GenericForm, { FormData } from "@/app/components/GenericForm";
 
 const projects = [
   { id: "1", name: "Project One" },
@@ -61,8 +61,6 @@ const newProjectFormFields = [
     ],
   },
 ];
-
-const isSuperAdmin = true;
 
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);

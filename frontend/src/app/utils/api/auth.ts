@@ -3,10 +3,10 @@ import { SignJWT, jwtVerify } from 'jose';
 // TODO: this will all be done by backend
 const secret = new TextEncoder().encode('your-secret-key');
 
-enum Role {
-  Admin,
-  User,
-}
+// enum Role {
+//   Admin,
+//   User,
+// }
 
 interface ProjectMembership {
   project: string;
