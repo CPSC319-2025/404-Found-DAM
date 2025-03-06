@@ -7,7 +7,7 @@ import { useFileContext, FileMetadata } from "@/app/FileContext";
 
 type FileTableProps = {
   files: FileMetadata[];
-  removeFile: (index: number) => void;
+  removeFile: any;
 };
 
 export default function FileTable({ files, removeFile }: FileTableProps) {

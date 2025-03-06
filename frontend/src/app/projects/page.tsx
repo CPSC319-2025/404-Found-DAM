@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import Search from "./components/Search";
-import GenericForm from "@/app/components/GenericForm";
+import GenericForm, { FormData } from "@/app/components/GenericForm";
 
 const projects = [
   { id: "1", name: "Project One" },
@@ -67,10 +67,10 @@ export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState(projects);
 
-  const handleAddProject = (formData: { name: string }) => {
+  const handleAddProject = (formData: FormData) => {
     const newProject = {
       id: (projectList.length + 1).toString(),
-      name: formData.name,
+      name: formData.name as string,
     };
     setProjectList([...projectList, newProject]);
     setNewProjectModalOpen(false);

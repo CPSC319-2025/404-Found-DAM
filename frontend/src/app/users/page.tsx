@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import GenericForm from "@/app/components/GenericForm";
+import GenericForm, { FormData } from "@/app/components/GenericForm";
 
 interface User {
   id: string;
@@ -17,12 +17,18 @@ export default function UsersPage() {
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddUser = (newUser: { name: string; email: string }) => {
-    setUsers([...users, { ...newUser, id: users.length + 1 }]);
+  // const handleAddUser = (newUser: { name: string; email: string }) => {
+  const handleAddUser = (formData: FormData) => {
+    const newUser = {
+      name: formData.name as string,
+      email: formData.email as string,
+    };
+
+    setUsers([...users, { ...newUser, id: String(users.length + 1) }]);
     setIsModalOpen(false);
   };
 
-  const fields: Field[] = [
+  const fields = [
     {
       name: "name",
       label: "Name",
