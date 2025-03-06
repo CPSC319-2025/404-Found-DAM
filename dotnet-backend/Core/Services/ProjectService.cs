@@ -157,14 +157,14 @@ namespace Core.Services
         }
 
 
-        public async Task<GetProjectAssetsRes> GetProjectAssets(int projectID, string type, int pageNumber, int pageSize)
+        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
         {
             //TODO
-            int offset = (pageNumber - 1) * pageSize;
+            int offset = (req.pageNumber - 1) * req.pageSize;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetProjectAssetsInDb(projectID, type, offset, pageSize);
-                ProjectAssetsPagination pagination = new ProjectAssetsPagination{page = pageNumber, limit = pageSize, total = 2};
+                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
+                ProjectAssetsPagination pagination = new ProjectAssetsPagination{page = req.pageNumber, limit = req.pageSize, total = 2};
                 List<string> tags1 = new List<string>();
                 tags1.Add("fieldwork");
                 tags1.Add("site");
@@ -194,7 +194,7 @@ namespace Core.Services
                 assets.Add(asset1);
                 assets.Add(asset2);
 
-                GetProjectAssetsRes result = new GetProjectAssetsRes{projectID = projectID, assets = assets, pagination = pagination};
+                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = assets, pagination = pagination};
                 return result;
             }
             catch (Exception ex)

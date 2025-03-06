@@ -1,6 +1,16 @@
 namespace Core.Dtos
 {
-    public class GetProjectAssetsRes
+    public class GetPaginatedProjectAssetsReq
+    {
+        public int projectID {get; set; }
+        public string assetType {get; set; }
+        public int pageNumber {get; set; }
+        public int pageSize {get; set; }
+        public string? status {get; set; }
+        public string? postedBy {get; set; }
+        public string? datePosted {get; set; }
+    }
+    public class GetPaginatedProjectAssetsRes
     {
         public int projectID {get; set; }
         public List<ProjectAsset> assets { get; set; }

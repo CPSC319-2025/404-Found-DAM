@@ -51,15 +51,17 @@ namespace Infrastructure.DataAccess
             return (project, admin, tags);
         }
 
+        // Get ALL assets of a project from database
         public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
         {
-            //TODO
+            // TODO
             return null;
         }
 
-        public async Task<List<Asset>> GetProjectAssetsInDb(int projectID, string type, int offset, int pageSize)
+        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset)
         {
-            //TODO
+            // TODO
+            // Build query layer by layer with filters
             return null;
         }
     }
