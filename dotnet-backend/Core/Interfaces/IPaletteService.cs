@@ -10,5 +10,8 @@ namespace Core.Interfaces
     {
         Task<bool> ProcessUploadAsync(IFormFile file, UploadAssetsReq request);
         Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request);
+        Task<List<string>> GetProjectTagsAsync(int projectId);
+        Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId);
+
     }
 }
