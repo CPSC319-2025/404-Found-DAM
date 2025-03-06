@@ -33,8 +33,9 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<(Project, string, List<string>)> RetrieveProjectInDb(int projectID) 
+        public async Task<(Project, string, List<string>)> GetProjectInDb(int projectID) 
         {
+            await Task.Delay(1); // Replace this after the actual database access call
             Project project = new Project
             {
                 ProjectID = projectID,

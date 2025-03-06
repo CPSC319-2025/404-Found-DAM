@@ -17,7 +17,7 @@ namespace APIs.Controllers
             app.MapPatch("/projects/assign-assets", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
-            app.MapGet("/projects/{projectID}", RetrieveProject).WithName("RetrieveProject").WithOpenApi();
+            app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
             // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
            
@@ -53,11 +53,11 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> RetrieveProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> getProject(int projectID, IProjectService projectService)
         {
             try 
             {
-                RetrieveProjectRes result = await projectService.RetrieveProject(projectID);
+                GetProjectRes result = await projectService.GetProject(projectID);
                 return Results.Ok(result);
             }
             catch (Exception ex) 
