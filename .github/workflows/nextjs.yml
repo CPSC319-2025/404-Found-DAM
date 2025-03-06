@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-<<<<<<< HEAD
-=======
-  pull_request:
-    branches:
-      - main
->>>>>>> main
 
 jobs:
   build-and-deploy:
