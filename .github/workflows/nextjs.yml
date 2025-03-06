@@ -4,7 +4,7 @@ on:
     branches:
       - main
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     env:
       AZURE_WEBAPP_NAME: webappFrontend
@@ -17,32 +17,23 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
       
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: ./frontend
       
       - name: Build Next.js app
         run: npm run build
         working-directory: ./frontend
       
-      # Package deployment
-      - name: Package deployment
-        run: zip -r deploy.zip .
-        working-directory: ./frontend
-  
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    env:
-      AZURE_WEBAPP_NAME: webappFrontend
-      AZURE_RESOURCE_GROUP: DAM
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Create .env file
+        run: |
+          echo "NODE_ENV=production" > ./frontend/.env
       
-      - name: Package deployment
-        run: zip -r deploy.zip .
+      - name: Package deployment with node_modules
+        run: zip -r deploy.zip . -x "node_modules/.cache/*"
         working-directory: ./frontend
       
       - name: Azure Login
@@ -59,7 +50,6 @@ jobs:
       - name: Deploy to Azure Web App
         run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src ./frontend/deploy.zip
       
-      # Configure the startup command
       - name: Configure startup command
         run: |
-          az webapp config set --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --startup-command "npm install && npm run start"
+          az webapp config set --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --startup-command "next start"
