@@ -1,10 +1,8 @@
 name: Build and Deploy Next.js Frontend to Azure Web App
-
 on:
   push:
     branches:
       - main
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,12 +26,20 @@ jobs:
         run: npm run build
         working-directory: ./frontend
 
-      # Optional: If your Next.js app is meant to be exported as a static site,
-      # uncomment the following step. If not (e.g. if you need server-side rendering),
-      # you can skip this.
-      #- name: Export Next.js app
-      #  run: npm run export
-      #  working-directory: ./frontend
+      # Create a startup script for Azure
+      - name: Create startup script
+        run: |
+          echo '#!/bin/bash' > ./frontend/startup.sh
+          echo 'cd /home/site/wwwroot' >> ./frontend/startup.sh
+          echo 'npm install -g pm2@latest' >> ./frontend/startup.sh
+          echo 'export PATH=$PATH:/usr/local/bin:/home/site/wwwroot/node_modules/.bin' >> ./frontend/startup.sh
+          echo 'NODE_ENV=production npx next start -p 8080' >> ./frontend/startup.sh
+          chmod +x ./frontend/startup.sh
+
+      # Package deployment
+      - name: Package deployment
+        run: zip -r deploy.zip .
+        working-directory: ./frontend
 
   deploy:
     runs-on: ubuntu-latest
@@ -62,3 +68,8 @@ jobs:
 
       - name: Deploy to Azure Web App
         run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src ./frontend/deploy.zip
+
+      # Configure the startup command
+      - name: Configure startup command
+        run: |
+          az webapp config set --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --startup-file /home/site/wwwroot/startup.sh
