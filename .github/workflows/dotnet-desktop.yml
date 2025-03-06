@@ -45,4 +45,4 @@ jobs:
             }
 
       - name: Deploy to Azure Web App
-        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src ./frontend/deploy.zip
+        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
