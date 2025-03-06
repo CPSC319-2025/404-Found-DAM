@@ -1,6 +1,10 @@
 name: lint ,type check, and build frontend
 
 on:
+  pull_request:
+    branches: 
+      - main
+      - '**'
   push:
     branches: 
       - '**'
