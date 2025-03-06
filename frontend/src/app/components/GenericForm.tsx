@@ -15,7 +15,7 @@ interface Field {
   label: string;
   type: string;
   placeholder?: string;
-  value?: string | string[] | CustomMetadataField[];
+  value?: string | number | boolean | string[] | CustomMetadataField[];
   isMulti?: boolean;
   isMultiSelect?: boolean;
   isCustomMetadata?: boolean; // hardcoding this type for now. Cant really think of reason to make more generic
@@ -69,7 +69,21 @@ export default function GenericForm({
       return updatedErrors;
     });
 
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setFormData((prevData) => {
+      let newValue: string | number | boolean = value;
+
+      const field = fields.find((f) => f.name === name);
+
+      if (field) {
+        if (field.type === "number") {
+          newValue = Number(value);
+        } else if (field.type === "boolean") {
+          newValue = Boolean(value);
+        }
+      }
+
+      return { ...prevData, [name]: newValue };
+    });
 
     if (!hasEdited) {
       setHasEdited(() => true);
@@ -357,7 +371,7 @@ export default function GenericForm({
                           }
                           className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
                         >
-                          <option value="string">Text</option>
+                          <option value="text">Text</option>
                           <option value="number">Number</option>
                           <option value="boolean">Yes / No</option>
                         </select>
@@ -411,11 +425,33 @@ export default function GenericForm({
                     + Add Entry
                   </button>
                 </div>
+              ) : field.type === "number" ? (
+                <input
+                  id={field.name}
+                  name={field.name}
+                  type="number"
+                  placeholder={field.placeholder}
+                  value={formData[field.name] as string}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                />
+              ) : field.type === "boolean" ? (
+                <select
+                  id={field.name}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">Select...</option>
+                  <option value={true}>Yes</option>
+                  <option value={false}>No</option>
+                </select>
               ) : (
                 <input
                   id={field.name}
                   name={field.name}
-                  type={field.type}
+                  type="text"
                   placeholder={field.placeholder}
                   value={formData[field.name] as string}
                   onChange={handleChange}

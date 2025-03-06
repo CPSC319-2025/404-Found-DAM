@@ -1,90 +1,60 @@
-name: Deploy Next.js site to Pages
+name: Deploy Next.js Frontend to Azure Web App
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    # Set default working directory for all run steps to 'frontend'
-    defaults:
-      run:
-        working-directory: frontend
+    env:
+      AZURE_WEBAPP_NAME: webappFrontend
+      AZURE_RESOURCE_GROUP: DAM
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Detect package manager
-        id: detect-package-manager
-        run: |
-          if [ -f "yarn.lock" ]; then
-            echo "manager=yarn" >> $GITHUB_OUTPUT
-            echo "command=install" >> $GITHUB_OUTPUT
-            echo "runner=yarn" >> $GITHUB_OUTPUT
-          elif [ -f "package.json" ]; then
-            echo "manager=npm" >> $GITHUB_OUTPUT
-            echo "command=ci" >> $GITHUB_OUTPUT
-            echo "runner=npx --no-install" >> $GITHUB_OUTPUT
-          else
-            echo "Unable to determine package manager"
-            exit 1
-          fi
-
-      - name: Setup Node
-        # This action doesn't support a custom working directory,
-        # so we point it to the lock file using a relative path.
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: "20"
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: next
-
-      - name: Restore cache
-        uses: actions/cache@v4
-        with:
-          # Cache the Next.js build cache (located in frontend/.next/cache)
-          path: frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json', 'frontend/yarn.lock') }}-${{ hashFiles('frontend/**.[jt]s', 'frontend/**.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json', 'frontend/yarn.lock') }}-
+          node-version: '18'  # Use the Node.js version your Next.js app requires
 
       - name: Install dependencies
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        run: npm install
+        working-directory: ./frontend
 
-      - name: Build with Next.js
-        run: |
-          ${{ steps.detect-package-manager.outputs.runner }} next build
-          ${{ steps.detect-package-manager.outputs.runner }} next export
+      - name: Build Next.js app
+        run: npm run build
+        working-directory: ./frontend
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      # Optional: If your Next.js app is meant to be exported as a static site,
+      # uncomment the following step. If not (e.g. if you need server-side rendering),
+      # you can skip this.
+      #- name: Export Next.js app
+      #  run: npm run export
+      #  working-directory: ./frontend
+
+      # Package the build output into a zip file.
+      # If you're deploying a dynamic app (SSR), it's common to deploy the entire repository,
+      # but here we're zipping the contents of the 'frontend' folder.
+      - name: Package deployment
+        run: zip -r deploy.zip .
+        working-directory: ./frontend
+
+      - name: Azure Login
+        uses: azure/login@v1
         with:
-          # Reference the 'out' folder in the frontend directory (relative to repo root)
-          path: frontend/out
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to Azure Web App
+        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
