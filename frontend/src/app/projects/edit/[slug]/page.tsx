@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import GenericForm, { FormData, CustomMetadataField } from "@/app/components/GenericForm";
+import GenericForm, {
+  FormData,
+  CustomMetadataField,
+} from "@/app/components/GenericForm";
 
 type ProjectPageProps = {
   params: { slug: string };
@@ -82,10 +85,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const newMetadataFields =
-        (updatedFormData.metadata as CustomMetadataField[]).filter((item) => isNewMetadataField(item.id)) ??
-      [];
+      (updatedFormData.metadata as CustomMetadataField[]).filter((item) =>
+        isNewMetadataField(item.id)
+      ) ?? [];
     const existingMetadataFields =
-        (updatedFormData.metadata as CustomMetadataField[]).filter(
+      (updatedFormData.metadata as CustomMetadataField[]).filter(
         (item) => !isNewMetadataField(item.id)
       ) ?? [];
 
