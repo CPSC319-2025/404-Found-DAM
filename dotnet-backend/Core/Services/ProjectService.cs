@@ -131,19 +131,22 @@ namespace Core.Services
             }
         }
 
-        public async Task<RetrieveProjectRes> RetrieveProject(int projectID) 
+        public async Task<GetProjectRes> GetProject(int projectID) 
         {
             //TODO
             try 
             {
-                Project Project = await _repository.RetrieveProjectInDb(projectID);
-                RetrieveProjectRes result = new RetrieveProjectRes
+                (Project project, string projectAdmin, List<string> projectTags) = await _repository.GetProjectInDb(projectID);
+                GetProjectRes result = new GetProjectRes
                 {
-                    projectID = projectID,
-                    projectName = "Project Name",
+                    projectID = project.ProjectID,
+                    name = project.Name,
+                    description = project.Description,
+                    location = project.Description,
                     archived = true,
                     archivedAt = "2025-02-02T12:00:00Z",
-                    admin = "John Doe"
+                    admin = projectAdmin,
+                    tags = projectTags
                 };
                 return result;
             }
@@ -206,7 +209,7 @@ namespace Core.Services
             try
             {
                 // Fetch project and assets
-                Project project = await _repository.RetrieveProjectInDb(projectID);
+                (Project project, string admin, List<string> tags) = await _repository.GetProjectInDb(projectID);
                 List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
 
                 // if (project == null) {

@@ -33,10 +33,22 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<Project> RetrieveProjectInDb(int projectID) 
+        public async Task<(Project, string, List<string>)> GetProjectInDb(int projectID) 
         {
-            //TODO 
-            return null;
+            await Task.Delay(1); // Replace this after the actual database access call
+            Project project = new Project
+            {
+                ProjectID = projectID,
+                Name = "Mocked Project",
+                Version = "1.0",
+                Location = "a mocked location",
+                Description = "a mocked project",
+                CreationTime = DateTime.Now,
+                Active = true
+            };
+            string admin = "Jane Doe";
+            List<string> tags = new List<string> {"apple", "orange"};
+            return (project, admin, tags);
         }
 
         public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
