@@ -1,15 +1,12 @@
-name: Deploy Next.js Frontend to Azure Web App
+name: Build and Deploy Next.js Frontend to Azure Web App
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     env:
       AZURE_WEBAPP_NAME: webappFrontend
@@ -21,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Use the Node.js version your Next.js app requires
+          node-version: '18'
 
       - name: Install dependencies
         run: npm install
@@ -38,9 +35,16 @@ jobs:
       #  run: npm run export
       #  working-directory: ./frontend
 
-      # Package the build output into a zip file.
-      # If you're deploying a dynamic app (SSR), it's common to deploy the entire repository,
-      # but here we're zipping the contents of the 'frontend' folder.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      AZURE_WEBAPP_NAME: webappFrontend
+      AZURE_RESOURCE_GROUP: DAM
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Package deployment
         run: zip -r deploy.zip .
         working-directory: ./frontend

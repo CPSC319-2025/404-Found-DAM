@@ -3,8 +3,8 @@
 import { useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import Search from "./components/Search";
-import GenericForm from "@/app/components/GenericForm";
 import { useUser } from "@/app/context/UserContext";
+import GenericForm, { FormData } from "@/app/components/GenericForm";
 
 const projects = [
   { id: "1", name: "Project One" },
@@ -62,17 +62,15 @@ const newProjectFormFields = [
   },
 ];
 
-const isSuperAdmin = true;
-
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState(projects);
   const { user } = useUser();
 
-  const handleAddProject = (formData: { name: string }) => {
+  const handleAddProject = (formData: FormData) => {
     const newProject = {
       id: (projectList.length + 1).toString(),
-      name: formData.name,
+      name: formData.name as string,
     };
     setProjectList([...projectList, newProject]);
     setNewProjectModalOpen(false);
@@ -82,7 +80,7 @@ export default function ProjectsPage() {
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
         <Search />
-        {user.superadmin && (
+        {user?.superadmin && (
           <button
             onClick={() => setNewProjectModalOpen(true)}
             className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
