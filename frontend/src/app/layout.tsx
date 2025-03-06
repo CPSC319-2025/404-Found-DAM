@@ -21,7 +21,11 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
@@ -41,12 +45,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = () => {
     setUser(null);
-  }
+  };
 
   if (loading) {
     return (
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
           <div className="flex min-h-screen items-center justify-center">
             <p>Loading...</p>
           </div>
@@ -58,7 +64,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (!user) {
     return (
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
           <div className="flex min-h-screen items-center justify-center">
             <Login setUser={setUser} />
           </div>
@@ -69,7 +77,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <UserProvider value={{ user, setUser }}>
           <FileProvider>
             <div className="flex min-h-screen flex-col sm:flex-row">

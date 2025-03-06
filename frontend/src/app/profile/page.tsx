@@ -9,7 +9,7 @@ export default function ProfilePage() {
   const handleLogout = () => {
     logout();
     setUser(null);
-  }
+  };
 
   return (
     <div>

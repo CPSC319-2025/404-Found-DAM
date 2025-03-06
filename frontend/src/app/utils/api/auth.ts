@@ -1,7 +1,7 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from "jose";
 
 // TODO: this will all be done by backend
-const secret = new TextEncoder().encode('your-secret-key');
+const secret = new TextEncoder().encode("your-secret-key");
 
 // enum Role {
 //   Admin,
@@ -60,7 +60,7 @@ export async function login(email: string): Promise<string | null> {
           superadmin: user.superadmin,
           projectMemberships: user.projectMemberships,
         })
-          .setProtectedHeader({ alg: 'HS256' })
+          .setProtectedHeader({ alg: "HS256" })
           .sign(secret);
 
         localStorage.setItem("token", token);
