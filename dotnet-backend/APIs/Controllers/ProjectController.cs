@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // Use Task<T> or Task for async operations
 
@@ -9,7 +10,7 @@ namespace APIs.Controllers
     {
         public const string DefaultAssetType = "image";
         public const int DefaultPageNumber = 1;
-        public const int DefaultLimit = 10;
+        public const int DefaultPageSize = 10;
 
 
         public static void MapProjectEndpoints(this WebApplication app)
@@ -18,7 +19,7 @@ namespace APIs.Controllers
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
-            app.MapGet("/projects/{projectID}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
+            app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
            
             app.MapPost("/projects/{projectID}/assets/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
@@ -26,13 +27,16 @@ namespace APIs.Controllers
             app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
         }
 
-        private static async Task<IResult> GetProjectAssets
+        private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
-            IProjectService projectService, // Place required parameters before optional parameters
-            string type = DefaultAssetType, 
+            string? status,
+            string? postedBy,
+            string? datePosted,
+            IProjectService projectService,
+            string assetType = DefaultAssetType,
             int page = DefaultPageNumber, 
-            int limit = DefaultLimit
+            int limit = DefaultPageSize
         )
         {
             // Validate user input
@@ -44,13 +48,45 @@ namespace APIs.Controllers
             // Call Project Service to handle request
             try
             {
-                GetProjectAssetsRes result = await projectService.GetProjectAssets(projectID, type, page, limit);
+                if (status == null) 
+                {
+                    Console.WriteLine("status is null");
+                }
+
+                if (postedBy == null) 
+                {
+                    Console.WriteLine("postedBy is null");
+                }
+                else 
+                {
+                    Console.WriteLine($"posted by {postedBy}");
+   
+                }
+
+                if (datePosted == null) 
+                {
+                    Console.WriteLine("datePosted is null");
+
+                }
+
+                GetPaginatedProjectAssetsReq req = new GetPaginatedProjectAssetsReq
+                {
+                    projectID = projectID,
+                    assetType = assetType,
+                    pageNumber = page,
+                    pageSize = limit,
+                    status = status,
+                    postedBy = postedBy,
+                    datePosted = datePosted
+                };
+
+                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req);
                 return Results.Ok(result);
             } 
             catch (Exception ex) 
             {
                 return Results.StatusCode(500);
-            }
+            }  
         }
 
         private static async Task<IResult> getProject(int projectID, IProjectService projectService)

@@ -1,5 +1,5 @@
 ﻿using Core.Entities;
-using System;
+using Core.Dtos;
 
 namespace Core.Interfaces
 {
@@ -11,6 +11,6 @@ namespace Core.Interfaces
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<(Project, string, List<string>)> GetProjectInDb(int projectID);
         Task<List<Asset>> GetProjectAssetsInDb(int projectID);
-        Task<List<Asset>> GetProjectAssetsInDb(int projectID, string type, int offset, int pageSize);
+        Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset);
     }
 }
