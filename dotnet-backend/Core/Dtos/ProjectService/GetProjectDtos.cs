@@ -1,6 +1,6 @@
 namespace Core.Dtos
 {
-    public class RetrieveProjectRes
+    public class GetProjectRes
     {
         public int projectID { get; set; }
         public string name { get; set; }

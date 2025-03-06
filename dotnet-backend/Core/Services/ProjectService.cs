@@ -131,13 +131,13 @@ namespace Core.Services
             }
         }
 
-        public async Task<RetrieveProjectRes> RetrieveProject(int projectID) 
+        public async Task<GetProjectRes> GetProject(int projectID) 
         {
             //TODO
             try 
             {
-                (Project project, string projectAdmin, List<string> projectTags) = await _repository.RetrieveProjectInDb(projectID);
-                RetrieveProjectRes result = new RetrieveProjectRes
+                (Project project, string projectAdmin, List<string> projectTags) = await _repository.GetProjectInDb(projectID);
+                GetProjectRes result = new GetProjectRes
                 {
                     projectID = project.ProjectID,
                     name = project.Name,
@@ -209,7 +209,7 @@ namespace Core.Services
             try
             {
                 // Fetch project and assets
-                (Project project, string admin, List<string> tags) = await _repository.RetrieveProjectInDb(projectID);
+                (Project project, string admin, List<string> tags) = await _repository.GetProjectInDb(projectID);
                 List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
 
                 // if (project == null) {

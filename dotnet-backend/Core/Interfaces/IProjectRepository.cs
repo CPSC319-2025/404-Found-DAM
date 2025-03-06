@@ -9,7 +9,7 @@ namespace Core.Interfaces
         Task<bool> AddAssetsToProjectInDb(int projectID, List<int> blobIDs);
         Task<bool> ArchiveProjectsInDb(List<int> projectIDs);
         Task<List<Log>> GetArchivedProjectLogsInDb();
-        Task<(Project, string, List<string>)> RetrieveProjectInDb(int projectID);
+        Task<(Project, string, List<string>)> GetProjectInDb(int projectID);
         Task<List<Asset>> GetProjectAssetsInDb(int projectID);
         Task<List<Asset>> GetProjectAssetsInDb(int projectID, string type, int offset, int pageSize);
     }
