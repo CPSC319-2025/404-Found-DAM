@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
+using Infrastructure.Exceptions;
 using Microsoft.Extensions.Logging.Abstractions;
 
 // Use Task<T> or Task for async operations
@@ -20,7 +21,7 @@ namespace APIs.Controllers
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
-            // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
+            // app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
            
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
@@ -29,7 +30,6 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
-            string? status,
             string? postedBy,
             string? datePosted,
             IProjectService projectService,
@@ -47,34 +47,12 @@ namespace APIs.Controllers
             // Call Project Service to handle request
             try
             {
-                if (status == null) 
-                {
-                    Console.WriteLine("status is null");
-                }
-
-                if (postedBy == null) 
-                {
-                    Console.WriteLine("postedBy is null");
-                }
-                else 
-                {
-                    Console.WriteLine($"posted by {postedBy}");
-   
-                }
-
-                if (datePosted == null) 
-                {
-                    Console.WriteLine("datePosted is null");
-
-                }
-
                 GetPaginatedProjectAssetsReq req = new GetPaginatedProjectAssetsReq
                 {
                     projectID = projectID,
                     assetType = assetType,
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
-                    status = status,
                     postedBy = postedBy,
                     datePosted = datePosted
                 };
@@ -82,7 +60,11 @@ namespace APIs.Controllers
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req);
                 return Results.Ok(result);
             } 
-            catch (Exception ex) 
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
             }  
@@ -101,8 +83,12 @@ namespace APIs.Controllers
             }
         }
 
-        // private static IResult RetrieveAllProjects(IProjectService projectService)
+        // private static IResult GetAllProjects(IProjectService projectService)
         // {
+        //     try 
+        //     {
+
+        //     }
         //     return Results.NotFound("stub"); // Stub
         // }
 

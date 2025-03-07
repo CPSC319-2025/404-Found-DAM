@@ -1,3 +1,5 @@
+using Core.Entities;
+
 namespace Core.Dtos
 {
     public class GetPaginatedProjectAssetsReq
@@ -6,30 +8,33 @@ namespace Core.Dtos
         public string assetType {get; set; }
         public int pageNumber {get; set; }
         public int assetsPerPage {get; set; }
-        public string? status {get; set; }
         public string? postedBy {get; set; }
         public string? datePosted {get; set; }
     }
+
     public class GetPaginatedProjectAssetsRes
     {
         public int projectID {get; set; }
-        public List<ProjectAsset> assets { get; set; }
+        public List<PaginatedProjectAsset> assets { get; set; }
         public ProjectAssetsPagination pagination {get; set; }
     }
 
-    public class ProjectAsset
+    public class PaginatedProjectAsset
     {
         public int blobID { get; set; }
         public string thumbnailUrl { get; set; }
         public string filename { get; set; }
-        public ProjectAssetMD metadata { get; set; }
+        public PaginatedProjectAssetUploadedBy uploadedBy { get; set; }
+        public DateTime lastUpdated { get; set; }
+        public int filesizeInKB { get; set; }
+        public List<string> tags { get; set; }  
     }
 
-    public class ProjectAssetMD
+    public class PaginatedProjectAssetUploadedBy
     {
-        public DateTime date { get; set; }
-        public List<string> tags { get; set; }
-    } 
+        public int userID { get; set; }
+        public string name { get; set; }
+    }
 
     public class ProjectAssetsPagination
     {
