@@ -195,7 +195,11 @@ const TempLogs: Log[] = [
   },
 ];
 
-function Items({ currentItems }: any) {
+interface ItemsProps {
+  currentItems?: Log[];
+}
+
+function Items({ currentItems } : ItemsProps) {
   return (
     <div className="items min-h-[90vh] overflow-y-auto mt-4 rounded-lg p-4">
       {currentItems &&
@@ -258,7 +262,7 @@ const LogsTable = () => {
     return {
       items: TempLogs.slice(
         page * itemsPerPage - itemsPerPage,
-        page * itemsPerPage
+        page * itemsPerPage,
       ),
       totalPages: totalPages,
     };
