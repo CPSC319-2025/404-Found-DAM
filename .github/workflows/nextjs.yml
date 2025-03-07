@@ -1,13 +1,8 @@
-name: Deploy Next.js Frontend to Azure Web App
-
+name: Build and Deploy Next.js Frontend to Azure Web App
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,34 +12,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Use the Node.js version your Next.js app requires
-
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+      
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: ./frontend
-
+      
       - name: Build Next.js app
         run: npm run build
         working-directory: ./frontend
-
-      # Optional: If your Next.js app is meant to be exported as a static site,
-      # uncomment the following step. If not (e.g. if you need server-side rendering),
-      # you can skip this.
-      #- name: Export Next.js app
-      #  run: npm run export
-      #  working-directory: ./frontend
-
-      # Package the build output into a zip file.
-      # If you're deploying a dynamic app (SSR), it's common to deploy the entire repository,
-      # but here we're zipping the contents of the 'frontend' folder.
-      - name: Package deployment
-        run: zip -r deploy.zip .
+      
+      - name: Create .env file
+        run: |
+          echo "NODE_ENV=production" > ./frontend/.env
+      
+      - name: Package deployment with node_modules
+        run: zip -r deploy.zip . -x "node_modules/.cache/*"
         working-directory: ./frontend
-
+      
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -55,6 +46,10 @@ jobs:
               "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
-
+      
       - name: Deploy to Azure Web App
-        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
+        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src ./frontend/deploy.zip
+      
+      - name: Configure startup command
+        run: |
+          az webapp config set --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --startup-command "next start"

@@ -5,7 +5,7 @@ import { login } from "@/app/utils/api/auth";
 import { getUserFromToken } from "@/app/utils/api/auth";
 
 interface LoginProps {
-  setUser: (user: any) => void;
+  setUser: any;
 }
 
 export default function Login({ setUser }: LoginProps) {

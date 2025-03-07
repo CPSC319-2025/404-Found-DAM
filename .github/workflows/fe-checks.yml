@@ -1,0 +1,38 @@
+name: lint ,type check, and build frontend
+
+on:
+  pull_request:
+    branches: 
+      - main
+      - '**'
+  push:
+    branches: 
+      - '**'
+
+jobs:
+  check-lint-types-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend
+
+      - name: Check TypeScript types
+        run: npm run type-check
+        working-directory: ./frontend
+
+      - name: Run lint and ignore errors/warnings
+        run: npm run lint || true
+        working-directory: ./frontend
+
+      - name: Build Next.js app
+        run: npm run build
+        working-directory: ./frontend

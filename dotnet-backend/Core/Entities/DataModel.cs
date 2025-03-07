@@ -54,6 +54,7 @@ namespace Core.Entities
         public virtual User? User { get; set; }
         
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();
+        public virtual ICollection<AssetTag> AssetTags { get; set; } = new List<AssetTag>();
     }
 
     public class Project
@@ -77,6 +78,8 @@ namespace Core.Entities
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
         public virtual ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
         public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
+
+        public virtual ICollection<ProjectTag> ProjectTags { get; set; } = new List<ProjectTag>();
         
         // Each project can have one Palette ??
         public virtual Palette Palette { get; set; }
@@ -178,6 +181,37 @@ namespace Core.Entities
         public required virtual MetadataField MetadataField { get; set; }
     }
 
+    public class ProjectTag 
+    {
+        [Key]
+        public int ProjectID { get; set; }
+        [Key]
+        public int TagID { get; set; }
+
+
+        [ForeignKey("ProjectID")]
+        public required virtual Project Project { get; set; }
+
+        [ForeignKey("TagID")]
+        public required virtual Tag Tag { get; set; }
+
+    }
+
+    public class AssetTag
+    {
+        [Key]
+        public int BlobID { get; set; }
+        [Key]
+        public int TagID { get; set; }
+        
+        [ForeignKey("BlobID")]
+        public required virtual Asset Asset { get; set; }
+
+        [ForeignKey("TagID")]
+        public required virtual Tag Tag { get; set; }
+
+    }
+
     // Optional: A simple Tag table.
     public class Tag
     {
@@ -185,6 +219,9 @@ namespace Core.Entities
         public int TagID { get; set; }
         
         public required string Name { get; set; }
+
+        public virtual ICollection<ProjectTag> ProjectTags { get; set; } = new List<ProjectTag>();
+        public virtual ICollection<AssetTag> AssetTags { get; set; } = new List<AssetTag>();
     }
 
 }

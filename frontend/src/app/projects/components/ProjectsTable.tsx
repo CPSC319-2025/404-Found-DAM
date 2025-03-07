@@ -32,6 +32,7 @@ const ProjectsTable = () => {
       datePosted: "2025-01-26",
       tags: ["construction", "building"],
       thumbnail: "/images/image1.jpg",
+      name: "filename",
     },
     {
       id: "2",
@@ -40,6 +41,7 @@ const ProjectsTable = () => {
       datePosted: "2025-01-29",
       tags: ["office", "building"],
       thumbnail: "/images/image2.jpg",
+      name: "filename",
     },
     {
       id: "3",
@@ -48,6 +50,7 @@ const ProjectsTable = () => {
       datePosted: "2025-02-26",
       tags: ["sports", "soccer", "ball"],
       thumbnail: "/images/image3.jpg",
+      name: "filename",
     },
     {
       id: "4",
@@ -56,6 +59,7 @@ const ProjectsTable = () => {
       datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image4.jpg",
+      name: "filename",
     },
     {
       id: "5",
@@ -64,6 +68,7 @@ const ProjectsTable = () => {
       datePosted: "2025-02-26",
       tags: ["travel", "fast", "usa"],
       thumbnail: "/images/image5.jpg",
+      name: "filename",
     },
     {
       id: "6",
@@ -72,6 +77,7 @@ const ProjectsTable = () => {
       datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image6.jpg",
+      name: "filename",
     },
     {
       id: "7",
@@ -80,6 +86,7 @@ const ProjectsTable = () => {
       datePosted: "2025-02-26",
       tags: [],
       thumbnail: "/images/image7.jpg",
+      name: "filename",
     },
   ];
 
