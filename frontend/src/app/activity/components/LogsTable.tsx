@@ -20,11 +20,21 @@ interface User {
   name: string;
 }
 
-const TempUsers: User[] = [{ userId: "1", name: "John" }, { userId: "2", name: "Luke" }, { userId: "3", name: "Admin Aaron"}];
+const TempUsers: User[] = [
+  { userId: "1", name: "John" },
+  { userId: "2", name: "Luke" },
+  { userId: "3", name: "Admin Aaron" },
+];
 
-const TempProjects = [{ projectId: "1", name: "Project 1" }, { projectId: "2", name: "Project 2"}]
+const TempProjects = [
+  { projectId: "1", name: "Project 1" },
+  { projectId: "2", name: "Project 2" },
+];
 
-const TempAssets = [{ blobId: "1", filename: "Asset1.png" }, { blobId: "2", filename: "Asset2.png" }]
+const TempAssets = [
+  { blobId: "1", filename: "Asset1.png" },
+  { blobId: "2", filename: "Asset2.png" },
+];
 
 const TempLogs: Log[] = [
   {
@@ -185,11 +195,11 @@ const TempLogs: Log[] = [
   },
 ];
 
-function Items({ currentItems }) {
+function Items({ currentItems }: any) {
   return (
     <div className="items min-h-[90vh] overflow-y-auto mt-4 rounded-lg p-4">
       {currentItems &&
-        currentItems.map((log) => (
+        currentItems.map((log: any) => (
           <div
             key={log.id}
             className="p-2 mb-2 bg-white rounded-md shadow-sm border border-gray-200"
@@ -215,26 +225,28 @@ const LogsTable = () => {
   const [totalPages, setTotalPages] = useState(4);
   const [currentItems, setCurrentItems] = useState<Log[]>([]);
 
-  const [selectedUser, setSelectedUser] = useState<>("");
-  const [selectedAsset, setSelectedAsset] = useState<>("");
-  const [selectedProject, setSelectedProject] = useState<>("");
-  const [selectedDate, setSelectedDate] = useState<>("");
+  const [selectedUser, setSelectedUser] = useState<any>("");
+  const [selectedAsset, setSelectedAsset] = useState<any>("");
+  const [selectedProject, setSelectedProject] = useState<any>("");
+  const [selectedDate, setSelectedDate] = useState<any>("");
 
   // TODO: we need list of users with a log entry that we should be able to see
   // TODO: we need list of all assets with a log entry that a user should be able to see
   // TODO: we need list of all projects with a log entry that a user should be able to see
 
   const [users, setUsers] = useState<User[]>(TempUsers);
-  const [assets, setAssets] = useState<>(TempAssets);
-  const [projects, setProjects] = useState<>(TempProjects);
+  const [assets, setAssets] = useState<any>(TempAssets);
+  const [projects, setProjects] = useState<any>(TempProjects);
 
-  const handleChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    page: number
-  ) => {
+  const handleChange = async (e: any, page: number) => {
     // await mock api call
     // order by lastmodified
-    const { items, totalPages } = await fetchLogs(page, { selectedUser, selectedAsset, selectedProject, selectedDate });
+    const { items, totalPages } = await fetchLogs(page, {
+      selectedUser,
+      selectedAsset,
+      selectedProject,
+      selectedDate,
+    });
     setCurrentPage(page);
     setTotalPages(totalPages);
     setCurrentItems(items);
@@ -253,7 +265,12 @@ const LogsTable = () => {
   };
 
   useEffect(() => {
-    fetchLogs(1, { selectedUser, selectedAsset, selectedProject, selectedDate }).then(({ items, totalPages }) => {
+    fetchLogs(1, {
+      selectedUser,
+      selectedAsset,
+      selectedProject,
+      selectedDate,
+    }).then(({ items, totalPages }) => {
       setCurrentItems(items);
       setTotalPages(totalPages);
     });
@@ -270,7 +287,9 @@ const LogsTable = () => {
           >
             <option value="">Filter by User</option>
             {users.map((user) => (
-              <option key={user.userId} value={user.userId}>{user.name}</option>
+              <option key={user.userId} value={user.userId}>
+                {user.name}
+              </option>
             ))}
           </select>
         </div>
@@ -281,8 +300,10 @@ const LogsTable = () => {
             onChange={(e) => setSelectedUser(e.target.value)}
           >
             <option value="">Filter by Asset</option>
-            {assets.map((asset) => (
-              <option key={asset.blobId} value={asset.blobId}>{asset.filename}</option>
+            {assets.map((asset: any) => (
+              <option key={asset.blobId} value={asset.blobId}>
+                {asset.filename}
+              </option>
             ))}
           </select>
         </div>
@@ -293,8 +314,10 @@ const LogsTable = () => {
             onChange={(e) => setSelectedUser(e.target.value)}
           >
             <option value="">Filter by Project</option>
-            {projects.map((project) => (
-              <option key={project.projectId} value={project.name}>{project.name}</option>
+            {projects.map((project: any) => (
+              <option key={project.projectId} value={project.name}>
+                {project.name}
+              </option>
             ))}
           </select>
         </div>

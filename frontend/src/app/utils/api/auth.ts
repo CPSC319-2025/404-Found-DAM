@@ -79,7 +79,7 @@ export async function getUserFromToken() {
 
   try {
     const { payload } = await jwtVerify(token, secret);
-    return payload as User;
+    return payload as unknown as User;
   } catch (error) {
     console.error("Invalid token:", error);
     return null;
