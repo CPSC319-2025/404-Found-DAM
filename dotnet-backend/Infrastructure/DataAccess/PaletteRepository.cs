@@ -14,10 +14,9 @@ namespace Infrastructure.DataAccess {
         private readonly bool _useZstd;
         private readonly IProjectService _projectService;
 
-        public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory, IProjectService projectService) 
+        public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
             _contextFactory = contextFactory;
-            _projectService = projectService;
         }
         
         private byte[] DecompressData(byte[] compressedData)
@@ -44,13 +43,13 @@ namespace Infrastructure.DataAccess {
             using var _context = _contextFactory.CreateDbContext();
             
             // TODO: update DataModel.cs to include tags in projects
-            var projectData = await _projectService.GetProject(projectId);
+            var projectTags = await _context.ProjectTags
+            .Where(pt => pt.ProjectID == projectId)
+            .Include(pt => pt.Tag)
+            .Select(pt => pt.Tag.Name)
+            .ToListAsync();
 
-            if (projectData == null || projectData.tags == null || !projectData.tags.Any()) {
-                return new List<string>();
-            }
-
-            return projectData.tags;
+            return projectTags ?? new List<string>();
         }
 
         public async Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, List<string> tags) {
