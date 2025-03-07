@@ -15,16 +15,15 @@ namespace APIs.Controllers
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
-            app.MapPatch("/projects/assign-assets", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
            
-            app.MapPost("/projects/{projectID}/assets/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
-            app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
@@ -35,12 +34,12 @@ namespace APIs.Controllers
             string? datePosted,
             IProjectService projectService,
             string assetType = DefaultAssetType,
-            int page = DefaultPageNumber, 
-            int limit = DefaultPageSize
+            int pageNumber = DefaultPageNumber, 
+            int assetsPerPage = DefaultPageSize
         )
         {
             // Validate user input
-            if (page <= 0 || limit <= 0)
+            if (pageNumber <= 0 || assetsPerPage <= 0)
             {
                 return Results.BadRequest("Page and limit must be positive integers.");
             }
@@ -73,8 +72,8 @@ namespace APIs.Controllers
                 {
                     projectID = projectID,
                     assetType = assetType,
-                    pageNumber = page,
-                    pageSize = limit,
+                    pageNumber = pageNumber,
+                    assetsPerPage = assetsPerPage,
                     status = status,
                     postedBy = postedBy,
                     datePosted = datePosted
@@ -121,11 +120,6 @@ namespace APIs.Controllers
             }        
         }
         
-        private static async Task<IResult> AddTagsToAssets(IProjectService projectService)
-        {
-            return Results.NotFound("stub"); // Stub
-        }
-
         private static async Task<IResult> ExportProject(int projectID, IProjectService projectService)
         {
             try 
@@ -161,12 +155,12 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> AddAssetsToProject(AddAssetsToProjectReq req, IProjectService projectService)
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IProjectService projectService)
         {
             // May need to add varification to check if client data is bad.
             try 
             {
-                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectID, req.blobIDs);
+                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs);
                 return Results.Ok(result);
             }
             catch (Exception ex)

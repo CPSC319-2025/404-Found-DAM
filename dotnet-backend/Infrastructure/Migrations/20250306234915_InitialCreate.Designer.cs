@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DAMDbContext))]
-    [Migration("20250304085015_InitialCreate")]
+    [Migration("20250306234915_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,7 +44,7 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("ProjectID")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserID")
+                    b.Property<int?>("UserID")
                         .HasColumnType("int");
 
                     b.HasKey("BlobID");
@@ -264,13 +264,13 @@ namespace Infrastructure.Migrations
                         .WithMany("Assets")
                         .HasForeignKey("ProjectID");
 
-                    b.HasOne("Core.Entities.User", null)
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("Assets")
-                        .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserID");
 
                     b.Navigation("Project");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Core.Entities.AssetMetadata", b =>

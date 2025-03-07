@@ -5,7 +5,7 @@ namespace Core.Dtos
         public int projectID {get; set; }
         public string assetType {get; set; }
         public int pageNumber {get; set; }
-        public int pageSize {get; set; }
+        public int assetsPerPage {get; set; }
         public string? status {get; set; }
         public string? postedBy {get; set; }
         public string? datePosted {get; set; }
@@ -22,7 +22,7 @@ namespace Core.Dtos
         public int blobID { get; set; }
         public string thumbnailUrl { get; set; }
         public string filename { get; set; }
-        public ProjectAssetMD projectAssetMD { get; set; }
+        public ProjectAssetMD metadata { get; set; }
     }
 
     public class ProjectAssetMD
@@ -33,8 +33,9 @@ namespace Core.Dtos
 
     public class ProjectAssetsPagination
     {
-        public int page { get; set; }
-        public int limit { get; set; }
-        public int total { get; set; }
+        public int pageNumber { get; set; }
+        public int assetsPerPage { get; set; }
+        public int totalAssetsReturned { get; set; }
+        public int totalPages { get; set; } // For updating frontend pagination
     } 
 }
