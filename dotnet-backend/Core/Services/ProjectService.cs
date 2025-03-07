@@ -35,6 +35,8 @@ using Core.Dtos;
 using Core.Entities;
 using ClosedXML.Excel;
 using Core.Services.Utils;
+using Infrastructure.Exceptions;
+
 
 namespace Core.Services
 {
@@ -169,43 +171,63 @@ namespace Core.Services
             try 
             {
                 List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
+                int totalAssetsReturned = retrievedAssets.Count;
+                int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
 
-                int totalPages = (int)Math.Ceiling( MockedTotalAssetsReturned / MockedTotalPages);
-
-                ProjectAssetsPagination pagination = new ProjectAssetsPagination{pageNumber = req.pageNumber, assetsPerPage = req.assetsPerPage, totalAssetsReturned = (int)MockedTotalAssetsReturned, totalPages  = (int)MockedTotalPages};
-                List<string> tags1 = new List<string>();
-                tags1.Add("fieldwork");
-                tags1.Add("site");
-                ProjectAssetMD metadata1 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 20, 00, 1), tags = tags1};
-
-                List<string> tags2 = new List<string>();
-                tags2.Add("inspection");
-                ProjectAssetMD metadata2 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 25, 00, 1), tags = tags2};
-
-                ProjectAsset asset1 = new ProjectAsset
+                ProjectAssetsPagination pagination = new ProjectAssetsPagination
                 {
-                    blobID = 12356093, 
-                    thumbnailUrl = "https://cdn.example.com/thumbnails/img001.jpg",
-                    filename = "image1.jpg",
-                    metadata = metadata1
+                    pageNumber = req.pageNumber, 
+                    assetsPerPage = req.assetsPerPage, 
+                    totalAssetsReturned = totalAssetsReturned, 
+                    totalPages = totalPages
                 };
-
-                ProjectAsset asset2 = new ProjectAsset
+                
+                // Loop through retrievedAssets to build the return result
+                List<PaginatedProjectAsset> paginatedProjectAssets = new List<PaginatedProjectAsset>();
+                foreach (Asset a in retrievedAssets)
                 {
-                    blobID = 123560623, 
-                    thumbnailUrl = "https://cdn.example.com/thumbnails/img002.jpg",
-                    filename = "image2.jpg",
-                    metadata = metadata2
-                };
+                    if (a != null) {
+                        PaginatedProjectAsset paginatedProjectAsset = new PaginatedProjectAsset();
+                        paginatedProjectAsset.blobID = a.BlobID;
+                        // paginatedProjectAsset.thumbnailUrl = a.thumbnailUrl;
+                        paginatedProjectAsset.filename = a.FileName;
+                        if (a.User != null) 
+                        {
+                            paginatedProjectAsset.uploadedBy = new PaginatedProjectAssetUploadedBy
+                            {
+                                userID = a.User.UserID, name = a.User.Name
+                            };
+                        }
 
-                List<ProjectAsset> assets = new List<ProjectAsset>();
-                assets.Add(asset1);
-                assets.Add(asset2);
-
-                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = assets, pagination = pagination};
+                        if (a.AssetMetadata != null)
+                        {
+                            foreach (AssetMetadata am in a.AssetMetadata)
+                            {
+                                if (am.MetadataField != null)
+                                {
+                                    if (am.MetadataField.FieldName == "lastUpdated") 
+                                    {
+                                        // Uncomment when the attribute is available
+                                        // paginatedProjectAsset.lastUpdated = am.FieldValue;
+                                    }
+                                    else if (am.MetadataField.FieldName == "filesizeInKB") 
+                                    {
+                                        // Uncomment when the attribute is available
+                                        // paginatedProjectAsset.filesizeInKB = int.Parse(am.FieldValue);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
                 return result;
             }
-            catch (Exception ex)
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw;
             }

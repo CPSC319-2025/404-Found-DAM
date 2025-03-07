@@ -30,7 +30,13 @@ namespace Core.Entities
     {
         [Key]
         public int BlobID { get; set; }
-        
+
+        /*
+            Missing: 
+            thumbnailUrl
+            lastUpdated
+        */
+    
         public required string FileName { get; set; }
         
         public required string MimeType { get; set; }
