@@ -41,7 +41,7 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("ProjectID")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserID")
+                    b.Property<int?>("UserID")
                         .HasColumnType("int");
 
                     b.HasKey("BlobID");
@@ -261,13 +261,13 @@ namespace Infrastructure.Migrations
                         .WithMany("Assets")
                         .HasForeignKey("ProjectID");
 
-                    b.HasOne("Core.Entities.User", null)
+                    b.HasOne("Core.Entities.User", "User")
                         .WithMany("Assets")
-                        .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserID");
 
                     b.Navigation("Project");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Core.Entities.AssetMetadata", b =>

@@ -15,7 +15,7 @@ namespace Infrastructure.DataAccess
             _context = context;
         }
 
-        public async Task<bool> AddAssetsToProjectInDb(int projectID, List<int> blobIDs)
+        public async Task<bool> SubmitAssetstoDb(int projectID, List<int> blobIDs)
         {
             //TODO
             return projectID != 0 ? true : false;

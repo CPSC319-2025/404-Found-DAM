@@ -40,24 +40,26 @@ namespace Core.Services
 {
     public class ProjectService : IProjectService
     {
+        public const double MockedTotalAssetsReturned = 2;
+        public const double MockedTotalPages = 10;
         private readonly IProjectRepository _repository;
         public ProjectService(IProjectRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<AddAssetsToProjectRes> AddAssetsToProject(int projectID, List<int> blobIDs)
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs)
         {
             //TODO
             //Assets will inherit project's metadata (at least tags)
             try 
             {
-                bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectID, blobIDs);
+                bool isSuccessul = await _repository.SubmitAssetstoDb(projectID, blobIDs);
                 if (isSuccessul)
                 {
-                    AddAssetsToProjectRes result = new AddAssetsToProjectRes
+                    SubmitAssetsRes result = new SubmitAssetsRes
                     {
-                        UploadedAt = DateTime.UtcNow
+                        submittedAt = DateTime.UtcNow
                     };
                     return result;
                 }
@@ -84,6 +86,9 @@ namespace Core.Services
                     if (isSuccessul)
                     {
                         ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
+
+                        // TODO: Remove all regular users from this archived project.
+
                         return result;
                     }
                     else 
@@ -160,11 +165,14 @@ namespace Core.Services
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
         {
             //TODO
-            int offset = (req.pageNumber - 1) * req.pageSize;
+            int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
                 List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
-                ProjectAssetsPagination pagination = new ProjectAssetsPagination{page = req.pageNumber, limit = req.pageSize, total = 2};
+
+                int totalPages = (int)Math.Ceiling( MockedTotalAssetsReturned / MockedTotalPages);
+
+                ProjectAssetsPagination pagination = new ProjectAssetsPagination{pageNumber = req.pageNumber, assetsPerPage = req.assetsPerPage, totalAssetsReturned = (int)MockedTotalAssetsReturned, totalPages  = (int)MockedTotalPages};
                 List<string> tags1 = new List<string>();
                 tags1.Add("fieldwork");
                 tags1.Add("site");
@@ -179,7 +187,7 @@ namespace Core.Services
                     blobID = 12356093, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img001.jpg",
                     filename = "image1.jpg",
-                    projectAssetMD = metadata1
+                    metadata = metadata1
                 };
 
                 ProjectAsset asset2 = new ProjectAsset
@@ -187,7 +195,7 @@ namespace Core.Services
                     blobID = 123560623, 
                     thumbnailUrl = "https://cdn.example.com/thumbnails/img002.jpg",
                     filename = "image2.jpg",
-                    projectAssetMD = metadata2
+                    metadata = metadata2
                 };
 
                 List<ProjectAsset> assets = new List<ProjectAsset>();
