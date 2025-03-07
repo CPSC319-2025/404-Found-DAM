@@ -245,7 +245,7 @@ Write-Host "MySQL container '${CONTAINER_NAME}' is running."
 Write-Host ".NET backend project is in the '${BACKEND_DIR}' directory."
 Write-Host "--------------------------------------------------"
 
-& docker run --platform linux/amd64 -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=LetsGoTeam!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 dotnet tool install --global dotnet-ef
 dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
+& docker run --platform linux/amd64 -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=LetsGoTeam!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
