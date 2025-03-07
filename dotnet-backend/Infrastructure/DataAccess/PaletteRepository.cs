@@ -12,7 +12,6 @@ namespace Infrastructure.DataAccess {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
         private readonly bool _useZstd;
-        private readonly IProjectService _projectService;
 
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
