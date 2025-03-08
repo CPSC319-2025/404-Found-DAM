@@ -200,7 +200,8 @@ const ProjectsTable = () => {
   const [pendingSearchTag, setPendingSearchTag] = useState<any>("");
 
   // TODO: we need list of users within the project
-  // TODO: we need list of tags within the project or we just search the string?
+
+  // TODO: ADD IMAGE SIZE
 
   const [users, setUsers] = useState<any>(TempUsers);
 
