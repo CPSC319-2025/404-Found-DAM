@@ -25,8 +25,68 @@ namespace Infrastructure.DataAccess
 
         public async Task<bool> ArchiveProjectsInDb(List<int> projectIDs)
          {
-            //TODO
-            return projectIDs.Count != 0 ? true : false;
+            // Create an empty list for storing unfound projectIDs
+            List<int> unfoundProjectIDs = new List<int>();
+    
+            try 
+            {            
+                // Set each project Active to false for archiving
+                using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+                // Fetch all projects in a single query
+                var projects = await _context.Projects
+                    .Include(p => p.ProjectMemberships)
+                    .ThenInclude(pm => pm.User)
+                    .Where(p => projectIDs.Contains(p.ProjectID))
+                    .ToListAsync();
+
+                foreach (int projectID in projectIDs)
+                {
+                    var project = projects.FirstOrDefault(p => p.ProjectID == projectID);
+
+                    if (project == null) 
+                    {
+                        unfoundProjectIDs.Add(projectID);   
+                    }
+                    else 
+                    {
+                        project.Active = false;
+
+                        // TODO: Set each asset's Active to false?
+                        
+                        // Remove regular users from this archived project
+                        List<ProjectMembership> projectMemberships = project.ProjectMemberships.ToList();
+                        foreach (var pm in projectMemberships)
+                        {
+                            if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
+                            {
+                                _context.ProjectMemberships.Remove(pm);
+                            }
+                        }
+                    }
+                }
+                
+                // Save the change
+                await _context.SaveChangesAsync();
+
+                if (unfoundProjectIDs.Count != 0) 
+                {
+                    string unfoundProjects = string.Join(",", unfoundProjectIDs.Select(id => id.ToString()));
+                    throw new DataNotFoundException($"Projects that do not exist in the database: {unfoundProjects}");
+                }
+                else 
+                {
+                    return true;
+                }
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public async Task<List<Log>> GetArchivedProjectLogsInDb()
@@ -62,7 +122,9 @@ namespace Infrastructure.DataAccess
 
         public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset)
         {
-            using var _context = _contextFactory.CreateDbContext();
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            // Retrieve matched Assets
             IQueryable<Asset> query = _context.Assets.Where(a => a.ProjectID == req.projectID);
             
             bool isQueryEmpty = !await query.AnyAsync(); 
@@ -73,7 +135,7 @@ namespace Infrastructure.DataAccess
             }
             else 
             {
-                // Filter
+                // Apply filters
                 if (req.assetType.ToLower() != "all")
                 {
                     query = query.Where(a => a.MimeType.ToLower() == req.assetType.ToLower());
@@ -84,19 +146,17 @@ namespace Infrastructure.DataAccess
                     query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
                 }
 
-                // Dateposted attribute not in datamodel
+                // TODO: Dateposted attribute not in datamodel
 
-                // Paginate, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
                 // TODO: Tags are not included yet
                 List<Asset> assets = await query
                 .OrderBy(a => a.FileName)
                 .Skip((req.pageNumber - 1) * req.assetsPerPage)
                 .Take(req.assetsPerPage)
                 .Include(a => a.User)
-                .Include(a => a.AssetMetadata
-                    .Where(am => am.MetadataField.FieldName == "lastUpdated" || am.MetadataField.FieldName == "filesizeInKB"))
-                        .ThenInclude(am => am.MetadataField)
                 .ToListAsync();
+                
                 return assets;
             }
         }

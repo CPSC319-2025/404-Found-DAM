@@ -88,9 +88,6 @@ namespace Core.Services
                     if (isSuccessul)
                     {
                         ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
-
-                        // TODO: Remove all regular users from this archived project.
-
                         return result;
                     }
                     else 
@@ -98,7 +95,7 @@ namespace Core.Services
                         throw new Exception("Failed to archive projects in database.");
                     }
                 }
-                catch (Exception ex) 
+                catch (Exception) 
                 {
                     throw;
                 }
@@ -199,22 +196,16 @@ namespace Core.Services
                             };
                         }
 
+                        paginatedProjectAsset.date = a.LastUpdated;
+                        paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
+
                         if (a.AssetMetadata != null)
                         {
                             foreach (AssetMetadata am in a.AssetMetadata)
                             {
                                 if (am.MetadataField != null)
                                 {
-                                    if (am.MetadataField.FieldName == "lastUpdated") 
-                                    {
-                                        // Uncomment when the attribute is available
-                                        // paginatedProjectAsset.lastUpdated = am.FieldValue;
-                                    }
-                                    else if (am.MetadataField.FieldName == "filesizeInKB") 
-                                    {
-                                        // Uncomment when the attribute is available
-                                        // paginatedProjectAsset.filesizeInKB = int.Parse(am.FieldValue);
-                                    }
+                                    // for 
                                 }
                             }
                         }

@@ -16,7 +16,6 @@ namespace APIs.Controllers
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
-            app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
@@ -25,6 +24,7 @@ namespace APIs.Controllers
            
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+            // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
@@ -135,7 +135,11 @@ namespace APIs.Controllers
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
                 return Results.Ok(result);
             }
-            catch (Exception ex)
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex);
+            }
+            catch (Exception)
             {
                 return Results.StatusCode(500);
             }
