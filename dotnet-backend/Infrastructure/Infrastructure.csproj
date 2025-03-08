@@ -11,8 +11,4 @@
     <ProjectReference Include="..\Core\Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="ZstdSharp.Port" />
-  </ItemGroup>
-
 </Project>

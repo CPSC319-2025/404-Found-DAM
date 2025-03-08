@@ -25,6 +25,5 @@
     <!-- Add packages as needed, reference them in each .csproj, and run dotnet restore at root level to install -->
     <PackageVersion Include="ClosedXML" Version="0.104.2" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
-
   </ItemGroup>
 </Project>

@@ -3,7 +3,6 @@ using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
-using ZstdSharp;
 
 namespace Infrastructure.DataAccess {
     //
@@ -13,20 +12,6 @@ namespace Infrastructure.DataAccess {
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
             _contextFactory = contextFactory;
-        }
-        
-        private byte[] DecompressData(byte[] compressedData)
-        {
-            try
-            {
-                Decompressor _decompressor = new Decompressor();
-                return _decompressor.Unwrap(compressedData).ToArray();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Decompression error: {ex.Message}");
-                throw new Exception($"Failed to decompress data: {ex.Message}", ex);
-            }
         }
         
         public Task<List<Asset>> GetAssetsFromPalette() {
