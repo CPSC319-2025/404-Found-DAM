@@ -2,7 +2,7 @@ using Core.Interfaces;
 using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Core.Dtos;
+using Core.Dtos.PaletteService;
 
 namespace Infrastructure.DataAccess {
     //
@@ -112,6 +112,10 @@ namespace Infrastructure.DataAccess {
             }
 
             return true;
+        }
+
+        public Task<List<IFormFile>> GetAssetsAsync(int userId) {
+            throw new NotImplementedException();
         }
     }
 }
