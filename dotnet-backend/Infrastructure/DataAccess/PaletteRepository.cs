@@ -4,15 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
 using ZstdSharp;
-using DocumentFormat.OpenXml.InkML;
-using System.Reflection.Metadata;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
-        private readonly bool _useZstd;
-
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
             _contextFactory = contextFactory;
@@ -103,9 +99,6 @@ namespace Infrastructure.DataAccess {
                     await file.CopyToAsync(ms);
                     compressedData = ms.ToArray();
                 }
-
-                // Decompress the data using ZstdSharp
-                byte[] decompressedData = DecompressData(compressedData);
                 
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
@@ -126,7 +119,7 @@ namespace Infrastructure.DataAccess {
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
-                await File.WriteAllBytesAsync(asset.BlobID + ".zst", decompressedData);
+                await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return false;
