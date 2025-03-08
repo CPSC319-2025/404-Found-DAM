@@ -87,42 +87,10 @@ namespace APIs.Controllers
             };
 
             // Create a task for each file
-            var uploadTasks = request.Form.Files.Select(async file => 
-            {
-                var res = await paletteService.ProcessUploadAsync(file, uploadRequest);
-                if (res){
-                    return new { 
-                        Success = true, 
-                        FileName = file.FileName, 
-                        Size = file.Length
-                    };
-                }
-                else {
-                    return new { 
-                        Success = false, 
-                        FileName = file.FileName, 
-                        Size = file.Length
-                    };
-                }
-            }).ToList();
-
-            // Wait for all tasks to complete
-            var results = await Task.WhenAll(uploadTasks);
-
-            // Check if any uploads failed
-            var failures = results.Where(r => !r.Success).ToList();
-            
-            if (failures.Count == results.Length)
-            {
-                return Results.BadRequest(failures);
-            }
-            
+            var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest);
+        
             // Return combined results
-            return Results.Ok(new {
-                SuccessCount = results.Count(r => r.Success),
-                FailureCount = failures.Count,
-                Details = results
-            });
+            return Results.Ok(results);
         }
         
     }

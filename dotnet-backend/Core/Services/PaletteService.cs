@@ -36,10 +36,28 @@ namespace Core.Services
         }
         
         
-        public async Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
+        public async Task<object[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
         {
-            var tasks = files.Select(file => ProcessUploadAsync(file, request)).ToArray();
-            return await Task.WhenAll(tasks);
+            var uploadTasks = files.Select(async file => 
+            {
+                var res = await ProcessUploadAsync(file, request);
+                if (res){
+                    return new { 
+                        Success = true, 
+                        FileName = file.FileName, 
+                        Size = file.Length
+                    };
+                }
+                else {
+                    return new { 
+                        Success = false, 
+                        FileName = file.FileName, 
+                        Size = file.Length
+                    };
+                }
+            }).ToList();
+
+            return await Task.WhenAll(uploadTasks);
         }
     }
 }
