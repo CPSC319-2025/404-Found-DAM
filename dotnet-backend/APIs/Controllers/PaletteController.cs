@@ -1,5 +1,5 @@
 using Core.Interfaces;
-using Core.Dtos;
+using Core.Dtos.PaletteService;
 
 namespace APIs.Controllers
 {
@@ -12,10 +12,9 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapGet("/palette/assets", () => 
+        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) => 
         {
-            return Results.NotFound("stub"); // Stub
-            // return GetPaletteAssets(req);
+            return await GetPaletteAssets(request, paletteService);
         })
         .WithName("GetPaletteAssets")
         .WithOpenApi();
@@ -56,6 +55,34 @@ namespace APIs.Controllers
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
+        }
+
+        private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
+        {
+            // Check if the request has form data
+            if (!request.HasFormContentType || request.Form.Files.Count == 0)
+            {
+                return Results.BadRequest("No files uploaded");
+            }
+
+            int userId = int.Parse(request.Form["UserId"].ToString());
+
+            if (string.IsNullOrEmpty(userId.ToString()))
+            {
+                return Results.BadRequest("UserId is required");
+            }
+
+            // Create your DTO
+            var uploadRequest = new GetPaletteAssetsReq
+            {
+                UserId = userId
+            };
+
+            // Create a task for each file
+            var results = await paletteService.GetAssets(uploadRequest);
+        
+            // Return combined results
+            return Results.Ok(results);
         }
 
 
