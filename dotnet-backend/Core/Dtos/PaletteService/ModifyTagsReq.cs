@@ -1,4 +1,4 @@
-namespace Core.Dtos.PaletteService
+namespace Core.Dtos
 {
     public class ModifyTagsReq
     {
