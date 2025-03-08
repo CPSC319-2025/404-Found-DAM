@@ -16,11 +16,10 @@ namespace APIs.Controllers
         public static void MapProjectEndpoints(this WebApplication app)
         {
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
-            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
-            app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
+            app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
-            // app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
-           
+            app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
+            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
             // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
@@ -69,7 +68,7 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> getProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> GetProject(int projectID, IProjectService projectService)
         {
             try 
             {
@@ -86,14 +85,23 @@ namespace APIs.Controllers
             } 
         }
 
-        // private static IResult GetAllProjects(IProjectService projectService)
-        // {
-        //     try 
-        //     {
-
-        //     }
-        //     return Results.NotFound("stub"); // Stub
-        // }
+        private static async Task<IResult> GetAllProjects(IProjectService projectService)
+        {
+            try 
+            {
+                int userID = 123;
+                GetAllProjecsRes result = await projectService.GetAllProjects(userID);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
+            {
+                return Results.StatusCode(500);
+            } 
+        }
 
         private static async Task<IResult> GetArchivedProjectLogs(IProjectService projectService)
         {
