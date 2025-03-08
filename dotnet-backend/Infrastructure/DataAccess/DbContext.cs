@@ -38,6 +38,11 @@ namespace Infrastructure.DataAccess {
             modelBuilder.Entity<AssetTag>()
                 .HasKey(at => new { at.BlobID, at.TagID });
 
+            // seed data
+            modelBuilder.Entity<User>().HasData(
+                new User { UserID = 1, Name = "userTest", Email = "userTest@example.com", IsSuperAdmin = true
+                });
+
             base.OnModelCreating(modelBuilder);
         }
     }
