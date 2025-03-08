@@ -2,7 +2,8 @@ using Core.Interfaces;
 using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Core.Dtos.PaletteService;
+using Core.Dtos;
+using System.Reflection.Metadata;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
@@ -94,7 +95,7 @@ namespace Infrastructure.DataAccess {
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
-                    FileName = file.FileName,
+                    FileName = request.Name,
                     MimeType = file.ContentType,
                     ProjectID = null,
                     UserID = request.UserId,
@@ -107,6 +108,40 @@ namespace Infrastructure.DataAccess {
                 await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
+                return false;
+            }
+
+            return true;
+        }
+
+        public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try {
+                // Create storage directory if it doesn't exist
+                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+                if (!Directory.Exists(storageDirectory))
+                {
+                    Directory.CreateDirectory(storageDirectory);
+                }
+
+                // Get the asset to retrieve filename before deletion
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
+
+                // Delete the asset from the database
+                await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
+                
+                // Delete the corresponding file
+                string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            } 
+            catch (Exception ex) 
+            {
+                Console.WriteLine($"Error deleting asset: {ex.Message}");
                 return false;
             }
 

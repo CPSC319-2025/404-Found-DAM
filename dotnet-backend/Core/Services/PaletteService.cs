@@ -1,5 +1,5 @@
 using Core.Interfaces;
-using Core.Dtos.PaletteService;
+using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 
 
@@ -47,6 +47,17 @@ namespace Core.Services
             }).ToList();
 
             return await Task.WhenAll(uploadTasks);
+        }
+
+        public async Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request)
+        {
+            try {
+                return await _paletteRepository.DeleteAsset(request);
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Error deleting assets: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {

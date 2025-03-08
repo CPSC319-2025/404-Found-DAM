@@ -1,5 +1,5 @@
 using Core.Interfaces;
-using Core.Dtos.PaletteService;
+using Core.Dtos;
 
 namespace APIs.Controllers
 {
@@ -25,6 +25,14 @@ namespace APIs.Controllers
         })
         .WithName("UploadAssets")
         .WithOpenApi();
+
+        // Delete assets in the pallete
+        app.MapDelete("/palette/asset", async (HttpRequest request, IPaletteService paletteService) => 
+        {
+            return await DeletePaletteAsset(request, paletteService);
+        })
+        .WithName("DeletePaletteAsset")
+        .WithOpenApi();
         
         // update the images in the palette with the selected project tags
         app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
@@ -46,12 +54,9 @@ namespace APIs.Controllers
         .WithOpenApi();
 
 
-        //     // tag assets in the palette
+        //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
-
-        //     // choose a project for an asset
-        //     app.MapPost("/projects/{projectId}/assets/tags", AssignTagsToAssets).WithName("AssignTagsToAssets").WithOpenApi();
-           
+ 
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
@@ -157,6 +162,38 @@ namespace APIs.Controllers
         
             // Return combined results
             return Results.Ok(results);
+        }
+
+        private static async Task<IResult> DeletePaletteAsset(HttpRequest request, IPaletteService paletteService)
+        {
+
+            // Get the form fields that match your DTO
+            string name = request.Form["Name"].ToString();
+            int userId = int.Parse(request.Form["UserId"].ToString());
+
+            if (string.IsNullOrEmpty(name))
+            {
+                return Results.BadRequest("Name and Type are required");
+            }
+
+            // Create your DTO
+            var deleteRequest = new DeletePaletteAssetReq
+            {
+                Name = name,
+                UserId = userId
+            };
+
+            // Create a task for each file
+            var result = await paletteService.DeleteAssetAsync(deleteRequest);
+
+            if (result) {
+                return Results.Ok(new {
+                    fileName = deleteRequest.Name,
+                });
+            } else {
+                Console.WriteLine($"Failed to delete asset {deleteRequest.Name}.");
+                return Results.NotFound("Failed to delete asset");
+            }
         }
         
     }
