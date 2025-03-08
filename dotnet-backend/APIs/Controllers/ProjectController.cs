@@ -9,10 +9,9 @@ namespace APIs.Controllers
 {
     public static class ProjectController
     {
-        public const string DefaultAssetType = "image";
-        public const int DefaultPageNumber = 1;
-        public const int DefaultPageSize = 10;
-
+        private const string DefaultAssetType = "image";
+        private const int DefaultPageNumber = 1;
+        private  const int DefaultPageSize = 10;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -77,10 +76,14 @@ namespace APIs.Controllers
                 GetProjectRes result = await projectService.GetProject(projectID);
                 return Results.Ok(result);
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }
+            } 
         }
 
         // private static IResult GetAllProjects(IProjectService projectService)
@@ -137,11 +140,16 @@ namespace APIs.Controllers
             }
             catch (DataNotFoundException ex)
             {
-                return Results.NotFound(ex);
+                return Results.NotFound(ex.Message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return Results.StatusCode(500);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
             }
         }
         

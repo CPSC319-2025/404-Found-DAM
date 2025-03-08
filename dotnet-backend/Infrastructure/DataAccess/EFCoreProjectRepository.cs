@@ -33,6 +33,7 @@ namespace Infrastructure.DataAccess
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+                Console.WriteLine("Fetch all projects in a single query");
                 // Fetch all projects in a single query
                 var projects = await _context.Projects
                     .Include(p => p.ProjectMemberships)
@@ -54,6 +55,7 @@ namespace Infrastructure.DataAccess
 
                         // TODO: Set each asset's Active to false?
                         
+                        Console.WriteLine("Remove regular users from this archived project");
                         // Remove regular users from this archived project
                         List<ProjectMembership> projectMemberships = project.ProjectMemberships.ToList();
                         foreach (var pm in projectMemberships)
@@ -66,6 +68,7 @@ namespace Infrastructure.DataAccess
                     }
                 }
                 
+                Console.WriteLine("Save the change");
                 // Save the change
                 await _context.SaveChangesAsync();
 
@@ -95,22 +98,34 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<(Project, string, List<string>)> GetProjectInDb(int projectID) 
+        public async Task<(Project, string, List<string>)> GetProjectInDb(int projectID)
         {
-            await Task.Delay(1); // Replace this after the actual database access call
-            Project project = new Project
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            var project = await _context.Projects
+                .Include(p => p.ProjectTags)
+                .ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMemberships) // Include ProjectMemberships
+                .ThenInclude(pm => pm.User) // Include User
+                .AsSplitQuery() // Use split queries instead of a single query when loading multiple collections
+                .FirstOrDefaultAsync(p => p.ProjectID == projectID);
+
+            if (project == null)
             {
-                ProjectID = projectID,
-                Name = "Mocked Project",
-                Version = "1.0",
-                Location = "a mocked location",
-                Description = "a mocked project",
-                CreationTime = DateTime.Now,
-                Active = true
-            };
-            string admin = "Jane Doe";
-            List<string> tags = new List<string> {"apple", "orange"};
-            return (project, admin, tags);
+                throw new DataNotFoundException($"Project {projectID} not found.");
+            }
+
+            var adminMembership = project.ProjectMemberships
+                .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
+
+            if (adminMembership?.User == null)
+            {
+                throw new DataNotFoundException($"Admin not found for project {projectID}.");
+            }
+
+            List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
+
+            return (project, adminMembership.User.Name, tags);
         }
 
         // Get ALL assets of a project from database
@@ -156,7 +171,7 @@ namespace Infrastructure.DataAccess
                 .Take(req.assetsPerPage)
                 .Include(a => a.User)
                 .ToListAsync();
-                
+
                 return assets;
             }
         }

@@ -42,8 +42,8 @@ namespace Core.Services
 {
     public class ProjectService : IProjectService
     {
-        public const double MockedTotalAssetsReturned = 2;
-        public const double MockedTotalPages = 10;
+        private const string DateTimeFormatUTC = "yyyy-MM-ddTHH:mm:ss.fffZ";
+
         private readonly IProjectRepository _repository;
         public ProjectService(IProjectRepository repository)
         {
@@ -94,6 +94,10 @@ namespace Core.Services
                     {
                         throw new Exception("Failed to archive projects in database.");
                     }
+                }
+                catch (DataNotFoundException) 
+                {
+                    throw;
                 }
                 catch (Exception) 
                 {
@@ -147,14 +151,14 @@ namespace Core.Services
                     name = project.Name,
                     description = project.Description,
                     location = project.Description,
-                    archived = true,
-                    archivedAt = "2025-02-02T12:00:00Z",
+                    archived = project.Active,
+                    archivedAt = project.Active ? project.ArchivedAt.ToString(DateTimeFormatUTC) : "n/a",
                     admin = projectAdmin,
                     tags = projectTags
                 };
                 return result;
             }
-            catch (Exception ex)
+            catch (DataNotFoundException)
             {
                 throw;
             }
