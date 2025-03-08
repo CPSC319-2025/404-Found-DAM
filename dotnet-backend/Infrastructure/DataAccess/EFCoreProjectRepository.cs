@@ -6,6 +6,8 @@ using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
 using Infrastructure.Exceptions;
+using System.Reflection.Metadata.Ecma335;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Infrastructure.DataAccess
 {
@@ -55,7 +57,7 @@ namespace Infrastructure.DataAccess
 
                         // TODO: Set each asset's Active to false?
                         
-                        Console.WriteLine("Remove regular users from this archived project");
+                        // Console.WriteLine("Remove regular users from this archived project");
                         // Remove regular users from this archived project
                         List<ProjectMembership> projectMemberships = project.ProjectMemberships.ToList();
                         foreach (var pm in projectMemberships)
@@ -126,6 +128,46 @@ namespace Infrastructure.DataAccess
             List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
 
             return (project, adminMembership.User.Name, tags);
+        }
+
+        public async Task<(List<Project>, List<User>)> GetAllProjectsInDb(int userID)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            var projectMemberships = await _context.ProjectMemberships
+                .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
+                .Where(pm => pm.UserID == userID) // Filter by userID first
+                .Include(pm => pm.Project)
+                .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
+                .ToListAsync();
+            
+            if (projectMemberships.Any()) 
+            {
+                List<Project> projects = projectMemberships.Select(pm => pm.Project).ToList();
+
+                HashSet<int> userIDSet = new HashSet<int>();
+
+                foreach (var p in projects) 
+                {
+                    // Collect all users' IDs via project p's projectMemberships
+                    foreach (var pm in p.ProjectMemberships) 
+                    {
+                        userIDSet.Add(pm.UserID);
+                    }                    
+                }
+
+                // Get all users associated with 
+                var users = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => userIDSet.Contains(u.UserID))
+                    .ToListAsync();
+                
+                return (projects, users);
+            }
+            else 
+            {
+                throw new DataNotFoundException($"No Projects found for user with ID {userID} in the database");
+            }
         }
 
         // Get ALL assets of a project from database

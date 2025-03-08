@@ -10,6 +10,7 @@ namespace Core.Interfaces
         Task<bool> ArchiveProjectsInDb(List<int> projectIDs);
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<(Project, string, List<string>)> GetProjectInDb(int projectID);
+        Task<(List<Project>, List<User>)> GetAllProjectsInDb(int userID);
         Task<List<Asset>> GetProjectAssetsInDb(int projectID);
         Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset);
     }

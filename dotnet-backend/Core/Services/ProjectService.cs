@@ -141,7 +141,6 @@ namespace Core.Services
 
         public async Task<GetProjectRes> GetProject(int projectID) 
         {
-            //TODO
             try 
             {
                 (Project project, string projectAdmin, List<string> projectTags) = await _repository.GetProjectInDb(projectID);
@@ -164,6 +163,29 @@ namespace Core.Services
             }
         }
 
+        public async Task<GetAllProjecsRes> GetAllProjects(int userID) 
+        {
+            try 
+            {
+                List<Project> retrievedProjects = await _repository.GetAllProjectsInDb(userID);
+                GetProjectRes result = new GetProjectRes
+                {
+                    projectID = project.ProjectID,
+                    name = project.Name,
+                    description = project.Description,
+                    location = project.Description,
+                    archived = project.Active,
+                    archivedAt = project.Active ? project.ArchivedAt.ToString(DateTimeFormatUTC) : "n/a",
+                    admin = projectAdmin,
+                    tags = projectTags
+                };
+                return result;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+        }
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
         {
