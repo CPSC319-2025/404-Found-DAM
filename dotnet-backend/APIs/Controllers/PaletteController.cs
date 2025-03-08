@@ -59,11 +59,6 @@ namespace APIs.Controllers
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
-            // Check if the request has form data
-            if (!request.HasFormContentType || request.Form.Files.Count == 0)
-            {
-                return Results.BadRequest("No files uploaded");
-            }
 
             int userId = int.Parse(request.Form["UserId"].ToString());
 
@@ -79,10 +74,54 @@ namespace APIs.Controllers
             };
 
             // Create a task for each file
-            var results = await paletteService.GetAssets(uploadRequest);
-        
-            // Return combined results
-            return Results.Ok(results);
+            var files = await paletteService.GetAssets(uploadRequest);
+            // If no files were found
+            if (files == null || !files.Any())
+            {
+                return Results.NotFound("No files found for this user.");
+            }
+            
+            // If there's only one file, return it directly
+            if (files.Count == 1)
+            {
+                var file = files[0];
+                using (var memoryStream = new MemoryStream())
+                {
+                    await file.CopyToAsync(memoryStream);
+                    return Results.File(
+                        fileContents: memoryStream.ToArray(),
+                        contentType: "application/zstd",  // Use appropriate MIME type for zstd
+                        fileDownloadName: file.FileName
+                    );
+                }
+            }
+            
+            // If multiple files, create a zip archive containing the already-compressed .zst files
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    foreach (var file in files)
+                    {
+                        // Create a zip entry with the original filename
+                        var zipEntry = archive.CreateEntry(file.FileName, System.IO.Compression.CompressionLevel.NoCompression); // Use NoCompression since files are already compressed
+                        
+                        // Write the .zst file content to the zip entry
+                        using (var entryStream = zipEntry.Open())
+                        using (var fileStream = file.OpenReadStream())
+                        {
+                            await fileStream.CopyToAsync(entryStream);
+                        }
+                    }
+                }
+                
+                memoryStream.Position = 0;
+                return Results.File(
+                    fileContents: memoryStream.ToArray(),
+                    contentType: "application/zip",
+                    fileDownloadName: $"zst-files-{DateTime.Now:yyyyMMddHHmmss}.zip"
+                );
+            }
         }
 
 

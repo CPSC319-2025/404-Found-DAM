@@ -68,20 +68,14 @@ namespace Tests.ControllerTests
             
             // Assert the response contains information about both files
             Assert.NotNull(result);
-            // Assert.Equal(2, result.RootElement.GetProperty("SuccessCount").GetInt32());
-            // Assert.Equal(0, result.RootElement.GetProperty("FailureCount").GetInt32());
+
             
-            // // Verify details about both files
-            // var details = result.RootElement.GetProperty("Details");
-            // Assert.Equal(2, details.GetArrayLength());
-            
-            // // Check first file
-            // Assert.True(details[0].GetProperty("Success").GetBoolean());
-            // Assert.Equal(Path.GetFileName(zipFilePath1), details[0].GetProperty("FileName").GetString());
-            
-            // // Check second file
-            // Assert.True(details[1].GetProperty("Success").GetBoolean());
-            // Assert.Equal(Path.GetFileName(zipFilePath2), details[1].GetProperty("FileName").GetString());
+
+            response = await _client.GetAsync("/palette/assets");
+            response.EnsureSuccessStatusCode();
+         
+
+                
         }
 
     }
