@@ -25,7 +25,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<object[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
+        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
         {
             var uploadTasks = files.Select(async file => 
             {

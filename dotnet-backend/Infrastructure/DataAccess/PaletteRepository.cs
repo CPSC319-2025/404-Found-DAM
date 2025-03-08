@@ -113,8 +113,53 @@ namespace Infrastructure.DataAccess {
             return true;
         }
 
-        public Task<List<IFormFile>> GetAssetsAsync(int userId) {
-            throw new NotImplementedException();
+        public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try {
+                var compressedFiles = new List<IFormFile>();
+                
+                // Create storage directory if it doesn't exist
+                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+                if (!Directory.Exists(storageDirectory)) {
+                    Directory.CreateDirectory(storageDirectory);
+                }
+                
+                // Get all Assets for the user
+                var assetIds = await _context.Assets
+                    .Where(ass => ass.UserID == userId)
+                    .Select(ass => ass.BlobID)
+                    .ToListAsync();
+                
+                // Create tasks for parallel file reading
+                var readTasks = assetIds.Select(async assetId => {
+                    var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
+                    var bytes = await File.ReadAllBytesAsync(filePath);
+                    
+                    string fileName = $"{assetId}.zst";
+                    
+                    // Convert byte array to IFormFile
+                    var stream = new MemoryStream(bytes);
+                    var formFile = new FormFile(
+                        baseStream: stream,
+                        baseStreamOffset: 0,
+                        length: bytes.Length,
+                        name: "file",
+                        fileName: fileName
+                    );
+                    
+                    return formFile;
+                }).ToList();
+                
+                // Wait for all tasks to complete
+                var files = await Task.WhenAll(readTasks);
+                
+                compressedFiles.AddRange(files);
+                return compressedFiles;
+            } catch (Exception ex) {
+                Console.WriteLine($"Error retrieving assets: {ex.Message}");
+                return new List<IFormFile>();
+            }
         }
     }
 }
