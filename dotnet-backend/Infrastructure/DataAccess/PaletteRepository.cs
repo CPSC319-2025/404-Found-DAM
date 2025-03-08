@@ -3,33 +3,15 @@ using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
-using ZstdSharp;
-using DocumentFormat.OpenXml.InkML;
 using System.Reflection.Metadata;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
-        private readonly bool _useZstd;
-
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory) 
         {
             _contextFactory = contextFactory;
-        }
-        
-        private byte[] DecompressData(byte[] compressedData)
-        {
-            try
-            {
-                Decompressor _decompressor = new Decompressor();
-                return _decompressor.Unwrap(compressedData).ToArray();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Decompression error: {ex.Message}");
-                throw new Exception($"Failed to decompress data: {ex.Message}", ex);
-            }
         }
         
         public Task<List<Asset>> GetAssetsFromPalette() {
@@ -103,9 +85,6 @@ namespace Infrastructure.DataAccess {
                     await file.CopyToAsync(ms);
                     compressedData = ms.ToArray();
                 }
-
-                // Decompress the data using ZstdSharp
-                byte[] decompressedData = DecompressData(compressedData);
                 
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
@@ -116,7 +95,7 @@ namespace Infrastructure.DataAccess {
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
-                    FileName = file.FileName,
+                    FileName = request.Name,
                     MimeType = file.ContentType,
                     ProjectID = null,
                     UserID = request.UserId,
@@ -126,13 +105,96 @@ namespace Infrastructure.DataAccess {
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
-                await File.WriteAllBytesAsync(asset.BlobID + ".zst", decompressedData);
+                await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return false;
             }
 
             return true;
+        }
+
+        public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try {
+                // Create storage directory if it doesn't exist
+                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+                if (!Directory.Exists(storageDirectory))
+                {
+                    Directory.CreateDirectory(storageDirectory);
+                }
+
+                // Get the asset to retrieve filename before deletion
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
+
+                // Delete the asset from the database
+                await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
+                
+                // Delete the corresponding file
+                string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            } 
+            catch (Exception ex) 
+            {
+                Console.WriteLine($"Error deleting asset: {ex.Message}");
+                return false;
+            }
+
+            return true;
+        }
+
+        public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try {
+                var compressedFiles = new List<IFormFile>();
+                
+                // Create storage directory if it doesn't exist
+                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+                if (!Directory.Exists(storageDirectory)) {
+                    Directory.CreateDirectory(storageDirectory);
+                }
+                
+                // Get all Assets for the user
+                var assetIds = await _context.Assets
+                    .Where(ass => ass.UserID == userId)
+                    .Select(ass => ass.BlobID)
+                    .ToListAsync();
+                
+                // Create tasks for parallel file reading
+                var readTasks = assetIds.Select(async assetId => {
+                    var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
+                    var bytes = await File.ReadAllBytesAsync(filePath);
+                    
+                    string fileName = $"{assetId}.zst";
+                    
+                    // Convert byte array to IFormFile
+                    var stream = new MemoryStream(bytes);
+                    var formFile = new FormFile(
+                        baseStream: stream,
+                        baseStreamOffset: 0,
+                        length: bytes.Length,
+                        name: "file",
+                        fileName: fileName
+                    );
+                    
+                    return formFile;
+                }).ToList();
+                
+                // Wait for all tasks to complete
+                var files = await Task.WhenAll(readTasks);
+                
+                compressedFiles.AddRange(files);
+                return compressedFiles;
+            } catch (Exception ex) {
+                Console.WriteLine($"Error retrieving assets: {ex.Message}");
+                return new List<IFormFile>();
+            }
         }
     }
 }

@@ -25,6 +25,45 @@ namespace Core.Services
             }
         }
 
+        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
+        {
+            var uploadTasks = files.Select(async file => 
+            {
+                var res = await ProcessUploadAsync(file, request);
+                if (res){
+                    return new { 
+                        Success = true, 
+                        FileName = file.FileName, 
+                        Size = file.Length
+                    };
+                }
+                else {
+                    return new { 
+                        Success = false, 
+                        FileName = file.FileName, 
+                        Size = file.Length
+                    };
+                }
+            }).ToList();
+
+            return await Task.WhenAll(uploadTasks);
+        }
+
+        public async Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request)
+        {
+            try {
+                return await _paletteRepository.DeleteAsset(request);
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"Error deleting assets: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+            return await _paletteRepository.GetAssetsAsync(request.UserId);
+        }
+
         public async Task<List<string>> GetProjectTagsAsync(int projectId) {
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
@@ -34,12 +73,6 @@ namespace Core.Services
             if (!projectTags.Any()) return false;
             return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
-        
-        
-        public async Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
-        {
-            var tasks = files.Select(file => ProcessUploadAsync(file, request)).ToArray();
-            return await Task.WhenAll(tasks);
-        }
+
     }
 }
