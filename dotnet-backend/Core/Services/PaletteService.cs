@@ -24,6 +24,17 @@ namespace Core.Services
                 return false;
             }
         }
+
+        public async Task<List<string>> GetProjectTagsAsync(int projectId) {
+            return await _paletteRepository.GetProjectTagsAsync(projectId);
+        }
+
+        public async Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId) {
+            var projectTags = await _paletteRepository.GetProjectTagsAsync(projectId);
+            if (!projectTags.Any()) return false;
+            return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
+        }
+        
         
         public async Task<bool[]> ProcessUploadsAsync(IList<IFormFile> files, UploadAssetsReq request)
         {

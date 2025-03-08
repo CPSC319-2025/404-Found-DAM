@@ -17,6 +17,8 @@ namespace Infrastructure.DataAccess {
         public DbSet<ProjectMetadataField> ProjectMetadataFields { get; set; }
         public DbSet<AssetMetadata> AssetMetadata { get; set; }
         public DbSet<Tag> Tags { get; set; }
+        public DbSet<ProjectTag> ProjectTags { get; set; }
+        public DbSet<AssetTag> AssetTags { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +31,12 @@ namespace Infrastructure.DataAccess {
 
             modelBuilder.Entity<AssetMetadata>()
                 .HasKey(am => new { am.BlobID, am.FieldID });
+            
+            modelBuilder.Entity<ProjectTag>()
+                .HasKey(pt => new { pt.ProjectID, pt.TagID });
+
+            modelBuilder.Entity<AssetTag>()
+                .HasKey(at => new { at.BlobID, at.TagID });
 
             base.OnModelCreating(modelBuilder);
         }
