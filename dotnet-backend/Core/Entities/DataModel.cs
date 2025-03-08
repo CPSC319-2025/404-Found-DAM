@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 
 namespace Core.Entities
 {
@@ -30,16 +31,14 @@ namespace Core.Entities
     {
         [Key]
         public int BlobID { get; set; }
-
-        /*
-            Missing: 
-            thumbnailUrl
-            lastUpdated
-        */
-    
+        
         public required string FileName { get; set; }
         
         public required string MimeType { get; set; }
+
+        public double FileSizeInKB { get; set; }
+
+        public DateTime LastUpdated { get; set; }
 
         // Foreign keys
         public int? ProjectID { get; set; }
@@ -107,7 +106,17 @@ namespace Core.Entities
     {
         public int ProjectID { get; set; }
         public int UserID { get; set; }
-        
+
+        // Add Enum to represent user roles
+        public enum UserRoleType
+        {
+            Regular,    // 0
+            Admin,      // 1
+            SuperAdmin  // 2
+        }
+
+        public UserRoleType UserRole { get; set; } 
+
         [ForeignKey("ProjectID")]
         public required virtual Project Project { get; set; }
         
