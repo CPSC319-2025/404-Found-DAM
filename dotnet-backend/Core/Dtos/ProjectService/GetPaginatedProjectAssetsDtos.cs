@@ -25,8 +25,8 @@ namespace Core.Dtos
         public string thumbnailUrl { get; set; }
         public string filename { get; set; }
         public PaginatedProjectAssetUploadedBy uploadedBy { get; set; }
-        public DateTime lastUpdated { get; set; }
-        public int filesizeInKB { get; set; }
+        public DateTime date { get; set; }
+        public double filesizeInKB { get; set; }
         public List<string> tags { get; set; }  
     }
 
