@@ -19,8 +19,6 @@ namespace Core.Entities
         
         public bool IsSuperAdmin { get; set; }
         
-        public DateTime LastUpdated { get; set; }
-
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
         public virtual ICollection<Log> Logs { get; set; } = new List<Log>();
@@ -113,8 +111,7 @@ namespace Core.Entities
         public enum UserRoleType
         {
             Regular,    // 0
-            Admin,      // 1
-            SuperAdmin  // 2
+            Admin       // 1
         }
 
         public UserRoleType UserRole { get; set; } 
