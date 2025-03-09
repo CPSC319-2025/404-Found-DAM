@@ -1,0 +1,47 @@
+[
+  {
+    "defaultMetadata": {
+      "projectName": "Project Phoenix",
+      "location": "New York",
+      "description": "Revitalizing outdated systems.",
+      "active": true
+    },
+    "tags": ["legacy", "migration", "modernization"]
+  },
+  {
+    "defaultMetadata": {
+      "projectName": "Data Insights Platform",
+      "location": "London",
+      "description": "Building a comprehensive data analysis tool.",
+      "active": true
+    },
+    "tags": ["data", "analytics", "platform"]
+  },
+  {
+    "defaultMetadata": {
+      "projectName": "Mobile App Redesign",
+      "location": "Tokyo",
+      "description": "Improving user experience for our mobile application.",
+      "active": true
+    },
+    "tags": ["mobile", "ui/ux", "redesign"]
+  },
+  {
+    "defaultMetadata": {
+      "projectName": "Cloud Infrastructure Upgrade",
+      "location": "Sydney",
+      "description": "Migrating to a more scalable cloud environment.",
+      "active": true
+    },
+    "tags": ["cloud", "infrastructure", "scalability"]
+  },
+    {
+    "defaultMetadata": {
+      "projectName": "E-commerce Expansion",
+      "location": "Mumbai",
+      "description": "Expanding our online store to new markets.",
+      "active": true
+    },
+    "tags": ["ecommerce", "expansion", "marketing"]
+  }
+]
