@@ -14,7 +14,7 @@ namespace APIs.Controllers
             app.MapPatch("/projects/{projectID}/metadata/fields/{fieldID}", ToggleMetadataCategoryActivation).WithName("ToggleMetadataCategoryActivation").WithOpenApi();
             app.MapGet("/credentials/accounts/{userID}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
             app.MapPatch("/projects/{projectID}/accounts/{userID}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
-            app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataToProject).WithName("AddMetaDataToProject").WithOpenApi();
+            app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataFieldsToProject).WithName("AddMetaDataFieldsToProject").WithOpenApi();
 
 
             // TODO: Not implemented yet
@@ -45,11 +45,11 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static async Task<IResult> AddMetaDataToProject(int projectID, AddMetadataReq req, IAdminService adminService)
+        private static async Task<IResult> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req, IAdminService adminService)
         {
             try 
             {
-                AddMetadataRes result = await adminService.AddMetaDataToProject(projectID, req.fieldName, req.fieldType);
+                List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(projectID, req);
                 return Results.Ok(result); 
             }
             catch (ArgumentException ex) 

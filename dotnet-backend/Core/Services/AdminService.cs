@@ -96,16 +96,24 @@ namespace Core.Services
             }
         }
 
-        public async Task<AddMetadataRes> AddMetaDataToProject(int projectID, string fieldName, string fieldType)
+        public async Task<List<AddMetadataRes>> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req)
         {
             try 
             {
-                int fieldID = await _repository.AddMetaDataToProjectInDb(projectID, fieldName, fieldType);
-                return new AddMetadataRes
+                List<MetadataField> addedMetadataFields = await _repository.AddMetaDataFieldsToProjectInDb(projectID, req);
+
+                List<AddMetadataRes> result = new List<AddMetadataRes>();
+
+                foreach (MetadataField mf in addedMetadataFields)
                 {
-                    fieldID = fieldID,
-                    message = $"Medatada field {fieldName} created; field disabled by default"
-                };
+                    AddMetadataRes res = new AddMetadataRes
+                    {
+                        fieldID = mf.FieldID,
+                        message = $"Medatada field {mf.FieldName} created; field disabled by default"
+                    };
+                    result.Add(res);
+                }
+                return result;
             }
             catch (ArgumentException) 
             {
