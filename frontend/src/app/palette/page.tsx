@@ -74,6 +74,8 @@ export default function PalettePage() {
       return;
     }
 
+    alert("Upload successful!");
+    
     const assignedImages = files.map((fileMeta) => {
       const id =
         (fileMeta as any).id ||
@@ -163,21 +165,21 @@ export default function PalettePage() {
             <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-300 rounded shadow z-10">
               <div
                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project 1")}
+                onClick={() => handleProjectChoice("Project One")}
               >
-                Project 1
+                Project One
               </div>
               <div
                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project 2")}
+                onClick={() => handleProjectChoice("Project Two")}
               >
-                Project 2
+                Project Two
               </div>
               <div
                 className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project 3")}
+                onClick={() => handleProjectChoice("Project Three")}
               >
-                Project 3
+                Project Three
               </div>
             </div>
           )}
