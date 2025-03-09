@@ -48,21 +48,24 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<(User, List<string>)> GetRoleDetailsInDb(int userID)
+        public async Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID)
         {
-            //TODO
             // get User
             // get roles that this user plays
-            User user = new User
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            var user = await _context.Users
+                .Include(u => u.ProjectMemberships)
+                .FirstOrDefaultAsync(u => u.UserID == userID);
+
+            if (user != null) 
             {
-                UserID = 123,
-                Name = "John",
-                Email = "abc@yes.com",
-                IsSuperAdmin = true,
-            };
-            List<string> roles = new List<string>();
-            roles.Add("Admin");
-            return (user, roles);
+                return (user, user.ProjectMemberships.ToList());
+            }
+            else 
+            {
+                throw new DataNotFoundException("No user found.");
+            }
         }
     }
 }

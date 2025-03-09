@@ -7,6 +7,6 @@ namespace Core.Interfaces
     {
         // Suffixing InDb to differentiate from service operations.  
         Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled);
-        Task<(User, List<string>)> GetRoleDetailsInDb(int userId);
+        Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userId);
     }
 }
