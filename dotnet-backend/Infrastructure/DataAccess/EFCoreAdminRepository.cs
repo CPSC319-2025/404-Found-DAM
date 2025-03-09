@@ -6,6 +6,7 @@ using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
 using Infrastructure.Exceptions;
+using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace Infrastructure.DataAccess
 {
@@ -84,7 +85,7 @@ namespace Infrastructure.DataAccess
         }
 
 
-        public async Task<int> AddMetaDataToProjectInDb(int projectID, string fieldName, string fieldType)
+        public async Task<List<MetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -93,16 +94,30 @@ namespace Infrastructure.DataAccess
 
             if (project != null) 
             {
-                // If project found, insert this new metadata field to the metadatafield table and get the ID
-                MetadataField.FieldDataType dataType;
-                if (Enum.TryParse(fieldType, true, out dataType))
+                // Create two lists for processing newly added metadatafields and projectMetadataFields
+                List<MetadataField> metadataFieldsToAdd = new List<MetadataField>();
+                List<ProjectMetadataField> projectMetadataFieldsToAdd = new List<ProjectMetadataField>();
+
+                // project was found, so insert all new metadata fields to the metadatafield table
+                foreach (AddMetadataReq amreq in req)
                 {
-                    MetadataField mf = new MetadataField { FieldName = fieldName, FieldType = dataType };
-                    await _context.MetadataFields.AddAsync(mf);
-                    await _context.SaveChangesAsync();
-                    
-                    // Insert a new entry using the projectID and the fieldID to the ProjectMetadataField table, and return the fieldID
-                    int newFieldID = mf.FieldID;
+                    if (Enum.TryParse(amreq.fieldType, true, out MetadataField.FieldDataType dataType))
+                    {
+                        MetadataField mf = new MetadataField { FieldName = amreq.fieldName, FieldType = dataType };
+                        metadataFieldsToAdd.Add(mf); // Add to the list; don't save yet
+                    } 
+                    else 
+                    {
+                        throw new ArgumentException($"Invalid field type: {amreq.fieldType}");
+                    }
+                }
+
+                // Add all MetadataField entities and save
+                await _context.MetadataFields.AddRangeAsync(metadataFieldsToAdd);
+                await _context.SaveChangesAsync();
+
+                foreach (MetadataField mf in metadataFieldsToAdd)
+                {
                     ProjectMetadataField pmf = new ProjectMetadataField
                     {
                         IsEnabled = false, // Explicitly set IsEnabled (default)
@@ -112,14 +127,14 @@ namespace Infrastructure.DataAccess
                         Project = project,
                         MetadataField = mf
                     };
-                    await _context.ProjectMetadataFields.AddAsync(pmf);
-                    await _context.SaveChangesAsync();
-                    return newFieldID;
+                    projectMetadataFieldsToAdd.Add(pmf); // Add to the list; don't save yet
                 }
-                else
-                {
-                throw new ArgumentException($"Invalid field type: {fieldType}");
-                }
+
+                // Add all ProjectMetadataField entities and save
+                await _context.ProjectMetadataFields.AddRangeAsync(projectMetadataFieldsToAdd);
+                await _context.SaveChangesAsync();
+                
+                return metadataFieldsToAdd;
             }
             else 
             {

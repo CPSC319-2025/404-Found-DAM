@@ -1,5 +1,5 @@
 ﻿using Core.Entities;
-using System;
+using Core.Dtos;
 
 namespace Core.Interfaces
 {
@@ -9,7 +9,6 @@ namespace Core.Interfaces
         Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled);
         Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID);
         Task<DateTime> ModifyRoleInDb(int projectID, int metadataFieldID, bool userToAdmin);
-
-        Task<int> AddMetaDataToProjectInDb(int projectID, string fieldName, string fieldType);
+        Task<List<MetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req);
     }
 }
