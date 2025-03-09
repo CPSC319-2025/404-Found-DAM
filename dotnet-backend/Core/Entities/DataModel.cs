@@ -73,7 +73,7 @@ namespace Core.Entities
         
         public bool Active { get; set; }
 
-        public DateTime ArchivedAt { get; set; } 
+        public DateTime? ArchivedAt { get; set; } 
         
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
