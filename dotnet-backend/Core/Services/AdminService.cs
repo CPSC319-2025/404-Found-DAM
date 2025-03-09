@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
+using Infrastructure.Exceptions;
 
 namespace Core.Services
 {
@@ -19,17 +20,18 @@ namespace Core.Services
 
         public async Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectID, int metadataFieldID, bool setEnabled)
         {
-            //TODO
             try 
             {
-                (bool isSuccessul, string metadataCatagory) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
+                (bool isSuccessul, string metadataFieldName) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
                 if (isSuccessul)
                 {
                     ToggleMetadataStateRes result = new ToggleMetadataStateRes
                     {
                         fieldID = metadataFieldID,
                         enabled = setEnabled,
-                        message = $"Metadata category {metadataCatagory} is now enabled."
+                        message = setEnabled 
+                            ? $"Metadata field {metadataFieldName} is now enabled." 
+                            : $"Metadata field {metadataFieldName} is now disabled."
                     };
                     return result;
                 }
@@ -38,7 +40,11 @@ namespace Core.Services
                     throw new Exception("Failed to add assets to project in database.");
                 }
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
             {
                 throw;
             }
@@ -46,28 +52,103 @@ namespace Core.Services
 
         public async Task<RoleDetailsRes> GetRoleDetails(int userId) 
         {
-            // TODO
             try 
             {
-                (User user, List<string> userRoles) = await _repository.GetRoleDetailsInDb(userId);
-                if (user == null) 
+                (User user, List<ProjectMembership> projectMemberships) = await _repository.GetRoleDetailsInDb(userId);
+                HashSet<string> userRoles = projectMemberships
+                    .Select(pm => pm.UserRole == ProjectMembership.UserRoleType.Regular ? "user" : "admin")
+                    .ToHashSet();
+
+                RoleDetailsRes result = new RoleDetailsRes
                 {
-                    return null;
-                }
-                else 
-                {
-                    RoleDetailsRes result = new RoleDetailsRes
-                    {
-                        userID = user.UserID,
-                        name = user.Name,
-                        email = user.Email,
-                        roles = userRoles,
-                        lastModified = user.LastUpdated
-                    };
-                    return result;
-                }
+                    userID = user.UserID,
+                    name = user.Name,
+                    email = user.Email,
+                    roles = userRoles,
+                    lastUpdated = user.LastUpdated
+                };
+                return result;
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
+
+        public async Task<ModifyRoleRes> ModifyRole(int projectID, int userID, bool userToAdmin)
+        {
+            try 
+            {
+                DateTime timeUpdated = await _repository.ModifyRoleInDb(projectID, userID, userToAdmin);
+                return new ModifyRoleRes{updatedAt = timeUpdated};
+            }
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<AddMetadataRes>> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req)
+        {
+            try 
+            {
+                List<MetadataField> addedMetadataFields = await _repository.AddMetaDataFieldsToProjectInDb(projectID, req);
+
+                List<AddMetadataRes> result = new List<AddMetadataRes>();
+
+                foreach (MetadataField mf in addedMetadataFields)
+                {
+                    AddMetadataRes res = new AddMetadataRes
+                    {
+                        fieldID = mf.FieldID,
+                        message = $"Medatada field {mf.FieldName} created; field disabled by default"
+                    };
+                    result.Add(res);
+                }
+                return result;
+            }
+            catch (ArgumentException) 
+            {
+                throw;
+            }
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req)
+        {
+            try 
+            {
+                List<Project> createdProjects = await _repository.CreateProjectsInDb(req);
+
+                List<CreateProjectsRes> res = new List<CreateProjectsRes>();
+
+                foreach (Project createdProject in createdProjects) 
+                {
+                    CreateProjectsRes r = new CreateProjectsRes
+                    {
+                        createdProjectID = createdProject.ProjectID
+                    };
+
+                    res.Add(r);
+                }
+                return res;
+            }
+            catch (Exception) 
             {
                 throw;
             }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
 
 namespace Core.Entities
 {
@@ -17,9 +18,9 @@ namespace Core.Entities
         public required string Email { get; set; }
         
         public bool IsSuperAdmin { get; set; }
-        
-        public DateTime LastUpdated { get; set; }
 
+        public DateTime LastUpdated { get; set; }
+        
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
         public virtual ICollection<Log> Logs { get; set; } = new List<Log>();
@@ -34,6 +35,10 @@ namespace Core.Entities
         public required string FileName { get; set; }
         
         public required string MimeType { get; set; }
+
+        public double FileSizeInKB { get; set; }
+
+        public DateTime LastUpdated { get; set; }
 
         // Foreign keys
         public int? ProjectID { get; set; }
@@ -67,6 +72,8 @@ namespace Core.Entities
         public DateTime CreationTime { get; set; }
         
         public bool Active { get; set; }
+
+        public DateTime? ArchivedAt { get; set; } 
         
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
@@ -101,7 +108,16 @@ namespace Core.Entities
     {
         public int ProjectID { get; set; }
         public int UserID { get; set; }
-        
+
+        // Add Enum to represent user roles
+        public enum UserRoleType
+        {
+            Regular,    // 0
+            Admin       // 1
+        }
+
+        public UserRoleType UserRole { get; set; } 
+
         [ForeignKey("ProjectID")]
         public required virtual Project Project { get; set; }
         
@@ -131,8 +147,16 @@ namespace Core.Entities
         public int FieldID { get; set; }
         
         public required string FieldName { get; set; }
+
+        // Add Enum to represent user roles
+        public enum FieldDataType
+        {
+            Number,    // 0
+            String,    // 1
+            Boolean    // 2
+        }
         
-        public required string FieldType { get; set; }
+        public required FieldDataType FieldType { get; set; }
         
         // Optionally, associate a field with a Palette.
         public int? PaletteID { get; set; }
@@ -150,6 +174,8 @@ namespace Core.Entities
     {
         public int ProjectID { get; set; }
         public int FieldID { get; set; }
+
+        public bool IsEnabled { get; set; } = false; // Missing attribute, set Defualt to false
         
         public required string FieldValue { get; set; }
         
