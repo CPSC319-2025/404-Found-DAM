@@ -50,21 +50,36 @@ namespace Infrastructure.DataAccess
 
         public async Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID)
         {
-            // get User
-            // get roles that this user plays
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+            // get User and associated ProjectMemberships
             var user = await _context.Users
                 .Include(u => u.ProjectMemberships)
                 .FirstOrDefaultAsync(u => u.UserID == userID);
 
-            if (user != null) 
+            return user != null 
+                ? (user, user.ProjectMemberships.ToList()) 
+                : throw new DataNotFoundException("No user found.");
+        }
+
+        public async Task<DateTime> ModifyRoleInDb(int projectID, int userID, bool userToAdmin)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            // Get the ProjectMembership and update the user role if found
+            var projectMembership = await _context.ProjectMemberships
+                .FirstOrDefaultAsync(pm => pm.ProjectID == projectID && pm.UserID == userID);
+
+            if (projectMembership != null)
             {
-                return (user, user.ProjectMemberships.ToList());
+                projectMembership.UserRole = userToAdmin 
+                    ? ProjectMembership.UserRoleType.Admin 
+                    : ProjectMembership.UserRoleType.Regular;
+                return DateTime.UtcNow;
             }
             else 
             {
-                throw new DataNotFoundException("No user found.");
+                throw new DataNotFoundException("No record found");
             }
         }
     }

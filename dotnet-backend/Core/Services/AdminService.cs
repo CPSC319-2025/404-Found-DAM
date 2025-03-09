@@ -65,8 +65,26 @@ namespace Core.Services
                     name = user.Name,
                     email = user.Email,
                     roles = userRoles,
+                    lastUpdated = user.LastUpdated
                 };
                 return result;
+            }
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
+
+        public async Task<ModifyRoleRes> ModifyRole(int projectID, int userID, bool userToAdmin)
+        {
+            try 
+            {
+                DateTime timeUpdated = await _repository.ModifyRoleInDb(projectID, userID, userToAdmin);
+                return new ModifyRoleRes{updatedAt = timeUpdated};
             }
             catch (DataNotFoundException) 
             {

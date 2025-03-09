@@ -4,7 +4,8 @@ namespace Core.Interfaces
 {
     public interface IAdminService
     {
-        Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectId, int metadataFieldId, bool setEnabled);
+        Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectID, int metadataFieldIDd, bool setEnabled);
         Task<RoleDetailsRes> GetRoleDetails(int userID);
+        Task<ModifyRoleRes> ModifyRole(int projectID, int userID, bool userToAdmin);
     }
 }
