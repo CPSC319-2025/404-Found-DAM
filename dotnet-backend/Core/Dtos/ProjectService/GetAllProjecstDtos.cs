@@ -3,18 +3,18 @@ namespace Core.Dtos
     public class GetAllProjecsRes
     {
         public int projectCount { get; set; }
-        public List<GetAllProject> getAllProjects { get; set; }
+        public List<FullProjectInfo> fullProjectInfos { get; set; }
     }
 
-    public class GetAllProject
+    public class FullProjectInfo
     {
         public int projectID { get; set; }
-        public required string projectName { get; set; }
-        public required string location { get; set; }
-        public required string description { get; set; }
+        public string projectName { get; set; }
+        public string location { get; set; }
+        public string description { get; set; }
         public DateTime creationTime { get; set; }
         public bool active { get; set; }
-        public DateTime archivedAt { get; set; } 
+        public DateTime? archivedAt { get; set; } 
         public int assetCount { get; set; } 
         public List<string> userNames { get; set; } 
         

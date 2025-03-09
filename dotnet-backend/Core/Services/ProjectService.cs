@@ -36,6 +36,7 @@ using Core.Entities;
 using ClosedXML.Excel;
 using Core.Services.Utils;
 using Infrastructure.Exceptions;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 
 namespace Core.Services
@@ -167,21 +168,68 @@ namespace Core.Services
         {
             try 
             {
-                List<Project> retrievedProjects = await _repository.GetAllProjectsInDb(userID);
-                GetProjectRes result = new GetProjectRes
+                List<Project> retrievedProjects;
+                List<User> retrievedUsers;
+                List<ProjectMembership> retrievedProjectMemberships;
+
+                (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
+                    await _repository.GetAllProjectsInDb(userID);
+
+                // Make List retrievedUsers into a map
+                Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
+
+                GetAllProjecsRes result = new GetAllProjecsRes();
+
+                result.projectCount = retrievedProjects.Count;
+
+                // Create a projectMembershipMap for constructig the return result
+                Dictionary<int, List<string>> projectMembershipMap = new Dictionary<int, List<string>>();
+                
+                foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
-                    projectID = project.ProjectID,
-                    name = project.Name,
-                    description = project.Description,
-                    location = project.Description,
-                    archived = project.Active,
-                    archivedAt = project.Active ? project.ArchivedAt.ToString(DateTimeFormatUTC) : "n/a",
-                    admin = projectAdmin,
-                    tags = projectTags
-                };
+                    if (!projectMembershipMap.ContainsKey(pm.ProjectID))
+                    {
+                        projectMembershipMap[pm.ProjectID] = new List<string>();
+                    }
+
+                    if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
+                    {
+                        projectMembershipMap[pm.ProjectID].Add(retrievedUserDictionary[pm.UserID].Name);
+                    }
+                }
+
+                // Constructing the result for return by looping through retrievedProjects and using the retrievedUserDictionary 
+                // Create a HashSet to prevent duplicated retrievedProjects
+                HashSet<Project> addedProjects = new HashSet<Project>();
+                foreach (var p in retrievedProjects)
+                {
+                    if (!addedProjects.Contains(p)) 
+                    {
+                        addedProjects.Add(p);
+
+                        // Populate fullProjectInfo
+                        FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
+                        fullProjectInfo.projectID = p.ProjectID;
+                        fullProjectInfo.projectName = p.Name;
+                        fullProjectInfo.location = p.Location;
+                        fullProjectInfo.description = p.Description;
+                        fullProjectInfo.creationTime = p.CreationTime;
+                        fullProjectInfo.active = p.Active;
+                        fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
+                        fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
+                        fullProjectInfo.userNames = projectMembershipMap[p.ProjectID];
+
+                        // Add fullProjectInfo to result
+                        result.fullProjectInfos.Add(fullProjectInfo);
+                    }
+                }
                 return result;
             }
             catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw;
             }
