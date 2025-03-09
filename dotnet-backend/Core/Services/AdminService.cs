@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
+using Infrastructure.Exceptions;
 
 namespace Core.Services
 {
@@ -29,8 +30,8 @@ namespace Core.Services
                         fieldID = metadataFieldID,
                         enabled = setEnabled,
                         message = setEnabled 
-                            ? $"Metadata {metadataFieldName} is now enabled." 
-                            : $"Metadata {metadataFieldName} is now disabled."
+                            ? $"Metadata field {metadataFieldName} is now enabled." 
+                            : $"Metadata field {metadataFieldName} is now disabled."
                     };
                     return result;
                 }
@@ -39,7 +40,11 @@ namespace Core.Services
                     throw new Exception("Failed to add assets to project in database.");
                 }
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
             {
                 throw;
             }
@@ -47,27 +52,27 @@ namespace Core.Services
 
         public async Task<RoleDetailsRes> GetRoleDetails(int userId) 
         {
-            // TODO
             try 
             {
-                (User user, List<string> userRoles) = await _repository.GetRoleDetailsInDb(userId);
-                if (user == null) 
+                (User user, List<ProjectMembership> projectMemberships) = await _repository.GetRoleDetailsInDb(userId);
+                HashSet<string> userRoles = projectMemberships
+                    .Select(pm => pm.UserRole == ProjectMembership.UserRoleType.Regular ? "user" : "admin")
+                    .ToHashSet();
+
+                RoleDetailsRes result = new RoleDetailsRes
                 {
-                    return null;
-                }
-                else 
-                {
-                    RoleDetailsRes result = new RoleDetailsRes
-                    {
-                        userID = user.UserID,
-                        name = user.Name,
-                        email = user.Email,
-                        roles = userRoles,
-                    };
-                    return result;
-                }
+                    userID = user.UserID,
+                    name = user.Name,
+                    email = user.Email,
+                    roles = userRoles,
+                };
+                return result;
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
             {
                 throw;
             }

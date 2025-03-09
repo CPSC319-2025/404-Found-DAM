@@ -17,23 +17,27 @@ namespace APIs.Controllers
             app.MapGet("/credentials/accounts/{userID}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
   
             // TODO: Not implemented yet
-            // app.MapPost("/projects/{projectId}/metadata", CreateProject).WithName("CreateProject").WithOpenApi();
+            // app.MapPost("/projects/{projectID}/metadata", CreateProject).WithName("CreateProject").WithOpenApi();
             // app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataToProject).WithName("AddMetaDataToProject").WithOpenApi();
-            // app.MapPut("/projects/{projectId}/accounts/{userId}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
+            // app.MapPut("/projects/{projectID}/accounts/{userId}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
-        private static async Task<IResult> GetRoleDetails(int userId, IAdminService adminService)
+        private static async Task<IResult> GetRoleDetails(int userID, IAdminService adminService)
         {
             try 
             {
-                RoleDetailsRes result = await adminService.GetRoleDetails(userId);
-                return result == null ? Results.NotFound("No user was found.") : Results.Ok(result); 
+                RoleDetailsRes result = await adminService.GetRoleDetails(userID);
+                return Results.Ok(result); 
             }
-            catch (Exception)
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }
+            }  
         }
 
         private static IResult CreateProject(CreateProjectReq req, IAdminService adminService)

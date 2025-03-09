@@ -5,7 +5,6 @@ namespace Core.Dtos
         public int userID { get; set; }
         public string name { get; set; }
         public string email { get; set; }
-        public List<string> roles  { get; set; }
-        public DateTime lastModified { get; set; }
+        public HashSet<string> roles  { get; set; }
     }  
 }
