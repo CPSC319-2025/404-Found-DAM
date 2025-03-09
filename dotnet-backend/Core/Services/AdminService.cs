@@ -95,6 +95,31 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<AddMetadataRes> AddMetaDataToProject(int projectID, string fieldName, string fieldType)
+        {
+            try 
+            {
+                int fieldID = await _repository.AddMetaDataToProjectInDb(projectID, fieldName, fieldType);
+                return new AddMetadataRes
+                {
+                    fieldID = fieldID,
+                    message = $"Medatada field {fieldName} created; field disabled by default"
+                };
+            }
+            catch (ArgumentException) 
+            {
+                throw;
+            }
+            catch (DataNotFoundException) 
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
     }
 }
 

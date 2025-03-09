@@ -9,5 +9,7 @@ namespace Core.Interfaces
         Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled);
         Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID);
         Task<DateTime> ModifyRoleInDb(int projectID, int metadataFieldID, bool userToAdmin);
+
+        Task<int> AddMetaDataToProjectInDb(int projectID, string fieldName, string fieldType);
     }
 }
