@@ -34,7 +34,6 @@ namespace Infrastructure.DataAccess
                 Name = "John",
                 Email = "abc@yes.com",
                 IsSuperAdmin = true,
-                LastUpdated = DateTime.Now
             };
             List<string> roles = new List<string>();
             roles.Add("Admin");
