@@ -19,17 +19,18 @@ namespace Core.Services
 
         public async Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectID, int metadataFieldID, bool setEnabled)
         {
-            //TODO
             try 
             {
-                (bool isSuccessul, string metadataCatagory) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
+                (bool isSuccessul, string metadataFieldName) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
                 if (isSuccessul)
                 {
                     ToggleMetadataStateRes result = new ToggleMetadataStateRes
                     {
                         fieldID = metadataFieldID,
                         enabled = setEnabled,
-                        message = $"Metadata category {metadataCatagory} is now enabled."
+                        message = setEnabled 
+                            ? $"Metadata {metadataFieldName} is now enabled." 
+                            : $"Metadata {metadataFieldName} is now disabled."
                     };
                     return result;
                 }

@@ -1,26 +1,51 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
+using Infrastructure.Exceptions;
 
 namespace Infrastructure.DataAccess
 {
     public class EFCoreAdminRepository : IAdminRepository
     {
-        private DAMDbContext _context;
-        public EFCoreAdminRepository(DAMDbContext context)
+        private IDbContextFactory<DAMDbContext> _contextFactory;
+        public EFCoreAdminRepository(IDbContextFactory<DAMDbContext> contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled)
         {
-            //TODO
-            // get project first
-            // use project id to access metadata and update
-            return (setEnabled, "DummyCategory");
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+           
+            // Check if project exists
+            var project = await _context.Projects.FindAsync(projectID);
+
+            if (project != null) 
+            {
+                // Access metadata and update the specific field
+                var projectMetadataField = await _context.ProjectMetadataFields
+                    .Include(pmf => pmf.MetadataField) // Eager loading
+                    .FirstOrDefaultAsync(pmf => pmf.FieldID == metadataFieldID && pmf.FieldID == metadataFieldID);                
+                    
+                if (projectMetadataField != null) 
+                {
+                    projectMetadataField.IsEnabled = setEnabled;
+                    await _context.SaveChangesAsync();
+                    return (true, projectMetadataField.MetadataField.FieldName);
+                } 
+                else 
+                {
+                    throw new DataNotFoundException($"No such metadata field found for Project {projectID}.");
+                }
+            } 
+            else 
+            {
+                throw new DataNotFoundException($"Project {projectID} not found.");
+            }
         }
 
         public async Task<(User, List<string>)> GetRoleDetailsInDb(int userID)
