@@ -141,5 +141,63 @@ namespace Infrastructure.DataAccess
                 throw new DataNotFoundException("Project not found");
             }
         }
+
+        public async Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            List<Project> projectList = new List<Project>(); // For storing created Projects
+            List<Tag> tagList = new List<Tag>(); // For storing created Tags
+            List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
+
+            using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid artial data in database in case error occurs
+
+            try 
+            {
+                foreach (CreateProjectsReq data in req) 
+                {
+                    Project newProject = new Project
+                    {
+                        Name = data.defaultMetadata.projectName,
+                        Version = "0",
+                        Location = data.defaultMetadata.location == null ? "" : data.defaultMetadata.location,
+                        Description = data.defaultMetadata.description == null ? "" : data.defaultMetadata.description,
+                        Active = data.defaultMetadata.active
+                    };
+
+                    projectList.Add(newProject);
+
+                    if (data.tags != null && data.tags.Any()) 
+                    {
+                        foreach (string tagName in data.tags) 
+                        {
+                            Tag newTag = new Tag{ Name = tagName };
+                            tagList.Add(newTag);
+
+                            ProjectTag newProjectTag = new ProjectTag
+                            {
+                                Project = newProject,
+                                Tag = newTag
+                            };     
+                            projectTagList.Add(newProjectTag);                   
+                        }
+                    }
+                }
+
+                // Insert in batch
+                await _context.AddRangeAsync(projectList);
+                await _context.AddRangeAsync(tagList);
+                await _context.AddRangeAsync(projectTagList);
+                await _context.SaveChangesAsync(); // Save change in the database
+                await transaction.CommitAsync(); // Commit transaction for data persistence
+                Console.WriteLine("Save to database");
+                return projectList;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync(); // Undo any changes made within a database transaction
+                throw new Exception("Failed to create projects");
+            }
+        }
     }
 }

@@ -152,7 +152,7 @@ namespace Core.Services
                     description = project.Description,
                     location = project.Description,
                     archived = project.Active,
-                    archivedAt = project.Active ? project.ArchivedAt.ToString(DateTimeFormatUTC) : "n/a",
+                    archivedAt = project.ArchivedAt,
                     admin = projectAdmin,
                     tags = projectTags
                 };

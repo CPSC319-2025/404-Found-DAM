@@ -128,6 +128,31 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req)
+        {
+            try 
+            {
+                List<Project> createdProjects = await _repository.CreateProjectsInDb(req);
+
+                List<CreateProjectsRes> res = new List<CreateProjectsRes>();
+
+                foreach (Project createdProject in createdProjects) 
+                {
+                    CreateProjectsRes r = new CreateProjectsRes
+                    {
+                        createdProjectID = createdProject.ProjectID
+                    };
+
+                    res.Add(r);
+                }
+                return res;
+            }
+            catch (Exception) 
+            {
+                throw;
+            }
+        }
     }
 }
 
