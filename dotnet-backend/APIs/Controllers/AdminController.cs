@@ -1,5 +1,6 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
+using Infrastructure.Exceptions;
 
 // Use Task<T> or Task for async operations
 
@@ -9,19 +10,17 @@ namespace APIs.Controllers
     {
         public static void MapAdminEndpoints(this WebApplication app)
         {
-
+            // TODO: Mostly done; need to check user credentials:
             app.MapPatch("/projects/{projectID}/metadata/fields/{fieldID}", ToggleMetadataCategoryActivation).WithName("ToggleMetadataCategoryActivation").WithOpenApi();
 
+            // TODO: Return mocked data currently:
             app.MapGet("/credentials/accounts/{userID}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
   
+            // TODO: Not implemented yet
             // app.MapPost("/projects/{projectId}/metadata", CreateProject).WithName("CreateProject").WithOpenApi();
-           
             // app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataToProject).WithName("AddMetaDataToProject").WithOpenApi();
-
             // app.MapPut("/projects/{projectId}/accounts/{userId}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
-
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
-
         }
 
         private static async Task<IResult> GetRoleDetails(int userId, IAdminService adminService)
@@ -31,7 +30,7 @@ namespace APIs.Controllers
                 RoleDetailsRes result = await adminService.GetRoleDetails(userId);
                 return result == null ? Results.NotFound("No user was found.") : Results.Ok(result); 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Results.StatusCode(500);
             }
@@ -59,10 +58,14 @@ namespace APIs.Controllers
                 ToggleMetadataStateRes result = await adminService.ToggleMetadataCategoryActivation(projectId, fieldId, req.enabled);
                 return Results.Ok(result);
             }
-            catch (Exception ex)
+           catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }
+            }  
         }
 
         private static IResult UpdateProjectAccessControl(UpdateProjectAcessRequest req, IAdminService adminService)
