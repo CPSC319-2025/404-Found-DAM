@@ -164,6 +164,8 @@ namespace Core.Entities
     {
         public int ProjectID { get; set; }
         public int FieldID { get; set; }
+
+        public bool IsEnabled { get; set; } // Missing attribute
         
         public required string FieldValue { get; set; }
         
