@@ -62,7 +62,6 @@ namespace Core.Services
                         name = user.Name,
                         email = user.Email,
                         roles = userRoles,
-                        lastModified = user.LastUpdated
                     };
                     return result;
                 }
