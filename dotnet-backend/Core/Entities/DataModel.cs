@@ -18,6 +18,8 @@ namespace Core.Entities
         public required string Email { get; set; }
         
         public bool IsSuperAdmin { get; set; }
+
+        public DateTime LastUpdated { get; set; }
         
         // Navigation properties
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
