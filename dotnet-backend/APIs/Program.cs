@@ -22,6 +22,8 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
 builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
 
 
 
