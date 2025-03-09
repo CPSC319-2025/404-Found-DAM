@@ -130,7 +130,7 @@ namespace Infrastructure.DataAccess
             return (project, adminMembership.User.Name, tags);
         }
 
-        public async Task<(List<Project>, List<User>)> GetAllProjectsInDb(int userID)
+        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int userID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -156,17 +156,17 @@ namespace Infrastructure.DataAccess
                     }                    
                 }
 
-                // Get all users associated with 
+                // Get all users associated with and ensure no duplicated user by checking against userIDSet
                 var users = await _context.Users
                     .AsNoTracking()
                     .Where(u => userIDSet.Contains(u.UserID))
                     .ToListAsync();
                 
-                return (projects, users);
+                return (projects, users, projectMemberships);
             }
             else 
             {
-                throw new DataNotFoundException($"No Projects found for user with ID {userID} in the database");
+                throw new DataNotFoundException($"No Projects found in the database");
             }
         }
 
