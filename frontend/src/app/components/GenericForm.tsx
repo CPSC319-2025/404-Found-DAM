@@ -1,32 +1,36 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Multiselect from "multiselect-react-dropdown";
 
-type AvailableFieldTypes = "number" | "string" | "boolean";
+type AvailableCustomFieldTypes = "number" | "string" | "boolean";
 
-interface CustomMetadataField {
+export interface CustomMetadataField {
   id: string;
   name: string;
-  type: AvailableFieldTypes;
+  type: AvailableCustomFieldTypes;
   enabled: boolean;
 }
+
+type FieldValue = string | number | boolean | string[] | CustomMetadataField[];
 
 interface Field {
   name: string;
   label: string;
   type: string;
   placeholder?: string;
-  value?: string | string[] | CustomMetadataField[];
+  value?: FieldValue;
   isMulti?: boolean;
   isMultiSelect?: boolean;
   isCustomMetadata?: boolean; // hardcoding this type for now. Cant really think of reason to make more generic
   required?: boolean;
-  options?: { name: string; id: number }[]; // TODO: this may need to change depending on database!
+  options?: { name: string; id: string }[]; // TODO: this may need to change depending on database!
 }
+
+export type FormData = Record<string, FieldValue>;
 
 interface GenericFormProps {
   title: string;
   fields: Field[];
-  onSubmit: (formData: Record<string, string | string[]>) => void;
+  onSubmit: (formData: FormData) => void;
   onCancel: () => void;
   submitButtonText: string;
   isModal?: boolean;
@@ -42,23 +46,20 @@ export default function GenericForm({
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
-  const initialState = fields.reduce(
-    (acc, field) => {
-      if (field.isMulti || field.isMultiSelect) {
-        acc[field.name] = Array.isArray(field.value) ? field.value : [];
-      } else {
-        acc[field.name] = field.value || "";
-      }
-      return acc;
-    },
-    {} as Record<string, string | string[]>
-  );
+  const initialState = fields.reduce((acc, field) => {
+    if (field.isMulti || field.isMultiSelect) {
+      acc[field.name] = Array.isArray(field.value) ? field.value : [];
+    } else {
+      acc[field.name] = field.value || "";
+    }
+    return acc;
+  }, {} as FormData);
 
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [hasEdited, setHasEdited] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
 
     setFormErrors((prevErrors) => {
@@ -69,7 +70,21 @@ export default function GenericForm({
       return updatedErrors;
     });
 
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setFormData((prevData) => {
+      let newValue: string | number | boolean = value;
+
+      const field = fields.find((f) => f.name === name);
+
+      if (field) {
+        if (field.type === "number") {
+          newValue = Number(value);
+        } else if (field.type === "boolean") {
+          newValue = Boolean(value);
+        }
+      }
+
+      return { ...prevData, [name]: newValue };
+    });
 
     if (!hasEdited) {
       setHasEdited(() => true);
@@ -130,7 +145,7 @@ export default function GenericForm({
     index: number,
     fieldName: string,
     key: keyof CustomMetadataField,
-    value: string
+    value: string | boolean
   ) => {
     setFormData((prevData) => {
       const updatedArray = [...(prevData[fieldName] as CustomMetadataField[])];
@@ -240,14 +255,14 @@ export default function GenericForm({
 
   useEffect(() => {
     if (isModal) {
-      function handleClickOutside(event: MouseEvent) {
+      const handleClickOutside = (event: MouseEvent) => {
         if (
           formRef.current &&
           !formRef.current.contains(event.target as Node)
         ) {
           onCancel();
         }
-      }
+      };
 
       document.addEventListener("mousedown", handleClickOutside);
       return () => {
@@ -284,7 +299,7 @@ export default function GenericForm({
                 <Multiselect
                   options={field.options || []}
                   selectedValues={field.options?.filter((option) =>
-                    formData[field.name].includes(option.id)
+                    (formData[field.name] as string[]).includes(option.id)
                   )}
                   onSelect={(selectedList) =>
                     handleSelect(selectedList, field.name)
@@ -357,7 +372,7 @@ export default function GenericForm({
                           }
                           className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
                         >
-                          <option value="string">Text</option>
+                          <option value="text">Text</option>
                           <option value="number">Number</option>
                           <option value="boolean">Yes / No</option>
                         </select>
@@ -411,14 +426,36 @@ export default function GenericForm({
                     + Add Entry
                   </button>
                 </div>
+              ) : field.type === "number" ? (
+                <input
+                  id={field.name}
+                  name={field.name}
+                  type="number"
+                  placeholder={field.placeholder}
+                  value={formData[field.name] as string}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                />
+              ) : field.type === "boolean" ? (
+                <select
+                  id={field.name}
+                  name={field.name}
+                  value={String(formData[field.name])}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">Select...</option>
+                  <option value={"true"}>Yes</option>
+                  <option value={"false"}>No</option>
+                </select>
               ) : (
                 <input
                   id={field.name}
                   name={field.name}
-                  type={field.type}
+                  type="text"
                   placeholder={field.placeholder}
                   value={formData[field.name] as string}
-                  onChange={handleChange}
+                  onChange={(e) => handleChange(e.target)}
                   className="w-full p-2 border rounded"
                 />
               )}

@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 8080",
     "lint": "next lint --fix",
     "predeploy": "next build",
-    "deploy": "gh-pages -d out"
+    "deploy": "gh-pages -d out",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "jose": "^6.0.8",
     "multiselect-react-dropdown": "^2.0.25",
     "next": "14.2.23",
     "react": "^18",

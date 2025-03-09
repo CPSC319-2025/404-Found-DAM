@@ -1,24 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import GenericForm from "@/app/components/GenericForm";
+import GenericForm, {
+  FormData,
+  CustomMetadataField,
+} from "@/app/components/GenericForm";
 
 type ProjectPageProps = {
   params: { slug: string };
 };
 
-interface MetadataField {
-  id: string | number;
-  name: string;
-  type: string;
-  enabled?: boolean;
-}
-
-const isNewMetadataField = (id: string | number) =>
-  typeof id === "string" && id.startsWith("new_");
+const isNewMetadataField = (id: string) => id.startsWith("new_");
 
 export default function ProjectPage({ params }: ProjectPageProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     location: "Vancouver, BC",
     admins: ["2"],
     users: ["0", "1"],
@@ -83,16 +78,18 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     },
   ];
 
-  const handleEditProject = async (updatedFormData) => {
+  const handleEditProject = async (updatedFormData: FormData) => {
+    console.log({ updatedFormData });
     setLoading(true);
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const newMetadataFields =
-      updatedFormData.metadata?.filter((item) => isNewMetadataField(item.id)) ??
-      [];
+      (updatedFormData.metadata as CustomMetadataField[]).filter((item) =>
+        isNewMetadataField(item.id)
+      ) ?? [];
     const existingMetadataFields =
-      updatedFormData.metadata?.filter(
+      (updatedFormData.metadata as CustomMetadataField[]).filter(
         (item) => !isNewMetadataField(item.id)
       ) ?? [];
 
@@ -120,14 +117,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       )}
 
       {!loading && (
-      <GenericForm
-        isModal={false}
-        fields={editProjectFormFields}
-        onSubmit={handleEditProject}
-        onCancel={onCancel}
-        submitButtonText="Save"
-        disabled={loading}
-      />
+        <GenericForm
+          title=""
+          isModal={false}
+          fields={editProjectFormFields}
+          onSubmit={handleEditProject}
+          onCancel={onCancel}
+          submitButtonText="Save"
+        />
       )}
     </div>
   );

@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using APIs.Controllers;
 using Infrastructure.DataAccess;
+using Core.Interfaces;
+using Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,9 +10,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-// dotnet ef migrations add InitialCreate --startup-project ../APIs
-builder.Services.AddDbContext<MyDbContext>(options =>
+
+// Replace the existing DbContext registration with this:
+builder.Services.AddDbContextFactory<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register services with the dependency injection container
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IProjectRepository, EFCoreProjectRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
+builder.Services.AddScoped<IPaletteService, PaletteService>();
+builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+
+
 
 var app = builder.Build();
 
@@ -20,29 +34,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// Extension methods to register and group endpoints by controller
+app.MapProjectEndpoints(); 
+app.MapNotificationEndpoints(); 
+app.MapAdminEndpoints(); 
+app.MapPaletteEndpoints(); 
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+public partial class Program { }
