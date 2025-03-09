@@ -82,5 +82,49 @@ namespace Infrastructure.DataAccess
                 throw new DataNotFoundException("No record found");
             }
         }
+
+
+        public async Task<int> AddMetaDataToProjectInDb(int projectID, string fieldName, string fieldType)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            // Get the project; 
+            var project = await _context.Projects.FindAsync(projectID);
+
+            if (project != null) 
+            {
+                // If project found, insert this new metadata field to the metadatafield table and get the ID
+                MetadataField.FieldDataType dataType;
+                if (Enum.TryParse(fieldType, true, out dataType))
+                {
+                    MetadataField mf = new MetadataField { FieldName = fieldName, FieldType = dataType };
+                    await _context.MetadataFields.AddAsync(mf);
+                    await _context.SaveChangesAsync();
+                    
+                    // Insert a new entry using the projectID and the fieldID to the ProjectMetadataField table, and return the fieldID
+                    int newFieldID = mf.FieldID;
+                    ProjectMetadataField pmf = new ProjectMetadataField
+                    {
+                        IsEnabled = false, // Explicitly set IsEnabled (default)
+                        FieldValue = "", // Empty string 
+                        
+                        // Do NOT set projectID and fieldID. Below will let EF Core takes care of everything.
+                        Project = project,
+                        MetadataField = mf
+                    };
+                    await _context.ProjectMetadataFields.AddAsync(pmf);
+                    await _context.SaveChangesAsync();
+                    return newFieldID;
+                }
+                else
+                {
+                throw new ArgumentException($"Invalid field type: {fieldType}");
+                }
+            }
+            else 
+            {
+                throw new DataNotFoundException("Project not found");
+            }
+        }
     }
 }
