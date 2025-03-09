@@ -15,11 +15,10 @@ namespace APIs.Controllers
             app.MapGet("/credentials/accounts/{userID}", GetRoleDetails).WithName("GetRoleDetails").WithOpenApi();
             app.MapPatch("/projects/{projectID}/accounts/{userID}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
             app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataFieldsToProject).WithName("AddMetaDataFieldsToProject").WithOpenApi();
+            app.MapPost("/projects", CreateProjects).WithName("CreateProjects").WithOpenApi();
 
 
             // TODO: Not implemented yet
-            // app.MapPost("/projects/{projectID}/metadata", CreateProject).WithName("CreateProject").WithOpenApi();
-            // app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataToProject).WithName("AddMetaDataToProject").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
@@ -40,9 +39,26 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> CreateProject(CreateProjectReq req, IAdminService adminService)
+        private static async Task<IResult> CreateProjects(List<CreateProjectsReq> req, IAdminService adminService)
         {
-            return Results.NotFound("stub"); // Stub
+            try 
+            {
+                List<CreateProjectsRes> result = await adminService.CreateProjects(req);
+                return Results.Ok(result); 
+            }
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }      
         }
 
         private static async Task<IResult> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req, IAdminService adminService)
