@@ -147,8 +147,16 @@ namespace Core.Entities
         public int FieldID { get; set; }
         
         public required string FieldName { get; set; }
+
+        // Add Enum to represent user roles
+        public enum FieldDataType
+        {
+            Number,    // 0
+            String,    // 1
+            Boolean    // 2
+        }
         
-        public required string FieldType { get; set; }
+        public required FieldDataType FieldType { get; set; }
         
         // Optionally, associate a field with a Palette.
         public int? PaletteID { get; set; }
@@ -167,7 +175,7 @@ namespace Core.Entities
         public int ProjectID { get; set; }
         public int FieldID { get; set; }
 
-        public bool IsEnabled { get; set; } // Missing attribute
+        public bool IsEnabled { get; set; } = false; // Missing attribute, set Defualt to false
         
         public required string FieldValue { get; set; }
         
