@@ -150,7 +150,7 @@ namespace Core.Services
                     projectID = project.ProjectID,
                     name = project.Name,
                     description = project.Description,
-                    location = project.Description,
+                    location = project.Location,
                     archived = project.Active,
                     archivedAt = project.ArchivedAt,
                     admin = projectAdmin,

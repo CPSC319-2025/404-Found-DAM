@@ -37,6 +37,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
 {
     await SeedDatabase(app);
