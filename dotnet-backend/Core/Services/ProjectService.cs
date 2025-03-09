@@ -96,7 +96,7 @@ namespace Core.Services
                         throw new Exception("Failed to archive projects in database.");
                     }
                 }
-                catch (DataNotFoundException) 
+                catch (PartialSuccessException) 
                 {
                     throw;
                 }

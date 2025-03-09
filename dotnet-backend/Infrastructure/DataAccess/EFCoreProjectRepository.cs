@@ -54,6 +54,7 @@ namespace Infrastructure.DataAccess
                     else 
                     {
                         project.Active = false;
+                        project.ArchivedAt = DateTime.UtcNow;
 
                         // TODO: Set each asset's Active to false?
                         
@@ -70,21 +71,21 @@ namespace Infrastructure.DataAccess
                     }
                 }
                 
-                Console.WriteLine("Save the change");
+                // Console.WriteLine("Save the change");
                 // Save the change
                 await _context.SaveChangesAsync();
 
                 if (unfoundProjectIDs.Count != 0) 
                 {
                     string unfoundProjects = string.Join(",", unfoundProjectIDs.Select(id => id.ToString()));
-                    throw new DataNotFoundException($"Projects that do not exist in the database: {unfoundProjects}");
+                    throw new PartialSuccessException($"Partial success. Unfound and not archived: {unfoundProjects}");
                 }
                 else 
                 {
                     return true;
                 }
             }
-            catch (DataNotFoundException)
+            catch (PartialSuccessException)
             {
                 throw;
             }
@@ -104,6 +105,8 @@ namespace Infrastructure.DataAccess
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+            string projectAdminName; 
+
             var project = await _context.Projects
                 .Include(p => p.ProjectTags)
                 .ThenInclude(pt => pt.Tag)
@@ -120,14 +123,18 @@ namespace Infrastructure.DataAccess
             var adminMembership = project.ProjectMemberships
                 .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
 
-            if (adminMembership?.User == null)
+            if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
             {
-                throw new DataNotFoundException($"Admin not found for project {projectID}.");
+                projectAdminName = "None";
+            }
+            else 
+            {
+                projectAdminName = adminMembership.User.Name;
             }
 
             List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
 
-            return (project, adminMembership.User.Name, tags);
+            return (project, projectAdminName, tags);
         }
 
         public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int userID)
@@ -166,7 +173,7 @@ namespace Infrastructure.DataAccess
             }
             else 
             {
-                throw new DataNotFoundException($"No Projects found in the database");
+                throw new DataNotFoundException($"No Projects associted with the user found in the database");
             }
         }
 
