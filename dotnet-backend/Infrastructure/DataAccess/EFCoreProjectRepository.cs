@@ -101,11 +101,9 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<(Project, string, List<string>)> GetProjectInDb(int projectID)
+        public async Task<Project> GetProjectInDb(int projectID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
-
-            string projectAdminName; 
 
             var project = await _context.Projects
                 .Include(p => p.ProjectTags)
@@ -119,22 +117,10 @@ namespace Infrastructure.DataAccess
             {
                 throw new DataNotFoundException($"Project {projectID} not found.");
             }
-
-            var adminMembership = project.ProjectMemberships
-                .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
-
-            if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
-            {
-                projectAdminName = "None";
-            }
             else 
             {
-                projectAdminName = adminMembership.User.Name;
-            }
-
-            List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
-
-            return (project, projectAdminName, tags);
+                return project;
+            }   
         }
 
         public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int userID)

@@ -20,6 +20,8 @@ namespace APIs.Controllers
 
             // TODO: Not implemented yet
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
+            // Add user(s) to project; check if project exists, if so then check if user exists in the system, and if user is a member of this project and if req is complete before adding!
+            // remove user(s) from project; check if project exists, if so retrieve users and check if they exists in the system before removing!
         }
 
         private static async Task<IResult> GetRoleDetails(int userID, IAdminService adminService)

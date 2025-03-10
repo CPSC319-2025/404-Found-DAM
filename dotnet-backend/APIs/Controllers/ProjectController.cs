@@ -85,6 +85,10 @@ namespace APIs.Controllers
             {
                 return Results.NotFound(ex.Message);
             }
+            catch (ArchivedException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
             catch (Exception) 
             {
                 return Results.StatusCode(500);
