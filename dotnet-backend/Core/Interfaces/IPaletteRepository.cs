@@ -10,8 +10,9 @@ namespace Core.Interfaces  {
 
         public Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, List<string> tags);
 
+        public Task<bool> DeleteAsset(DeletePaletteAssetReq request);
+
         public Task<bool> UploadAssets(IFormFile file, UploadAssetsReq request);
-
-
+        public Task<List<IFormFile>> GetAssetsAsync(int userId);
     }
 }

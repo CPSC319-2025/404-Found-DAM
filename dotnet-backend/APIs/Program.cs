@@ -46,8 +46,10 @@ async Task SeedDatabase(WebApplication app)
     using (var scope = app.Services.CreateScope())
     {
         try
-        {
+        {   
+            Console.WriteLine("Start populating database with mocked data...");
             await MockedDataSeeding.Seed(scope);
+            Console.WriteLine("Database seeding completed.");
         }
         catch (Exception)
         {
@@ -61,6 +63,15 @@ app.MapProjectEndpoints();
 app.MapNotificationEndpoints(); 
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
+
+if (app.Environment.IsDevelopment())
+{
+    await using (var serviceScope = app.Services.CreateAsyncScope())
+    await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+}
 
 app.Run();
 
