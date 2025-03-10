@@ -209,19 +209,29 @@ namespace Core.Services
 
                 result.projectCount = retrievedProjects.Count;
 
-                // Create a projectMembershipMap for constructig the return result
-                Dictionary<int, List<string>> projectMembershipMap = new Dictionary<int, List<string>>();
+                // Create a projectMembershipMap for constructig the return result; 
+                // The value is a tuple of 2 string lists: first is for admin, and second is for regular users
+                Dictionary<int, (HashSet<string>, HashSet<string>)> projectMembershipMap = new Dictionary<int, (HashSet<string>, HashSet<string>)>();
                 
                 foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
                     if (!projectMembershipMap.ContainsKey(pm.ProjectID))
                     {
-                        projectMembershipMap[pm.ProjectID] = new List<string>();
+                        projectMembershipMap[pm.ProjectID] = (new HashSet<string>(), new HashSet<string>());
                     }
 
                     if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
                     {
-                        projectMembershipMap[pm.ProjectID].Add(retrievedUserDictionary[pm.UserID].Name);
+                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[pm.ProjectID];
+                        if (pm.UserRole == ProjectMembership.UserRoleType.Admin) 
+                        {
+                            adminSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                        }
+                        else if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
+                        {
+                            regularSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                        }
+                        projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary                   
                     }
                 }
 
@@ -237,6 +247,7 @@ namespace Core.Services
                         addedProjects.Add(p);
 
                         // Populate fullProjectInfo
+                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[p.ProjectID];
                         FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
                         fullProjectInfo.projectID = p.ProjectID;
                         fullProjectInfo.projectName = p.Name;
@@ -246,7 +257,8 @@ namespace Core.Services
                         fullProjectInfo.active = p.Active;
                         fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
                         fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
-                        fullProjectInfo.userNames = projectMembershipMap[p.ProjectID];
+                        fullProjectInfo.adminNames = adminSet;
+                        fullProjectInfo.regularUserNames = regularSet;
 
                         // Add fullProjectInfo to result
                         result.fullProjectInfos.Add(fullProjectInfo);
