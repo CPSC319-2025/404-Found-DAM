@@ -10,6 +10,10 @@ namespace Core.Entities
 
     public class User
     {
+        /*
+            TODO:
+            User needs LastUpdated info to be shown in api call that check user's detail
+        */
         [Key]
         public int UserID { get; set; }
         
@@ -29,6 +33,12 @@ namespace Core.Entities
 
     public class Asset
     {
+        /*  TODO:
+            - missing thumbnailrul
+            - how to tell if an asset is "uploaded" to palette but not yet "submitted", and if it is "submitted" finally?
+            - separate default metadata from costum metadata?
+        */
+
         [Key]
         public int BlobID { get; set; }
         
@@ -58,6 +68,11 @@ namespace Core.Entities
 
     public class Project
     {
+        /*
+            TODO:
+            version type string or double? default/start at 0.0?
+            active indicates archived?
+        */
         [Key]
         public int ProjectID { get; set; }
         
