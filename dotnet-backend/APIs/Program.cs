@@ -25,6 +25,8 @@ builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 
 
 
@@ -74,6 +76,7 @@ if (app.Environment.IsDevelopment())
         await context.Database.EnsureCreatedAsync();
     }
 }
+app.MapSearchEndpoints();
 
 app.Run();
 
