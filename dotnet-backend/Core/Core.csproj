@@ -17,6 +17,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="ClosedXML" />
+    <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
 </Project>
