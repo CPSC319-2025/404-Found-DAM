@@ -50,6 +50,3 @@ jobs:
       - name: Deploy to Azure Web App
         run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src ./frontend/deploy.zip
       
-      - name: Configure startup command
-        run: |
-          az webapp config set --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --startup-command "next start"
