@@ -3,6 +3,7 @@ using APIs.Controllers;
 using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
+using MockedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,29 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// Run "dotnet run --seed" to seed database
+if (args.Contains("--seed"))
+{
+    await SeedDatabase(app);
+}
+
+async Task SeedDatabase(WebApplication app)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {   
+            Console.WriteLine("Start populating database with mocked data...");
+            await MockedDataSeeding.Seed(scope);
+            Console.WriteLine("Database seeding completed.");
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
 }
 
 // Extension methods to register and group endpoints by controller

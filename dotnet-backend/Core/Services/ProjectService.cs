@@ -35,29 +35,34 @@ using Core.Dtos;
 using Core.Entities;
 using ClosedXML.Excel;
 using Core.Services.Utils;
+using Infrastructure.Exceptions;
+using DocumentFormat.OpenXml.Spreadsheet;
+
 
 namespace Core.Services
 {
     public class ProjectService : IProjectService
     {
+        private const string DateTimeFormatUTC = "yyyy-MM-ddTHH:mm:ss.fffZ";
+
         private readonly IProjectRepository _repository;
         public ProjectService(IProjectRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<AddAssetsToProjectRes> AddAssetsToProject(int projectID, List<int> blobIDs)
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs)
         {
             //TODO
             //Assets will inherit project's metadata (at least tags)
             try 
             {
-                bool isSuccessul = await _repository.AddAssetsToProjectInDb(projectID, blobIDs);
+                bool isSuccessul = await _repository.SubmitAssetstoDb(projectID, blobIDs);
                 if (isSuccessul)
                 {
-                    AddAssetsToProjectRes result = new AddAssetsToProjectRes
+                    SubmitAssetsRes result = new SubmitAssetsRes
                     {
-                        UploadedAt = DateTime.UtcNow
+                        submittedAt = DateTime.UtcNow
                     };
                     return result;
                 }
@@ -91,7 +96,11 @@ namespace Core.Services
                         throw new Exception("Failed to archive projects in database.");
                     }
                 }
-                catch (Exception ex) 
+                catch (PartialSuccessException) 
+                {
+                    throw;
+                }
+                catch (Exception) 
                 {
                     throw;
                 }
@@ -133,71 +142,186 @@ namespace Core.Services
 
         public async Task<GetProjectRes> GetProject(int projectID) 
         {
-            //TODO
             try 
             {
-                (Project project, string projectAdmin, List<string> projectTags) = await _repository.GetProjectInDb(projectID);
+                Project project = await _repository.GetProjectInDb(projectID);
+
+                string projectAdminName;
+
+                var adminMembership = project.ProjectMemberships
+                    .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
+
+                if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
+                {
+                    projectAdminName = "None";
+                }
+                else 
+                {
+                    projectAdminName = adminMembership.User.Name;
+                }
+
+                List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
+
+                // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
+
                 GetProjectRes result = new GetProjectRes
                 {
                     projectID = project.ProjectID,
                     name = project.Name,
                     description = project.Description,
-                    location = project.Description,
-                    archived = true,
-                    archivedAt = "2025-02-02T12:00:00Z",
-                    admin = projectAdmin,
-                    tags = projectTags
+                    location = project.Location,
+                    archived = project.Active,
+                    archivedAt = project.ArchivedAt,
+                    admin = projectAdminName,
+                    tags = tags
                 };
                 return result;
             }
-            catch (Exception ex)
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (ArchivedException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw;
             }
         }
 
-
-        public async Task<GetProjectAssetsRes> GetProjectAssets(int projectID, string type, int pageNumber, int pageSize)
+        public async Task<GetAllProjecsRes> GetAllProjects(int userID) 
         {
-            //TODO
-            int offset = (pageNumber - 1) * pageSize;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetProjectAssetsInDb(projectID, type, offset, pageSize);
-                ProjectAssetsPagination pagination = new ProjectAssetsPagination{page = pageNumber, limit = pageSize, total = 2};
-                List<string> tags1 = new List<string>();
-                tags1.Add("fieldwork");
-                tags1.Add("site");
-                ProjectAssetMD metadata1 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 20, 00, 1), tags = tags1};
+                List<Project> retrievedProjects;
+                List<User> retrievedUsers;
+                List<ProjectMembership> retrievedProjectMemberships;
 
-                List<string> tags2 = new List<string>();
-                tags2.Add("inspection");
-                ProjectAssetMD metadata2 = new ProjectAssetMD{date = new DateTime(2025, 01, 30, 10, 25, 00, 1), tags = tags2};
+                (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
+                    await _repository.GetAllProjectsInDb(userID);
 
-                ProjectAsset asset1 = new ProjectAsset
+                // Make List retrievedUsers into a map
+                Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
+
+                GetAllProjecsRes result = new GetAllProjecsRes();
+
+                result.projectCount = retrievedProjects.Count;
+
+                // Create a projectMembershipMap for constructig the return result
+                Dictionary<int, List<string>> projectMembershipMap = new Dictionary<int, List<string>>();
+                
+                foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
-                    blobID = 12356093, 
-                    thumbnailUrl = "https://cdn.example.com/thumbnails/img001.jpg",
-                    filename = "image1.jpg",
-                    projectAssetMD = metadata1
-                };
+                    if (!projectMembershipMap.ContainsKey(pm.ProjectID))
+                    {
+                        projectMembershipMap[pm.ProjectID] = new List<string>();
+                    }
 
-                ProjectAsset asset2 = new ProjectAsset
+                    if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
+                    {
+                        projectMembershipMap[pm.ProjectID].Add(retrievedUserDictionary[pm.UserID].Name);
+                    }
+                }
+
+                // Constructing the result for return by looping through retrievedProjects and using the retrievedUserDictionary 
+                // Create a HashSet to prevent duplicated retrievedProjects
+
+                // TODO: Check if the user is admin or regular. If user is regular then only include active projects, 
+                HashSet<Project> addedProjects = new HashSet<Project>();
+                foreach (var p in retrievedProjects)
                 {
-                    blobID = 123560623, 
-                    thumbnailUrl = "https://cdn.example.com/thumbnails/img002.jpg",
-                    filename = "image2.jpg",
-                    projectAssetMD = metadata2
-                };
+                    if (!addedProjects.Contains(p)) 
+                    {
+                        addedProjects.Add(p);
 
-                List<ProjectAsset> assets = new List<ProjectAsset>();
-                assets.Add(asset1);
-                assets.Add(asset2);
+                        // Populate fullProjectInfo
+                        FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
+                        fullProjectInfo.projectID = p.ProjectID;
+                        fullProjectInfo.projectName = p.Name;
+                        fullProjectInfo.location = p.Location;
+                        fullProjectInfo.description = p.Description;
+                        fullProjectInfo.creationTime = p.CreationTime;
+                        fullProjectInfo.active = p.Active;
+                        fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
+                        fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
+                        fullProjectInfo.userNames = projectMembershipMap[p.ProjectID];
 
-                GetProjectAssetsRes result = new GetProjectAssetsRes{projectID = projectID, assets = assets, pagination = pagination};
+                        // Add fullProjectInfo to result
+                        result.fullProjectInfos.Add(fullProjectInfo);
+                    }
+                }
                 return result;
             }
-            catch (Exception ex)
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
+        {
+            //TODO
+            int offset = (req.pageNumber - 1) * req.assetsPerPage;
+            try 
+            {
+                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
+                int totalAssetsReturned = retrievedAssets.Count;
+                int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
+
+                ProjectAssetsPagination pagination = new ProjectAssetsPagination
+                {
+                    pageNumber = req.pageNumber, 
+                    assetsPerPage = req.assetsPerPage, 
+                    totalAssetsReturned = totalAssetsReturned, 
+                    totalPages = totalPages
+                };
+                
+                // Loop through retrievedAssets to build the return result
+                List<PaginatedProjectAsset> paginatedProjectAssets = new List<PaginatedProjectAsset>();
+                foreach (Asset a in retrievedAssets)
+                {
+                    if (a != null) {
+                        PaginatedProjectAsset paginatedProjectAsset = new PaginatedProjectAsset();
+                        paginatedProjectAsset.blobID = a.BlobID;
+                        // paginatedProjectAsset.thumbnailUrl = a.thumbnailUrl;
+                        paginatedProjectAsset.filename = a.FileName;
+                        if (a.User != null) 
+                        {
+                            paginatedProjectAsset.uploadedBy = new PaginatedProjectAssetUploadedBy
+                            {
+                                userID = a.User.UserID, name = a.User.Name
+                            };
+                        }
+
+                        paginatedProjectAsset.date = a.LastUpdated;
+                        paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
+
+                        if (a.AssetMetadata != null)
+                        {
+                            foreach (AssetMetadata am in a.AssetMetadata)
+                            {
+                                if (am.MetadataField != null)
+                                {
+                                    // for 
+                                }
+                            }
+                        }
+                    }
+                }
+                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
+                return result;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw;
             }
@@ -209,7 +333,7 @@ namespace Core.Services
             try
             {
                 // Fetch project and assets
-                (Project project, string admin, List<string> tags) = await _repository.GetProjectInDb(projectID);
+                Project project = await _repository.GetProjectInDb(projectID);
                 List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
 
                 // if (project == null) {

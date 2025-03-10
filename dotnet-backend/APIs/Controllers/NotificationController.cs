@@ -9,9 +9,9 @@ namespace APIs.Controllers
     {
         public static void MapNotificationEndpoints(this WebApplication app)
         {
-            app.MapGet("/notifications", RetrieveNotification).WithName("RetrieveNotification").WithOpenApi();
-            app.MapPost("/notifications/send", SendNotifications).WithName("SendNotifications").WithOpenApi();
-            app.MapPost("/notifications/status", SendStatusUpdate).WithName("SendStatusUpdate").WithOpenApi();
+            // app.MapGet("/notifications", RetrieveNotification).WithName("RetrieveNotification").WithOpenApi();
+            // app.MapPost("/notifications/send", SendNotifications).WithName("SendNotifications").WithOpenApi();
+            // app.MapPost("/notifications/status", SendStatusUpdate).WithName("SendStatusUpdate").WithOpenApi();
         }
 
         private static IResult RetrieveNotification(string userId)
