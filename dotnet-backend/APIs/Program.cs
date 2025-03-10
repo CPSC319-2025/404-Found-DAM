@@ -62,6 +62,15 @@ app.MapNotificationEndpoints();
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
 
+if (app.Environment.IsDevelopment())
+{
+    await using (var serviceScope = app.Services.CreateAsyncScope())
+    await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+}
+
 app.Run();
 
 public partial class Program { }
