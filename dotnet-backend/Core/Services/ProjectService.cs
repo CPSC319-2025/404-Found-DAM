@@ -144,7 +144,26 @@ namespace Core.Services
         {
             try 
             {
-                (Project project, string projectAdmin, List<string> projectTags) = await _repository.GetProjectInDb(projectID);
+                Project project = await _repository.GetProjectInDb(projectID);
+
+                string projectAdminName;
+
+                var adminMembership = project.ProjectMemberships
+                    .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
+
+                if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
+                {
+                    projectAdminName = "None";
+                }
+                else 
+                {
+                    projectAdminName = adminMembership.User.Name;
+                }
+
+                List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
+
+                // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
+
                 GetProjectRes result = new GetProjectRes
                 {
                     projectID = project.ProjectID,
@@ -153,12 +172,20 @@ namespace Core.Services
                     location = project.Location,
                     archived = project.Active,
                     archivedAt = project.ArchivedAt,
-                    admin = projectAdmin,
-                    tags = projectTags
+                    admin = projectAdminName,
+                    tags = tags
                 };
                 return result;
             }
             catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (ArchivedException)
+            {
+                throw;
+            }
+            catch (Exception)
             {
                 throw;
             }
@@ -200,6 +227,8 @@ namespace Core.Services
 
                 // Constructing the result for return by looping through retrievedProjects and using the retrievedUserDictionary 
                 // Create a HashSet to prevent duplicated retrievedProjects
+
+                // TODO: Check if the user is admin or regular. If user is regular then only include active projects, 
                 HashSet<Project> addedProjects = new HashSet<Project>();
                 foreach (var p in retrievedProjects)
                 {
@@ -304,7 +333,7 @@ namespace Core.Services
             try
             {
                 // Fetch project and assets
-                (Project project, string admin, List<string> tags) = await _repository.GetProjectInDb(projectID);
+                Project project = await _repository.GetProjectInDb(projectID);
                 List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
 
                 // if (project == null) {
