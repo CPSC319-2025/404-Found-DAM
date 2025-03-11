@@ -1,18 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ProjectCard from "./components/ProjectCard";
 import Search from "./components/Search";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { FormData } from "@/app/components/GenericForm";
 
-const projects = [
-  { id: "1", name: "Project One" },
-  { id: "2", name: "Project Two" },
-  { id: "3", name: "Project Three" },
-  { id: "4", name: "Project Four" },
-  { id: "5", name: "Project Five" },
-];
+// const projects = [
+//   { id: "1", name: "Project One" },
+//   { id: "2", name: "Project Two" },
+//   { id: "3", name: "Project Three" },
+//   { id: "4", name: "Project Four" },
+//   { id: "5", name: "Project Five" },
+// ];
+
+interface FullProjectInfo {
+  projectID: number;
+  projectName: string;
+  location: string;
+  description: string;
+  creationTime: string; // ISO
+  active: boolean;
+  archivedAt: string | null;
+  assetCount: number;
+  userNames: string[];
+}
+
+interface Project {
+  id: string;
+  name: string;
+  creationTime: string;
+  assetCount: number;
+  userNames: string[];
+}
+
+interface GetAllProjectsResponse {
+  projectCount: number;
+  fullProjectInfos: FullProjectInfo[];
+}
 
 const newProjectFormFields = [
   {
@@ -30,6 +55,13 @@ const newProjectFormFields = [
     required: true,
   },
   {
+    name: "description",
+    label: "Description",
+    type: "text",
+    placeholder: "Enter project description",
+    required: true,
+  },
+  {
     name: "tags",
     label: "Tags",
     type: "text",
@@ -42,11 +74,11 @@ const newProjectFormFields = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: true,
+    required: false,
     options: [
-      { id: "0", name: "dave" },
-      { id: "1", name: "nehemiah" },
-      { id: "2", name: "susan" },
+      { id: "1", name: "alice (alice@example.com)" },
+      { id: "2", name: "bob (bob@example.com)" },
+      { id: "3", name: "charlie (charlie@example.com)" },
     ],
   },
   {
@@ -55,25 +87,107 @@ const newProjectFormFields = [
     type: "select",
     isMultiSelect: true,
     options: [
-      { id: "0", name: "alice" },
-      { id: "1", name: "bob" },
-      { id: "2", name: "charlie" },
+      { id: "1", name: "alice (alice@example.com)" },
+      { id: "2", name: "bob (bob@example.com)" },
+      { id: "3", name: "charlie (charlie@example.com)" },
     ],
   },
 ];
 
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState(projects);
+  const [projectList, setProjectList] = useState<Project[]>([]);
   const { user } = useUser();
 
-  const handleAddProject = (formData: FormData) => {
-    const newProject = {
-      id: (projectList.length + 1).toString(),
-      name: formData.name as string,
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch projects");
+        }
+        const data = (await response.json()) as GetAllProjectsResponse;
+        const projectsFromBackend = data.fullProjectInfos.map(
+          (project: FullProjectInfo) => ({
+            id: project.projectID.toString(),
+            name: project.projectName,
+            creationTime: project.creationTime,
+            assetCount: project.assetCount,
+            userNames: project.userNames,
+          })
+        );
+        setProjectList(projectsFromBackend);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
     };
-    setProjectList([...projectList, newProject]);
-    setNewProjectModalOpen(false);
+
+    fetchProjects();
+  }, []);
+
+  const handleAddProject = async (formData: FormData) => {
+    console.log("projectName ", formData.name);
+    console.log("location ", formData.location);
+    console.log("description ", formData.description);
+    console.log("tags ", formData.tags);
+    console.log("admins ", formData.admins);
+    console.log("users ", formData.users);
+    const payload = [
+      {
+        defaultMetadata: {
+          projectName: formData.name as string,
+          location: formData.location as string,
+          description: formData.description as string,
+          active: true,
+        },
+        tags: formData.tags ? (formData.tags as string[]) : [],
+        admins: formData.admins
+          ? (formData.admins as (string | number)[]).map(Number)
+          : [],
+        users: formData.users
+          ? (formData.users as (string | number)[]).map(Number)
+          : [],
+      },
+    ];
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create project.");
+      }
+
+      const data = await response.json();
+
+      const createdProject = data[0];
+      if (!createdProject) {
+        throw new Error("No project returned from the API.");
+      }
+
+      setProjectList([
+        ...projectList,
+        {
+          id: createdProject.createdProjectID.toString(),
+          name: formData.name as string,
+          creationTime: new Date().toISOString(),
+          assetCount: 0,
+          userNames: [],
+        },
+      ]);
+      setNewProjectModalOpen(false);
+    } catch (error) {
+      console.log("Error creating project:", error);
+    }
   };
 
   return (
@@ -93,7 +207,13 @@ export default function ProjectsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
         {projectList.map((project) => (
           <div key={project.id} className="w-full h-full">
-            <ProjectCard id={`project-${project.id}`} name={project.name} />
+            <ProjectCard
+              id={project.id}
+              name={project.name}
+              creationTime={project.creationTime}
+              assetCount={project.assetCount}
+              userNames={project.userNames}
+            />
           </div>
         ))}
       </div>
