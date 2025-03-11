@@ -63,7 +63,7 @@ namespace Infrastructure.DataAccess
                 : throw new DataNotFoundException("No user found.");
         }
 
-        public async Task<DateTime> ModifyRoleInDb(int projectID, int userID, bool userToAdmin)
+        public async Task<DateTime> ModifyRoleInDb(int projectID, int userID, ProjectMembership.UserRoleType roleChangeTo)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
             
@@ -73,9 +73,7 @@ namespace Infrastructure.DataAccess
 
             if (projectMembership != null)
             {
-                projectMembership.UserRole = userToAdmin 
-                    ? ProjectMembership.UserRoleType.Admin 
-                    : ProjectMembership.UserRoleType.Regular;
+                projectMembership.UserRole = roleChangeTo;
                 return DateTime.UtcNow;
             }
             else 
@@ -150,6 +148,8 @@ namespace Infrastructure.DataAccess
             List<Tag> tagList = new List<Tag>(); // For storing created Tags
             List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
 
+            // TODO: establish projectmembership
+
             using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid artial data in database in case error occurs
 
             try 
@@ -190,7 +190,6 @@ namespace Infrastructure.DataAccess
                 await _context.AddRangeAsync(projectTagList);
                 await _context.SaveChangesAsync(); // Save change in the database
                 await transaction.CommitAsync(); // Commit transaction for data persistence
-                Console.WriteLine("Save to database");
                 return projectList;
             }
             catch (Exception)
