@@ -524,7 +524,9 @@ namespace Infrastructure.DataAccess
                 await _context.AddRangeAsync(tagList);
                 await _context.AddRangeAsync(projectTagList);
                 await _context.AddRangeAsync(projectMembershipList);
+                await _context.AddRangeAsync(projectMembershipList);
                 await _context.SaveChangesAsync(); // Save change in the database
+                
                 await transaction.CommitAsync(); // Commit transaction for data persistence
                 Console.WriteLine("done");
                 return projectList;
