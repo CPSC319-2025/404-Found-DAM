@@ -20,7 +20,7 @@ namespace Tests.ControllerTests
         }
 
         [Fact]
-        public async Task Post_MediaUpload_WithMultipleFiles_ReturnsSuccessAndExpectedResponse()
+        public async Task Post_Upload_Get_Delete_ReturnsSuccessAndExpectedResponse()
         {
             _client.DefaultRequestHeaders.Add("Authorization", "Bearer dummy-token");
 
@@ -56,9 +56,10 @@ namespace Tests.ControllerTests
             formContent.Add(new StringContent("TestType"), "Type");
             formContent.Add(new StringContent("1"), "UserId");
 
+            // Step 1: Upload assets
             var response = await _client.PostAsync("/palette/upload", formContent);
 
-            // Assert: verify status and content type
+            // Assert: verify upload status and content type
             response.EnsureSuccessStatusCode();
             Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType.ToString());
             
@@ -68,20 +69,63 @@ namespace Tests.ControllerTests
             
             // Assert the response contains information about both files
             Assert.NotNull(result);
-            // Assert.Equal(2, result.RootElement.GetProperty("SuccessCount").GetInt32());
-            // Assert.Equal(0, result.RootElement.GetProperty("FailureCount").GetInt32());
+            var resultArray = result.RootElement.EnumerateArray().ToArray();
+            Assert.Equal(2, resultArray.Length); // Should have two results for two files
             
-            // // Verify details about both files
-            // var details = result.RootElement.GetProperty("Details");
-            // Assert.Equal(2, details.GetArrayLength());
+            // Store the BlobID for later deletion
+            var blobId = resultArray[0].GetProperty("fileName").GetString();
+            Assert.NotNull(blobId);
+
+            // Step 2: Get assets to verify they were uploaded
+            // The controller uses a GET endpoint that reads from the form, 
+            // which is unusual but we'll adapt our test to match
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, "/palette/assets");
+            var getFormContent = new MultipartFormDataContent();
+            getFormContent.Add(new StringContent("1"), "UserId");
+            getRequest.Content = getFormContent;
             
-            // // Check first file
-            // Assert.True(details[0].GetProperty("Success").GetBoolean());
-            // Assert.Equal(Path.GetFileName(zipFilePath1), details[0].GetProperty("FileName").GetString());
+            var getResponse = await _client.SendAsync(getRequest);
+            getResponse.EnsureSuccessStatusCode();
             
-            // // Check second file
-            // Assert.True(details[1].GetProperty("Success").GetBoolean());
-            // Assert.Equal(Path.GetFileName(zipFilePath2), details[1].GetProperty("FileName").GetString());
+            // Verify response is either a single file or a zip containing files
+            Assert.True(
+                getResponse.Content.Headers.ContentType.ToString() == "application/zstd" || 
+                getResponse.Content.Headers.ContentType.ToString() == "application/zip"
+            );
+            
+            // Step 3: Delete the first asset
+            // Step 3: Delete the first asset (using the approach that works with curl)
+            var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/palette/asset");
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(blobId), "Name");
+            formData.Add(new StringContent("1"), "UserId");
+            deleteRequest.Content = formData;
+            
+            var deleteResponse = await _client.SendAsync(deleteRequest);
+            deleteResponse.EnsureSuccessStatusCode();
+            
+            // Verify the delete response
+            var deleteContent = await deleteResponse.Content.ReadAsStringAsync();
+            var deleteResult = JsonSerializer.Deserialize<JsonDocument>(deleteContent);
+            
+            Assert.NotNull(deleteResult);
+            // Assert.Equal(blobId, deleteResult.RootElement.GetProperty("projectId").GetString());
+            
+            // // Optional Step 4: Verify deletion by getting assets again and checking count
+            // var verifyRequest = new HttpRequestMessage(HttpMethod.Get, "/palette/assets");
+            // var verifyFormContent = new MultipartFormDataContent();
+            // verifyFormContent.Add(new StringContent("1"), "UserId");
+            // verifyRequest.Content = verifyFormContent;
+            
+            // var verifyResponse = await _client.SendAsync(verifyRequest);
+            
+            // // If we only uploaded 2 files and deleted 1, we should still have 1 file
+            // // This verifies the deletion was successful
+            // if (verifyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            // {
+            //     // If we get a file, it should be a single file (not a zip) since we only have one left
+            //     Assert.Equal("application/zstd", verifyResponse.Content.Headers.ContentType.ToString());
+            // }
         }
 
     }

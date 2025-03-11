@@ -1,5 +1,7 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
+using Infrastructure.Exceptions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // Use Task<T> or Task for async operations
 
@@ -7,36 +9,41 @@ namespace APIs.Controllers
 {
     public static class ProjectController
     {
-        public const string DefaultAssetType = "image";
-        public const int DefaultPageNumber = 1;
-        public const int DefaultLimit = 10;
-
+        private const string DefaultAssetType = "image";
+        private const int DefaultPageNumber = 1;
+        private  const int DefaultPageSize = 10;
+        private const int MOCKEDUSERID = 123;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
-            app.MapPatch("/projects/assign-assets", AddAssetsToProject).WithName("AddAssetsToProject").WithOpenApi();
+            // TODO: Mostly done; need to check user credentials
             app.MapPatch("/projects/archive", ArchiveProjects).WithName("ArchiveProjects").WithOpenApi();
-            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
-            app.MapGet("/projects/{projectID}", getProject).WithName("getProject").WithOpenApi();
-            app.MapGet("/projects/{projectID}/assets", GetProjectAssets).WithName("GetProjectAssets").WithOpenApi();
-            // app.MapGet("/projects/", RetrieveAllProjects).WithName("RetrieveAllProjects").WithOpenApi();
-           
-            app.MapPost("/projects/{projectID}/assets/tags", AddTagsToAssets).WithName("AddTagsToAssets").WithOpenApi();
+            app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
+            app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
+            app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
-            app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+
+            // TODO: Return mocked data currently
+            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+
+            // TODO: Not implemented yet
+            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+            // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
         }
 
-        private static async Task<IResult> GetProjectAssets
+        private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
-            IProjectService projectService, // Place required parameters before optional parameters
-            string type = DefaultAssetType, 
-            int page = DefaultPageNumber, 
-            int limit = DefaultLimit
+            string? postedBy,
+            string? datePosted,
+            IProjectService projectService,
+            string assetType = DefaultAssetType,
+            int pageNumber = DefaultPageNumber, 
+            int assetsPerPage = DefaultPageSize
         )
         {
             // Validate user input
-            if (page <= 0 || limit <= 0)
+            if (pageNumber <= 0 || assetsPerPage <= 0)
             {
                 return Results.BadRequest("Page and limit must be positive integers.");
             }
@@ -44,32 +51,68 @@ namespace APIs.Controllers
             // Call Project Service to handle request
             try
             {
-                GetProjectAssetsRes result = await projectService.GetProjectAssets(projectID, type, page, limit);
+                GetPaginatedProjectAssetsReq req = new GetPaginatedProjectAssetsReq
+                {
+                    projectID = projectID,
+                    assetType = assetType,
+                    pageNumber = pageNumber,
+                    assetsPerPage = assetsPerPage,
+                    postedBy = postedBy,
+                    datePosted = datePosted
+                };
+
+                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req);
                 return Results.Ok(result);
             } 
-            catch (Exception ex) 
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }
+            }  
         }
 
-        private static async Task<IResult> getProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> GetProject(int projectID, IProjectService projectService)
         {
             try 
             {
                 GetProjectRes result = await projectService.GetProject(projectID);
                 return Results.Ok(result);
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (ArchivedException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }
+            } 
         }
 
-        // private static IResult RetrieveAllProjects(IProjectService projectService)
-        // {
-        //     return Results.NotFound("stub"); // Stub
-        // }
+        private static async Task<IResult> GetAllProjects(IProjectService projectService)
+        {
+            try 
+            {
+                // TODO: replace MOCKEDUSERID with authenticated userID
+                int userID = MOCKEDUSERID;
+                GetAllProjecsRes result = await projectService.GetAllProjects(userID);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex) 
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) 
+            {
+                return Results.StatusCode(500);
+            } 
+        }
 
         private static async Task<IResult> GetArchivedProjectLogs(IProjectService projectService)
         {
@@ -85,11 +128,6 @@ namespace APIs.Controllers
             }        
         }
         
-        private static async Task<IResult> AddTagsToAssets(IProjectService projectService)
-        {
-            return Results.NotFound("stub"); // Stub
-        }
-
         private static async Task<IResult> ExportProject(int projectID, IProjectService projectService)
         {
             try 
@@ -119,18 +157,27 @@ namespace APIs.Controllers
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
                 return Results.Ok(result);
             }
+            catch (PartialSuccessException ex)
+            {
+                return Results.Ok(ex.Message);
+            }
             catch (Exception ex)
             {
-                return Results.StatusCode(500);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
             }
         }
         
-        private static async Task<IResult> AddAssetsToProject(AddAssetsToProjectReq req, IProjectService projectService)
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IProjectService projectService)
         {
             // May need to add varification to check if client data is bad.
             try 
             {
-                AddAssetsToProjectRes result = await projectService.AddAssetsToProject(req.projectID, req.blobIDs);
+                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs);
                 return Results.Ok(result);
             }
             catch (Exception ex)
