@@ -23,6 +23,8 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
 builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 
 
 
@@ -63,6 +65,7 @@ app.MapProjectEndpoints();
 app.MapNotificationEndpoints(); 
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
+app.MapSearchEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
