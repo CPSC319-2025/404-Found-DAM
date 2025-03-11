@@ -79,12 +79,19 @@ namespace Core.Services
             }
         }
 
-        public async Task<ModifyRoleRes> ModifyRole(int projectID, int userID, bool userToAdmin)
+        public async Task<ModifyRoleRes> ModifyRole(int projectID, int userID, string normalizedRoleString)
         {
             try 
             {
-                DateTime timeUpdated = await _repository.ModifyRoleInDb(projectID, userID, userToAdmin);
-                return new ModifyRoleRes{updatedAt = timeUpdated};
+                ProjectMembership.UserRoleType roleChangeTo = normalizedRoleString == "admin" ? ProjectMembership.UserRoleType.Admin : ProjectMembership.UserRoleType.Regular;
+                DateTime timeUpdated = await _repository.ModifyRoleInDb(projectID, userID, roleChangeTo);
+                return new ModifyRoleRes
+                {
+                        projectID = projectID,
+                        userID = userID,
+                        updatedRole = normalizedRoleString,
+                        updatedAt = timeUpdated
+                };
             }
             catch (DataNotFoundException) 
             {
