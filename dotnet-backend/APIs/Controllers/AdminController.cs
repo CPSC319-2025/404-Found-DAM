@@ -8,6 +8,8 @@ namespace APIs.Controllers
 {
     public static class AdminController
     {
+
+        private const int MOCKEDUSERID = 1;
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -45,7 +47,8 @@ namespace APIs.Controllers
         {
             try 
             {
-                List<CreateProjectsRes> result = await adminService.CreateProjects(req);
+                int userID = MOCKEDUSERID;
+                List<CreateProjectsRes> result = await adminService.CreateProjects(req, userID);
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 

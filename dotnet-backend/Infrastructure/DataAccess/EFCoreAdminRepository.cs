@@ -142,15 +142,23 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req)
+        public async Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req, int userID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            User? user = await _context.Users.FindAsync(userID);
+
+            if (user == null) 
+            {
+                throw new Exception("Failed to create project. User not found.");
+            }
 
             List<Project> projectList = new List<Project>(); // For storing created Projects
             List<Tag> tagList = new List<Tag>(); // For storing created Tags
             List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
+            List<ProjectMembership> projectMembershipList = new List<ProjectMembership>(); // For storing project memberships
 
-            using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid artial data in database in case error occurs
+            using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid partial data in database in case error occurs
 
             try 
             {
@@ -166,6 +174,15 @@ namespace Infrastructure.DataAccess
                     };
 
                     projectList.Add(newProject);
+
+
+                    ProjectMembership membership = new ProjectMembership
+                    {
+                        Project = newProject, // EF will handle the ProjectID
+                        UserID = userID,
+                        User = user,
+                    };
+                    projectMembershipList.Add(membership);
 
                     if (data.tags != null && data.tags.Any()) 
                     {
@@ -188,7 +205,9 @@ namespace Infrastructure.DataAccess
                 await _context.AddRangeAsync(projectList);
                 await _context.AddRangeAsync(tagList);
                 await _context.AddRangeAsync(projectTagList);
+                await _context.AddRangeAsync(projectMembershipList);
                 await _context.SaveChangesAsync(); // Save change in the database
+                
                 await transaction.CommitAsync(); // Commit transaction for data persistence
                 Console.WriteLine("Save to database");
                 return projectList;

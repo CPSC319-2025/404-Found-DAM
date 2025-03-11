@@ -10,6 +10,6 @@ namespace Core.Interfaces
         Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID);
         Task<DateTime> ModifyRoleInDb(int projectID, int metadataFieldID, bool userToAdmin);
         Task<List<MetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req);
-        Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req);
+        Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req, int userID);
     }
 }

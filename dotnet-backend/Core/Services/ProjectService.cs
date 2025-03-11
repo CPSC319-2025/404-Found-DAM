@@ -191,7 +191,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetAllProjecsRes> GetAllProjects(int userID) 
+        public async Task<GetAllProjectsRes> GetAllProjects(int userID) 
         {
             try 
             {
@@ -205,7 +205,8 @@ namespace Core.Services
                 // Make List retrievedUsers into a map
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 
-                GetAllProjecsRes result = new GetAllProjecsRes();
+                GetAllProjectsRes result = new GetAllProjectsRes();
+                result.fullProjectInfos = new List<FullProjectInfo>();
 
                 result.projectCount = retrievedProjects.Count;
 
