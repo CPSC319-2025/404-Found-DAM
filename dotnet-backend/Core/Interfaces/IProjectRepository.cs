@@ -12,6 +12,6 @@ namespace Core.Interfaces
         Task<Project> GetProjectInDb(int projectID);
         Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int userID);
         Task<List<Asset>> GetProjectAssetsInDb(int projectID);
-        Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset);
+        Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
     }
 }

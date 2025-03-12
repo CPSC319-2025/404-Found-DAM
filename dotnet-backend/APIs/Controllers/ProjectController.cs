@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 123;
+        private const int MockedUserID = 8;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -42,6 +42,8 @@ namespace APIs.Controllers
             int assetsPerPage = DefaultPageSize
         )
         {
+            // TODO: Get requester's ID and replace
+            int requesterID = MockedUserID; 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -61,7 +63,7 @@ namespace APIs.Controllers
                     datePosted = datePosted
                 };
 
-                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req);
+                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
                 return Results.Ok(result);
             } 
             catch (DataNotFoundException ex) 
@@ -99,8 +101,8 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: replace MOCKEDUSERID with authenticated userID
-                int userID = MOCKEDUSERID;
+                // TODO: replace MockedUserID with authenticated userID
+                int userID = MockedUserID;
                 GetAllProjecsRes result = await projectService.GetAllProjects(userID);
                 return Results.Ok(result);
             }

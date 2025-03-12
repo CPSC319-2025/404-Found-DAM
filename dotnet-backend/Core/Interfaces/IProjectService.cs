@@ -10,7 +10,7 @@ namespace Core.Interfaces
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<GetProjectRes> GetProject(int projectID);
         Task<GetAllProjecsRes> GetAllProjects(int userID); 
-        Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req);
+        Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID);
         Task<(string, byte[])> ExportProject(int projectID);
     }
 }
