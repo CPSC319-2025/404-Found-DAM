@@ -170,44 +170,55 @@ namespace Infrastructure.DataAccess
             return null;
         }
 
-        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset)
+        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            // Retrieve matched Assets
-            IQueryable<Asset> query = _context.Assets.Where(a => a.ProjectID == req.projectID);
+            // Check if the requestor is a member of the project
+            bool isMember = await _context.ProjectMemberships
+                .AnyAsync(pm => pm.ProjectID == req.projectID && pm.UserID == requesterID);
             
-            bool isQueryEmpty = !await query.AnyAsync(); 
+            if (isMember) 
+            {
+                // Retrieve matched Assets
+                IQueryable<Asset> query = _context.Assets.Where(a => a.ProjectID == req.projectID);
+                
+                bool isQueryEmpty = !await query.AnyAsync(); 
 
-            if (isQueryEmpty) 
-            {   
-                throw new DataNotFoundException("No results wer found");
+                if (isQueryEmpty) 
+                {   
+                    throw new DataNotFoundException("No results were found");
+                }
+                else 
+                {
+                    // Apply filters
+                    if (req.assetType.ToLower() != "all")
+                    {
+                        query = query.Where(a => a.MimeType.ToLower() == req.assetType.ToLower());
+                    }
+
+                    if (!string.IsNullOrEmpty(req.postedBy)) 
+                    {
+                        query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
+                    }
+
+                    // TODO: Dateposted attribute not in datamodel
+
+                    // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                    // TODO: Tags are not included yet
+                    List<Asset> assets = await query
+                    .OrderBy(a => a.FileName)
+                    .Skip((req.pageNumber - 1) * req.assetsPerPage)
+                    .Take(req.assetsPerPage)
+                    .Include(a => a.User)
+                    .ToListAsync();
+
+                    return assets;
+                }
             }
             else 
             {
-                // Apply filters
-                if (req.assetType.ToLower() != "all")
-                {
-                    query = query.Where(a => a.MimeType.ToLower() == req.assetType.ToLower());
-                }
-
-                if (!string.IsNullOrEmpty(req.postedBy)) 
-                {
-                    query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
-                }
-
-                // TODO: Dateposted attribute not in datamodel
-
-                // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
-                // TODO: Tags are not included yet
-                List<Asset> assets = await query
-                .OrderBy(a => a.FileName)
-                .Skip((req.pageNumber - 1) * req.assetsPerPage)
-                .Take(req.assetsPerPage)
-                .Include(a => a.User)
-                .ToListAsync();
-
-                return assets;
+                throw new DataNotFoundException("Requester not a member of the project.");
             }
         }
     }

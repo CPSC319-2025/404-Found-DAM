@@ -278,13 +278,13 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
+        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
             //TODO
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
+                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 int totalAssetsReturned = retrievedAssets.Count;
                 int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
 
