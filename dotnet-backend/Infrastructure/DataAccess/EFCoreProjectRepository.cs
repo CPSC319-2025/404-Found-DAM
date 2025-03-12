@@ -159,7 +159,7 @@ namespace Infrastructure.DataAccess
             }
             else 
             {
-                throw new DataNotFoundException($"No Projects associted with the user found in the database");
+                return (new List<Project>(), new List<User>(), new List<ProjectMembership>());
             }
         }
 
