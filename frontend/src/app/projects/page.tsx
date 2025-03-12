@@ -67,7 +67,7 @@ const newProjectFormFields = [
     type: "text",
     isMulti: true,
     placeholder: "Add tags (Press Enter to add one)",
-    required: true,
+    required: false,
   },
   {
     name: "admins",
