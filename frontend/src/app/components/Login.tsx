@@ -60,7 +60,10 @@ export default function Login({ setUser }: LoginProps) {
           </div>
         </div>
         <div className="w-full y-full flex justify-center items-center pt-6 pb-3">
-          <button className="bg-blue-400 rounded-md w-4/5 py-1.5 hover:scale-105 transition-transform duration-200 hover:bg-blue-500 text-gray-100">
+          <button
+            onClick={handleLogin}
+            className="bg-blue-400 rounded-md w-4/5 py-1.5 hover:scale-105 transition-transform duration-200 hover:bg-blue-500 text-gray-100"
+          >
             LOGIN
           </button>
         </div>
