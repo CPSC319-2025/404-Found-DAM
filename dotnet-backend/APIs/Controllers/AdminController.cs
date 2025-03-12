@@ -1,6 +1,8 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
 using Infrastructure.Exceptions;
+using Core.Entities;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 // Use Task<T> or Task for async operations
 
@@ -8,6 +10,7 @@ namespace APIs.Controllers
 {
     public static class AdminController
     {
+        public static int MockedAdminID = 1; // Make the field static
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -16,12 +19,67 @@ namespace APIs.Controllers
             app.MapPatch("/projects/{projectID}/accounts/{userID}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
             app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataFieldsToProject).WithName("AddMetaDataFieldsToProject").WithOpenApi();
             app.MapPost("/projects", CreateProjects).WithName("CreateProjects").WithOpenApi();
-
+            app.MapPost("/projects/{projectID}/add-users", AddUsersToProject).WithName("AddUsersToProject").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/remove-users", DeleteUsersFromProject).WithName("DeleteUsersFromProject").WithOpenApi();
 
             // TODO: Not implemented yet
+            // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
-            // Add user(s) to project; check if project exists, if so then check if user exists in the system, and if user is a member of this project and if req is complete before adding!
             // remove user(s) from project; check if project exists, if so retrieve users and check if they exists in the system before removing!
+        }
+
+        private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService) 
+        {
+            try 
+            {
+                if ((req.removeFromAdmins == null || req.removeFromAdmins.Count == 0) &&
+                    (req.removeFromRegulars == null || req.removeFromRegulars.Count == 0))
+                {
+                    return Results.BadRequest("No users to be removed.");
+                }
+                else 
+                {
+                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
+                    return Results.Ok(result);
+                }
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return Results.StatusCode(500);
+            }            
+        }
+
+        private static async Task<IResult> AddUsersToProject(int projectID, AddUsersToProjectReq req, IAdminService adminService) 
+        {
+            try 
+            {
+                if ((req.addAsAdmin == null || req.addAsAdmin.Count == 0) &&
+                    (req.addAsRegular == null || req.addAsRegular.Count == 0))
+                {
+                    return Results.BadRequest("No users to be added.");
+                }
+                else 
+                {
+                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
+                    return Results.Ok(result);
+                }
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return Results.StatusCode(500);
+            }            
         }
 
         private static async Task<IResult> GetRoleDetails(int userID, IAdminService adminService)
@@ -45,7 +103,10 @@ namespace APIs.Controllers
         {
             try 
             {
-                List<CreateProjectsRes> result = await adminService.CreateProjects(req);
+                // TODO: validate if request comes from super admin first; if not reject right away.
+
+                int adminID = MockedAdminID;
+                List<CreateProjectsRes> result = await adminService.CreateProjects(req, adminID);
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 
@@ -84,20 +145,29 @@ namespace APIs.Controllers
             }          }
 
         private static async Task<IResult> ModifyRole(int projectID, int userID, ModifyRoleReq req, IAdminService adminService)
-        {
-            try 
+        { 
+            string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
+            
+            if (normalizedRoleString != "admin" || normalizedRoleString != "regular")
             {
-                ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, req.userToAdmin);
-                return Results.Ok(result);
+                return Results.BadRequest("roleChangeTo must be either \"admin\" or \"regular\"");
             }
-           catch (DataNotFoundException ex) 
+            else 
             {
-                return Results.NotFound(ex.Message);
+                try 
+                {
+                    ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
+                    return Results.Ok(result);
+                }
+                catch (DataNotFoundException ex) 
+                {
+                    return Results.NotFound(ex.Message);
+                }
+                catch (Exception) 
+                {
+                    return Results.StatusCode(500);
+                }  
             }
-            catch (Exception) 
-            {
-                return Results.StatusCode(500);
-            }          
         }
 
         private static async Task<IResult> ToggleMetadataCategoryActivation(int projectID, int fieldID, ToggleMetadataStateReq req, IAdminService adminService)

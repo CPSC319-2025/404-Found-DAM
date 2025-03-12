@@ -207,6 +207,8 @@ namespace Core.Services
 
                 GetAllProjecsRes result = new GetAllProjecsRes();
 
+                result.fullProjectInfos = new List<FullProjectInfo>();
+
                 result.projectCount = retrievedProjects.Count;
 
                 // Create a projectMembershipMap for constructig the return result; 

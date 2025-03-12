@@ -21,16 +21,16 @@ namespace MockedData
             var _contextFactory = scope.ServiceProvider.GetService<IDbContextFactory<DAMDbContext>>();
 
             // Add users
-            // filePath = @"..\Core\MockedSeed\mockedUsers.json";
-            // jsonString = File.ReadAllText(filePath);
-            // List<User>? users = JsonSerializer.Deserialize<List<User>>(jsonString);
+            filePath = @"..\Core\MockedSeed\mockedUsers.json";
+            jsonString = File.ReadAllText(filePath);
+            List<User>? users = JsonSerializer.Deserialize<List<User>>(jsonString);
 
-            // if (users != null && _contextFactory != null) 
-            // {
-            //     using DAMDbContext _context = _contextFactory.CreateDbContext();
-            //     await _context.Users.AddRangeAsync(users);
-            //     await _context.SaveChangesAsync();
-            // }
+            if (users != null && _contextFactory != null) 
+            {
+                using DAMDbContext _context = _contextFactory.CreateDbContext();
+                await _context.Users.AddRangeAsync(users);
+                await _context.SaveChangesAsync();
+            }
 
             // Add projects (no users yet!)
             var adminService = scope.ServiceProvider.GetService<IAdminService>();
@@ -40,7 +40,7 @@ namespace MockedData
                 jsonString = File.ReadAllText(filePath);
                 List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(jsonString);
                 if (req != null) {
-                    await adminService.CreateProjects(req);
+                    await adminService.CreateProjects(req, 1);
                 }
             }
         }

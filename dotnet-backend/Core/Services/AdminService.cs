@@ -7,6 +7,7 @@ using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
 using Infrastructure.Exceptions;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Core.Services
 {
@@ -16,6 +17,63 @@ namespace Core.Services
         public AdminService(IAdminRepository repository)
         {
             _repository = repository;
+        }
+
+        public async Task<DeleteUsersFromProjectRes> DeleteUsersFromProject(int reqeusterID, int projectID, DeleteUsersFromProjectReq req)
+        {
+            try 
+            {
+                (HashSet<int> removedAdmins, HashSet<int> removedRegularUsers, HashSet<int> failedToRemoveFromAdmins, HashSet<int> failedToRemoveFromRegulars) = 
+                    await _repository.DeleteUsersFromProjectInDb(reqeusterID, projectID, req);
+                
+                DeleteUsersFromProjectRes res = new DeleteUsersFromProjectRes
+                { 
+                    projectID = projectID,
+                    removedAdmins = removedAdmins,
+                    removedRegularUsers = removedRegularUsers,
+                    failedToRemoveFromAdmins = failedToRemoveFromAdmins,
+                    failedToRemoveFromRegulars = failedToRemoveFromRegulars
+                };
+
+                return res;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<AddUsersToProjectRes> AddUsersToProject(int reqeusterID, int projectID, AddUsersToProjectReq req)
+        {
+            try 
+            {
+                (HashSet<int> newAdmins, HashSet<int> newRegularUsers, HashSet<int> failedToAddAsAdmin, HashSet<int> failedToAddAsRegular) = 
+                    await _repository.AddUsersToProjectInDb(reqeusterID, projectID, req);
+                
+                AddUsersToProjectRes res = new AddUsersToProjectRes
+                { 
+                    projectID = projectID,
+                    newAdmins = newAdmins,
+                    newRegularUsers = newRegularUsers,
+                    failedToAddAsAdmin = failedToAddAsAdmin,
+                    failedToAddAsRegular = failedToAddAsRegular
+                };
+
+                return res;
+ 
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public async Task<ToggleMetadataStateRes> ToggleMetadataCategoryActivation(int projectID, int metadataFieldID, bool setEnabled)
@@ -136,11 +194,11 @@ namespace Core.Services
             }
         }
 
-        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req)
+        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req, int userID)
         {
             try 
             {
-                List<Project> createdProjects = await _repository.CreateProjectsInDb(req);
+                List<Project> createdProjects = await _repository.CreateProjectsInDb(req, userID);
 
                 List<CreateProjectsRes> res = new List<CreateProjectsRes>();
 

@@ -17,8 +17,6 @@ namespace Core.Dtos
         public DateTime? archivedAt { get; set; } 
         public int assetCount { get; set; } 
         public HashSet<string> adminNames { get; set; } 
-
-        public HashSet<string> regularUserNames { get; set; } 
-        
+        public HashSet<string> regularUserNames { get; set; }         
     }
 }

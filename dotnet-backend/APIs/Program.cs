@@ -23,6 +23,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
 builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
+// builder.Services.AddScoped<IImageService, ImageService>();
 
 
 
@@ -46,8 +47,10 @@ async Task SeedDatabase(WebApplication app)
     using (var scope = app.Services.CreateScope())
     {
         try
-        {
+        {   
+            Console.WriteLine("Start populating database with mocked data...");
             await MockedDataSeeding.Seed(scope);
+            Console.WriteLine("Database seeding completed.");
         }
         catch (Exception)
         {
