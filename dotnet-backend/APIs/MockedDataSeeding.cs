@@ -40,7 +40,9 @@ namespace MockedData
                 jsonString = File.ReadAllText(filePath);
                 List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(jsonString);
                 if (req != null) {
-                    await adminService.CreateProjects(req);
+                    // TODO: replace mocked userID with authenticated userID
+                    int userID = 1;
+                    await adminService.CreateProjects(req, userID);
                 }
             }
         }

@@ -3,7 +3,10 @@ namespace Core.Dtos
     public class CreateProjectsReq
     {
         public required DefaultMetadata defaultMetadata { get; set; }
-        public required List<string>? tags { get; set; }
+        public List<string>? tags { get; set; }
+
+        public List<int>? admins { get; set; }
+        public List<int>? users { get; set; }
     }
 
     public class DefaultMetadata
