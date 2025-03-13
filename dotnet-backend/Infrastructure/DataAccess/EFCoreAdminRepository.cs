@@ -324,6 +324,7 @@ namespace Infrastructure.DataAccess
             if (projectMembership != null)
             {
                 projectMembership.UserRole = roleChangeTo;
+                await _context.SaveChangesAsync();
                 return DateTime.UtcNow;
             }
             else 
