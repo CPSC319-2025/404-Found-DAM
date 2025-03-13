@@ -9,6 +9,7 @@ namespace APIs.Controllers
     public static class AdminController
     {
 
+        // TODO: replace mocked userID with authenticated userID
         private const int MOCKEDUSERID = 1;
         public static void MapAdminEndpoints(this WebApplication app)
         {
