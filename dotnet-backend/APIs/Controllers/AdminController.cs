@@ -3,6 +3,7 @@ using Core.Dtos;
 using Infrastructure.Exceptions;
 using Core.Entities;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System;
 
 // Use Task<T> or Task for async operations
 
@@ -148,11 +149,7 @@ namespace APIs.Controllers
         { 
             string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
             
-            if (normalizedRoleString != "admin" || normalizedRoleString != "regular")
-            {
-                return Results.BadRequest("roleChangeTo must be either \"admin\" or \"regular\"");
-            }
-            else 
+            if (normalizedRoleString == "admin" || normalizedRoleString == "regular")
             {
                 try 
                 {
@@ -166,7 +163,11 @@ namespace APIs.Controllers
                 catch (Exception) 
                 {
                     return Results.StatusCode(500);
-                }  
+                }     
+            }
+            else 
+            {                
+                return Results.BadRequest("roleChangeTo must be either \"admin\" or \"regular\"");
             }
         }
 
