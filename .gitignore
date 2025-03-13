@@ -11,3 +11,5 @@ dotnet-backend/APIs/appsettings.json
 
 
 *.xlsx
+
+**/.idea/
