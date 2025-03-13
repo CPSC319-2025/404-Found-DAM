@@ -402,6 +402,11 @@ namespace Infrastructure.DataAccess
                 throw new Exception("Failed to create project. User not found.");
             }
 
+            if (!creator.IsSuperAdmin)
+            {
+                throw new UnauthorizedAccessException("Must be a super admin to create a project.");
+            }  
+
             List<Project> projectList = new List<Project>(); // For storing created Projects
             List<Tag> tagList = new List<Tag>(); // For storing created Tags
             List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
