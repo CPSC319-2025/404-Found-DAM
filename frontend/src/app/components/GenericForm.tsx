@@ -455,7 +455,7 @@ export default function GenericForm({
                   type="text"
                   placeholder={field.placeholder}
                   value={formData[field.name] as string}
-                  onChange={(e) => handleChange(e.target)}
+                  onChange={handleChange}
                   className="w-full p-2 border rounded"
                 />
               )}

@@ -11,7 +11,9 @@ namespace APIs.Controllers
 {
     public static class AdminController
     {
-        public static int MockedAdminID = 1; // Make the field static
+
+        // TODO: replace mocked userID with authenticated userID
+        private const int MOCKEDUSERID = 1;
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -40,7 +42,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
                     return Results.Ok(result);
                 }
@@ -67,7 +69,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
                     return Results.Ok(result);
                 }
@@ -104,10 +106,8 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: validate if request comes from super admin first; if not reject right away.
-
-                int adminID = MockedAdminID;
-                List<CreateProjectsRes> result = await adminService.CreateProjects(req, adminID);
+                int userID = MOCKEDUSERID;
+                List<CreateProjectsRes> result = await adminService.CreateProjects(req, userID);
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 

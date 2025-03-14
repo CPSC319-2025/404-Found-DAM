@@ -1,9 +1,10 @@
 namespace Core.Dtos
 {
-    public class GetAllProjecsRes
+    public class GetAllProjectsRes
     {
         public int projectCount { get; set; }
         public List<FullProjectInfo> fullProjectInfos { get; set; }
+        
     }
 
     public class FullProjectInfo

@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MockedUserID = 8;
+        private const int MOCKEDUSERID = 1;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -43,7 +43,7 @@ namespace APIs.Controllers
         )
         {
             // TODO: Get requester's ID and replace
-            int requesterID = MockedUserID; 
+            int requesterID = MOCKEDUSERID; 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -101,18 +101,23 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: replace MockedUserID with authenticated userID
-                int userID = MockedUserID;
-                GetAllProjecsRes result = await projectService.GetAllProjects(userID);
+                // TODO: replace MOCKEDUSERID with authenticated userID
+                int userID = MOCKEDUSERID;
+                GetAllProjectsRes result = await projectService.GetAllProjects(userID);
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
             {
                 return Results.NotFound(ex.Message);
             }
-            catch (Exception) 
+            catch (Exception ex) 
             {
-                return Results.StatusCode(500);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );            
             } 
         }
 
