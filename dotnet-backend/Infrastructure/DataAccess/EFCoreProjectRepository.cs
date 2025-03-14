@@ -107,9 +107,9 @@ namespace Infrastructure.DataAccess
 
             var project = await _context.Projects
                 .Include(p => p.ProjectTags)
-                .ThenInclude(pt => pt.Tag)
+                    .ThenInclude(pt => pt.Tag)
                 .Include(p => p.ProjectMemberships) // Include ProjectMemberships
-                .ThenInclude(pm => pm.User) // Include User
+                    .ThenInclude(pm => pm.User) // Include User
                 .AsSplitQuery() // Use split queries instead of a single query when loading multiple collections
                 .FirstOrDefaultAsync(p => p.ProjectID == projectID);
 
@@ -166,7 +166,7 @@ namespace Infrastructure.DataAccess
         // Get ALL assets of a project from database
         public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
         {
-            // TODO
+            // TODO: only return assets that were submitted to project
             return null;
         }
 
@@ -180,9 +180,12 @@ namespace Infrastructure.DataAccess
             
             if (isMember) 
             {
-                // Retrieve matched Assets
-                IQueryable<Asset> query = _context.Assets.Where(a => a.ProjectID == req.projectID);
-                
+                // Retrieve matched Assets and their tags
+                IQueryable<Asset> query = _context.Assets
+                    .Where(a => a.ProjectID == req.projectID)
+                    .Include(a => a.AssetTags)
+                        .ThenInclude(at => at.Tag);
+                                     
                 bool isQueryEmpty = !await query.AnyAsync(); 
 
                 if (isQueryEmpty) 

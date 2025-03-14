@@ -316,6 +316,7 @@ namespace Core.Services
 
                         paginatedProjectAsset.date = a.LastUpdated;
                         paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
+                        paginatedProjectAsset.tags = a.AssetTags.Select(t => t.Tag.Name).ToList();
 
                         if (a.AssetMetadata != null)
                         {
@@ -355,10 +356,10 @@ namespace Core.Services
                 //     return null;
                 // }
 
-                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(projectID);
+                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(project, assets);
                 return (fileName, excelByteArray);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
