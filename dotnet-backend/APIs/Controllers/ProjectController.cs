@@ -134,6 +134,8 @@ namespace APIs.Controllers
         {
             try 
             {
+                // TODO: Check requester's credentials
+
                 // Get binary data of the Excel file containing details of the exported project
                 (string fileName, byte[] excelData) = await projectService.ExportProject(projectID);
                 return excelData == null 
@@ -142,8 +144,13 @@ namespace APIs.Controllers
             }
             catch (Exception ex)
             {
-                return Results.StatusCode(500);
-            }  
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
         }
 
         private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)

@@ -3,44 +3,108 @@ using System.IO;
 using System.IO.Compression;
 using ClosedXML.Excel;
 using System.Data; // For using DataTable
+using Core.Entities;
+using ZstdSharp.Unsafe;
 
 namespace Core.Services.Utils
 {
     public static class ProjectServiceHelpers 
     {  
-        public static (string, byte[]) GenerateProjectExportExcel(int projectID)
+        /*
+            Each worksheet in a workbook contains details of a given project, inncluding:
+                - project info starting from (1, 1)
+                - info about each asset starting from (5, 1)
+        */
+        public static (string, byte[]) GenerateProjectExportExcel(Project project, List<Asset> assets)
         {
-            //Demo
-            var dataTable = new DataTable();
-            dataTable.Columns.Add("Name", typeof(string));
-            dataTable.Columns.Add("Sold", typeof(int));
-            dataTable.Rows.Add("Cheesecake", 14);
-            dataTable.Rows.Add("Medovik", 6);
-            dataTable.Rows.Add("Muffin", 10);
+            //Sheet 1: project detail including flattened metadata
+            var projectDataTable = new DataTable();
+            projectDataTable.Columns.Add("Project ID", typeof(int));
+            projectDataTable.Columns.Add("Name", typeof(string));
+            projectDataTable.Columns.Add("Version", typeof(string));
+            projectDataTable.Columns.Add("Location", typeof(string));
+            projectDataTable.Columns.Add("Description", typeof(string));
+            projectDataTable.Columns.Add("Creation Time", typeof(string));
+            projectDataTable.Columns.Add("Active", typeof(string));
+            projectDataTable.Columns.Add("Archived At", typeof(string));
+            projectDataTable.Columns.Add("Tags", typeof(string));
+            // Add custom metadata fields if needed
+
+
+            string active = project.Active ? "Yes" : "No";
+            string archivedTime = project.ArchivedAt == null ? "N/A" : project.ArchivedAt.Value.ToString("yyyyMMdd");
+            string projectTagNameStr = ""; 
+
+            if (project.ProjectTags != null) {
+            // Collect each tag's name
+                foreach (var pt in project.ProjectTags)
+                {
+                    if (pt.Tag != null) {
+                        projectTagNameStr = projectTagNameStr == ""
+                            ? pt.Tag.Name
+                            : projectTagNameStr + ", " + pt.Tag.Name;
+                    }
+                }
+            }
+
+            projectDataTable.Rows.Add
+            (
+                project.ProjectID,
+                project.Name,
+                project.Version,
+                project.Location,
+                project.Description,
+                project.CreationTime.ToString("yyyyMMdd"),
+                active,
+                archivedTime,
+                projectTagNameStr
+            );
 
             using var workbook = new XLWorkbook(); // Create an Excel workbook instance
             DateTime exportedAt = DateTime.Now;
             // Console.WriteLine(exportedAt.ToString("yyyyMMdd"));
             string exportedYMD = exportedAt.ToString("yyyyMMdd");
-            string fileName = $"Project_{projectID}_export_{exportedYMD}.xlsx";
+            string fileName = $"Project_{project.ProjectID}_export_{exportedYMD}.xlsx";
 
-            //Sheet 1: project detail including flattened metadata
             // Add worksheet
-            var wsProject = workbook.AddWorksheet("Project");
+            var wsProject = workbook.AddWorksheet($"Project {project.ProjectID}");
             // Set headers; .Cell(row, column)
-            wsProject.Cell(2, 2).Value = "Dessert Name Proj"; 
-            wsProject.Cell(2, 3).Value = "Sales Proj";
-            // Insert dataTable
-            wsProject.Cell(3, 2).InsertTable(dataTable.AsEnumerable());
+            // wsProject.Cell(2, 2).Value = "Dessert Name Proj"; 
+            // wsProject.Cell(2, 3).Value = "Sales Proj";
 
-            //Sheet 2: each asset detail including flattened metadata
-            // Add worksheet
-            var wsAssets = workbook.AddWorksheet("Assets");
-            // Set headers
-            wsAssets.Cell(2, 2).Value = "Dessert Name Assets"; 
-            wsAssets.Cell(2, 3).Value = "Sales Assets";
-            // Insert dataTable
-            wsAssets.Cell(3, 2).InsertTable(dataTable.AsEnumerable());
+            // Insert projectdDataTable
+            wsProject.Cell(1, 1).InsertTable(projectDataTable.AsEnumerable());
+
+
+            var assetDataTable = new DataTable();
+            assetDataTable.Columns.Add("Project ID", typeof(int));
+            assetDataTable.Columns.Add("Name", typeof(string));
+            assetDataTable.Columns.Add("Version", typeof(string));
+            assetDataTable.Columns.Add("Location", typeof(string));
+            assetDataTable.Columns.Add("Description", typeof(string));
+            assetDataTable.Columns.Add("Creation Time", typeof(string));
+            assetDataTable.Columns.Add("Active", typeof(string));
+            assetDataTable.Columns.Add("Archived At", typeof(string));
+            assetDataTable.Columns.Add("Tags", typeof(string));
+            // Add custom metadata fields if needed
+
+            assetDataTable.Rows.Add
+            (
+                project.ProjectID,
+                project.Name,
+                project.Version,
+                project.Location,
+                project.Description,
+                project.CreationTime.ToString("yyyyMMdd"),
+                active,
+                archivedTime
+            );
+
+
+            // Insert assetDataTable
+            wsProject.Cell(5, 1).InsertTable(assetDataTable.AsEnumerable());
+            wsProject.Columns().AdjustToContents();
+            wsProject.Rows().AdjustToContents();
 
             // Save Excel workbook as xlsx file to the current folder (APIs)
             // workbook.SaveAs(fileName); 
