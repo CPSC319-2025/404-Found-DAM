@@ -303,6 +303,7 @@ namespace Infrastructure.DataAccess
 
             // get User and associated ProjectMemberships
             var user = await _context.Users
+                .AsNoTracking()
                 .Include(u => u.ProjectMemberships)
                 .FirstOrDefaultAsync(u => u.UserID == userID);
 

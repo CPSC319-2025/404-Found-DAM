@@ -5,7 +5,7 @@ namespace Core.Interfaces
     public interface IProjectService
     {
         // For ProjectController
-        Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs);
+        Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID);
         Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs);
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<GetProjectRes> GetProject(int projectID);
