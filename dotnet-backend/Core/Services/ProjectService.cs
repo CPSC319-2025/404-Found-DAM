@@ -50,27 +50,21 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs)
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)
         {
-            //TODO
-            //Assets will inherit project's metadata (at least tags)
             try 
             {
-                bool isSuccessul = await _repository.SubmitAssetstoDb(projectID, blobIDs);
-                if (isSuccessul)
+                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _repository.SubmitAssetstoDb(projectID, blobIDs, submitterID);
+                SubmitAssetsRes result = new SubmitAssetsRes
                 {
-                    SubmitAssetsRes result = new SubmitAssetsRes
-                    {
-                        submittedAt = DateTime.UtcNow
-                    };
-                    return result;
-                }
-                else 
-                {
-                    throw new Exception("Failed to add assets to project in database.");
-                }
+                    projectID = projectID,
+                    successfulSubmissions = successfulSubmissions,
+                    failedSubmissions = failedSubmissions,
+                    submittedAt = DateTime.UtcNow
+                };
+                return result;
             }
-            catch (Exception ex) 
+            catch (Exception) 
             {
                 throw;
             }

@@ -21,12 +21,10 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
-
-            // TODO: Not implemented yet
-            // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
@@ -158,10 +156,11 @@ namespace APIs.Controllers
         
         private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IProjectService projectService)
         {
-            // May need to add varification to check if client data is bad.
             try 
             {
-                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs);
+                // TODO: verify submitter and retrieve the userID, and replace the following MOCKEDUSERID
+                int submitterID = MOCKEDUSERID; 
+                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs, submitterID);
                 return Results.Ok(result);
             }
             catch (Exception ex)
