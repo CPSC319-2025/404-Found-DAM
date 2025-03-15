@@ -189,11 +189,13 @@ namespace Infrastructure.DataAccess
                 .Include(p => p.Assets)
                     .ThenInclude(a => a.AssetMetadata)
                 .AsNoTracking() // Improve performance for Read-only operations
+                .AsSplitQuery() // More roundtrips; may be removed to use single query, which has fewer trips but can lead to slow performance 
                 .FirstOrDefaultAsync(p => p.ProjectID == projectID);
             
             if (project != null) 
             {
-                List<Asset> projectAssetList = project.Assets.ToList();
+                // Filter to include assets that were submitted to project:
+                List<Asset> projectAssetList = project.Assets.Where(a => a.assetState == Asset.AssetStateType.SubmittedToProject).ToList();;
                 return projectAssetList;
             } 
             else 

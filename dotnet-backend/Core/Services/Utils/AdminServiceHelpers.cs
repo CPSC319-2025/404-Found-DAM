@@ -10,6 +10,11 @@ namespace Core.Services.Utils
 {
     public static class AdminServiceHelpers 
     {  
+        private const int _projectStartRow = 1;
+        private const int _assetStartRow = 1;
+        private const int _startColumn = 1;
+
+
         /*
             Each worksheet in a workbook contains details of a given project, inncluding:
                 - project info starting from (1, 1)
@@ -18,6 +23,8 @@ namespace Core.Services.Utils
         public static (string, byte[]) GenerateProjectExportExcel(Project project, List<Asset> assets)
         {
             //Sheet 1: project detail including flattened metadata
+
+            //TODO: add admins and regular users if time permits
             var projectDataTable = new DataTable();
             projectDataTable.Columns.Add("Project ID", typeof(int));
             projectDataTable.Columns.Add("Name", typeof(string));
@@ -62,7 +69,6 @@ namespace Core.Services.Utils
 
             using var workbook = new XLWorkbook(); // Create an Excel workbook instance
             DateTime exportedAt = DateTime.Now;
-            // Console.WriteLine(exportedAt.ToString("yyyyMMdd"));
             string exportedYMD = exportedAt.ToString("yyyyMMdd");
             string fileName = $"Project_{project.ProjectID}_export_{exportedYMD}.xlsx";
 
@@ -73,36 +79,49 @@ namespace Core.Services.Utils
             // wsProject.Cell(2, 3).Value = "Sales Proj";
 
             // Insert projectdDataTable
-            wsProject.Cell(1, 1).InsertTable(projectDataTable.AsEnumerable());
+            wsProject.Cell(_projectStartRow, _startColumn).InsertTable(projectDataTable.AsEnumerable());
 
 
+            // Insert asset data
             var assetDataTable = new DataTable();
-            assetDataTable.Columns.Add("Project ID", typeof(int));
-            assetDataTable.Columns.Add("Name", typeof(string));
-            assetDataTable.Columns.Add("Version", typeof(string));
-            assetDataTable.Columns.Add("Location", typeof(string));
-            assetDataTable.Columns.Add("Description", typeof(string));
-            assetDataTable.Columns.Add("Creation Time", typeof(string));
-            assetDataTable.Columns.Add("Active", typeof(string));
-            assetDataTable.Columns.Add("Archived At", typeof(string));
+            assetDataTable.Columns.Add("File Name", typeof(string));
+            assetDataTable.Columns.Add("MimeType", typeof(string));
+            assetDataTable.Columns.Add("File Size (KB)", typeof(double));
+            assetDataTable.Columns.Add("LastUpdated", typeof(string));
             assetDataTable.Columns.Add("Tags", typeof(string));
-            // Add custom metadata fields if needed
+            // TODO: Add custom metadata fields if needed
 
-            assetDataTable.Rows.Add
-            (
-                project.ProjectID,
-                project.Name,
-                project.Version,
-                project.Location,
-                project.Description,
-                project.CreationTime.ToString("yyyyMMdd"),
-                active,
-                archivedTime
-            );
+            for (int i = 0; i < assets.Count; i++)
+            {
+                Asset a = assets[i];
+                string assetTagNameStr = ""; 
 
+                if (a.AssetTags != null) {
+                // Collect each tag's name
+                    foreach (var at in a.AssetTags)
+                    {
+                        if (at.Tag != null) {
+                            assetTagNameStr = assetTagNameStr == ""
+                                ? at.Tag.Name
+                                : assetTagNameStr + ", " + at.Tag.Name;
+                        }
+                    }
+                }
 
-            // Insert assetDataTable
-            wsProject.Cell(5, 1).InsertTable(assetDataTable.AsEnumerable());
+                assetDataTable.Rows.Add
+                (
+                    a.FileName,
+                    a.MimeType,
+                    a.FileSizeInKB,
+                    a.LastUpdated.ToString("yyyyMMdd"),
+                    assetTagNameStr
+                );
+                // Insert assetDataTable
+                wsProject.Cell(_assetStartRow + i, _startColumn).InsertTable(assetDataTable.AsEnumerable());
+            } 
+  
+
+            // Adjust spacing
             wsProject.Columns().AdjustToContents();
             wsProject.Rows().AdjustToContents();
 
