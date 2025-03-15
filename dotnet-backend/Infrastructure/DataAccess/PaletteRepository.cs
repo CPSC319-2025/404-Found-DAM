@@ -99,6 +99,7 @@ namespace Infrastructure.DataAccess {
                     MimeType = file.ContentType,
                     ProjectID = null,
                     UserID = request.UserId,
+                    assetState = Asset.AssetStateType.UploadedToPalette
                 };
 
             // Add the asset to the database context and save changes

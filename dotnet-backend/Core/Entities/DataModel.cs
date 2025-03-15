@@ -64,7 +64,7 @@ namespace Core.Entities
         public enum AssetStateType
         {
             UploadedToPalette,    // 0
-            SubmittedToProject     // 1
+            SubmittedToProject    // 1
         }
 
         public required AssetStateType assetState { get; set; }
