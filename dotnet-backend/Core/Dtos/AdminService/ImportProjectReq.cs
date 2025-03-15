@@ -15,5 +15,6 @@ namespace Core.Dtos
     public class ImportProjectRes
     {
         public DateTime importedDate { get; set;}
+        public GetProjectRes importedProjectInfo { get; set; }
     }
 }

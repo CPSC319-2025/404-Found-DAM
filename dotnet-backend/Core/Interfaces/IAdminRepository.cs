@@ -13,5 +13,6 @@ namespace Core.Interfaces
         Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req, int userID);
         Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> AddUsersToProjectInDb(int reqeusterID, int projectID, AddUsersToProjectReq req);
         Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> DeleteUsersFromProjectInDb(int reqeusterID, int projectID, DeleteUsersFromProjectReq req);
+        Task<int> ImportProjectInDB(List<Project> projectList, List<ProjectTag> projectTagList, List<Tag> tagList, List<Asset> assetList, List<AssetTag> assetTagList, List<User> userList, List<ProjectMembership> projectMembershipList);
     }
 }

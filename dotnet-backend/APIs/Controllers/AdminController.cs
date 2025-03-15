@@ -39,7 +39,7 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: Check requester's credentials
+                // TODO: Check requester is a super admin in DB
                 int requesterID = MOCKEDUSERID;
 
                 // Get binary data of the Excel file containing details of the exported project
@@ -65,14 +65,15 @@ namespace APIs.Controllers
 
         /*
             ImportProject Assumes:
-            Project & Assets do not exist in DB.
-            Users exist in DB.
-            Relation between user and assets are not preserved in the import file.
+                - Project, assets, and users do NOT exist in DB, so the IDs are omitted.
+                    - Also assume asset has no custom metadata fields and values.
+                - Relation between user and assets are not preserved in the import file.
         */
         private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
             try 
             {
+                // TODO: Check the requester is a super amdin in the DB 
                 string importTempPath = Path.GetTempFileName();
                 if (file.Length > 0) 
                 {
