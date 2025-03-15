@@ -36,13 +36,12 @@ namespace Core.Services.Utils
             projectDataTable.Columns.Add("Location", typeof(string));
             projectDataTable.Columns.Add("Description", typeof(string));
             projectDataTable.Columns.Add("Creation Time", typeof(string));
-            projectDataTable.Columns.Add("Active", typeof(string));
+            projectDataTable.Columns.Add("Active", typeof(bool));
             projectDataTable.Columns.Add("Archived At", typeof(string));
             projectDataTable.Columns.Add("Tags", typeof(string));
             // Add custom metadata fields if needed
 
-            string active = project.Active ? "Yes" : "No";
-            string archivedTime = project.ArchivedAt == null ? "N/A" : project.ArchivedAt.Value.ToString("yyyyMMdd");
+            string archivedTime = project.ArchivedAt == null ? "N/A" : project.ArchivedAt.Value.ToString();
             string projectTagNameStr = ""; 
 
             if (project.ProjectTags != null) {
@@ -65,8 +64,8 @@ namespace Core.Services.Utils
                 project.Version,
                 project.Location,
                 project.Description,
-                project.CreationTime.ToString("yyyyMMdd"),
-                active,
+                project.CreationTime.ToString(),
+                project.Active,
                 archivedTime,
                 projectTagNameStr
             );
@@ -156,7 +155,7 @@ namespace Core.Services.Utils
                     m.Email,
                     m.IsSuperAdmin,
                     m.LastUpdated.ToString("yyyyMMdd"),
-                    "users"
+                    "user"
                 );
             } 
 

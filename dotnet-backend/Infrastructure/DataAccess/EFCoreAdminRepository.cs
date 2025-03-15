@@ -18,6 +18,35 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
+        public async Task<int> ImportProjectInDB
+        (
+            List<Project> projectList, 
+            List<ProjectTag> projectTagList, 
+            List<Tag> tagList, 
+            List<Asset> assetList, 
+            List<AssetTag> assetTagList, 
+            List<User> userList, 
+            List<ProjectMembership> projectMembershipList
+        )
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            // TODO: Save assets to blob and get their BlobID
+            await _context.Tags.AddRangeAsync(tagList);
+            await _context.Users.AddRangeAsync(userList);
+            await _context.Projects.AddRangeAsync(projectList);
+            await _context.Assets.AddRangeAsync(assetList);
+            await _context.ProjectTags.AddRangeAsync(projectTagList);
+            await _context.AssetTags.AddRangeAsync(assetTagList);
+            await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
+
+            await _context.SaveChangesAsync();
+
+            // Retrieve new Project's ID
+            List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
+            return newProjectIDs[0];
+        }
+
         public async Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> DeleteUsersFromProjectInDb(int reqeusterID, int projectID, DeleteUsersFromProjectReq req)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();

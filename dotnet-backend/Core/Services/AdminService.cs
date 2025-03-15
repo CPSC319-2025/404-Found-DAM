@@ -10,6 +10,7 @@ using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore.Query;
 using Core.Services.Utils;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Drawing;
 
 
 namespace Core.Services
@@ -17,19 +18,19 @@ namespace Core.Services
     public class AdminService : IAdminService
     {
         private readonly IAdminRepository _adminRepository;
+
+        private readonly IProjectService _projectService;
         private readonly IProjectRepository _projRepository;
 
-        public AdminService(IAdminRepository adminRepository, IProjectRepository projRepository)
+        public AdminService(IAdminRepository adminRepository, IProjectService projectService, IProjectRepository projRepository)
         {
             _adminRepository = adminRepository;
+            _projectService = projectService;
             _projRepository = projRepository;
         }
 
         /*
-            ImportProject Assumes:
-            Project & Assets do not exist in DB.
-            Users exist in DB.
-            Relation between user and assets are not preserved in the import file.
+            ImportProject Assumes: see Note of ImportProject in AdminController
         */
         public async Task<ImportProjectRes> ImportProject(FileStream stream)
         {
@@ -38,13 +39,123 @@ namespace Core.Services
             using var workbook = new XLWorkbook(stream); // Create an Excel workbook instance
             var wsProject = workbook.Worksheet(1); 
             var wsMembers = workbook.Worksheet(2);
-            var nonEmptyProjectRows = wsProject.RowsUsed(); 
-            foreach (var row in nonEmptyProjectRows) 
+            var nonEmptyProjectSheetRows = wsProject.RowsUsed(); 
+            var nonEmptyMemberSheetRows = wsMembers.RowsUsed(); 
+            
+            List<Project> projectList = new List<Project>();
+            List<ProjectTag> projectTagList = new List<ProjectTag>();
+            List<Tag> tagList = new List<Tag>();
+            List<Asset> assetList = new List<Asset>();
+            List<AssetTag> assetTagList = new List<AssetTag>();
+            List<User> userList = new List<User>();
+            List<ProjectMembership> projectMembershipList = new List<ProjectMembership>();
+
+            // TODO: May add metadatafield and AssetMetadata if needed later. 
+
+            int projectSheetRowCount = 1;
+
+            foreach (var projectSheetRow in nonEmptyProjectSheetRows) 
             {
-                Console.WriteLine(row.Cell(1).Value);
+                if (projectSheetRowCount == 2) 
+                {
+                    // Create project
+                    Project p = new Project 
+                    {
+                        Name = projectSheetRow.Cell(2).GetValue<string>(),
+                        Version = projectSheetRow.Cell(3).GetValue<string>(),
+                        Location = projectSheetRow.Cell(4).GetValue<string>(),
+                        Description = projectSheetRow.Cell(5).GetValue<string>(),
+                        CreationTime =  DateTimeOffset.Parse(projectSheetRow.Cell(6).GetValue<string>()).UtcDateTime,
+                        Active = projectSheetRow.Cell(7).GetValue<bool>(),
+                        ArchivedAt = projectSheetRow.Cell(7).GetValue<bool>() ? null : DateTimeOffset.Parse(projectSheetRow.Cell(8).GetValue<string>()).UtcDateTime
+                    };
+                    projectList.Add(p);
+
+                    // Create ProjectTags and Tags
+                    string extractedProjectTagString = projectSheetRow.Cell(9).GetValue<string>();
+                    List<string> tagNames = extractedProjectTagString.Split(',').Select(tag => tag.Trim()).ToList();
+                    foreach (string tagName in tagNames)
+                    {
+                        Tag t = new Tag { Name = tagName };
+                        ProjectTag pt = new ProjectTag 
+                        {
+                            Project = p,
+                            Tag = t
+                        };
+                        projectTagList.Add(pt);
+                        tagList.Add(t);
+                    }
+                }
+                else if (projectSheetRowCount >= 4) 
+                {
+                    // Create assets (asasume they exist in blob already for now!)
+                    Asset a = new Asset
+                    {
+                        FileName = projectSheetRow.Cell(2).GetValue<string>(),
+                        MimeType = projectSheetRow.Cell(3).GetValue<string>(),
+                        FileSizeInKB = projectSheetRow.Cell(4).GetValue<double>(),
+                        LastUpdated =  DateTimeOffset.Parse(projectSheetRow.Cell(5).GetValue<string>()).UtcDateTime,
+                        assetState = Asset.AssetStateType.SubmittedToProject
+                    };
+
+                    // Create AssetTags and Tags
+                    string extractedAssetTagString = projectSheetRow.Cell(6).GetValue<string>();
+                    List<string> tagNames = extractedAssetTagString.Split(',').Select(tag => tag.Trim()).ToList();
+                    foreach (string tagName in tagNames)
+                    {
+                        Tag t = new Tag { Name = tagName };
+                        AssetTag at = new AssetTag 
+                        {
+                            Asset = a,
+                            Tag = t
+                        };
+                        assetTagList.Add(at);
+                        tagList.Add(t);
+                    }
+
+                    // TODO: May create metadatafield and AssetMetadata if needed later.
+                }
+                projectSheetRowCount++;
             }
 
-            ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow };
+            // Create users & relations
+            int memberSheetRowCount = 1;
+            foreach (var memberSheetRow in nonEmptyMemberSheetRows)
+            {
+                if (memberSheetRowCount >= 2) {
+                    User u = new User 
+                    {
+                        Name = memberSheetRow.Cell(2).GetValue<string>(),
+                        Email = memberSheetRow.Cell(3).GetValue<string>(),
+                        IsSuperAdmin = memberSheetRow.Cell(4).GetValue<bool>(),
+                        LastUpdated = DateTimeOffset.Parse(memberSheetRow.Cell(5).GetValue<string>()).UtcDateTime,
+                    };
+                    userList.Add(u);
+
+                    // Create ProjectMembership
+                    ProjectMembership pm = new ProjectMembership {
+                        Project = projectList[0],
+                        User = u,
+                        UserRole = memberSheetRow.Cell(6).GetValue<string>() == "admin" ? ProjectMembership.UserRoleType.Admin : ProjectMembership.UserRoleType.Regular
+                    };
+                    projectMembershipList.Add(pm);
+                }
+                memberSheetRowCount++;
+            } 
+
+            int importedProjectID = await _adminRepository.ImportProjectInDB
+                (
+                    projectList,
+                    projectTagList,
+                    tagList,
+                    assetList,
+                    assetTagList,
+                    userList,
+                    projectMembershipList
+                );
+
+            GetProjectRes importedProjectInfo = await _projectService.GetProject(importedProjectID);
+            ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow, importedProjectInfo = importedProjectInfo };
             return res;
         }
 
