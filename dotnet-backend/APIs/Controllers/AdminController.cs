@@ -4,6 +4,8 @@ using Infrastructure.Exceptions;
 using Core.Entities;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System;
+using Microsoft.AspNetCore.Http;
+
 
 // Use Task<T> or Task for async operations
 
@@ -27,7 +29,7 @@ namespace APIs.Controllers
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
 
             // TODO: Not implemented yet
-            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
+            app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").DisableAntiforgery();;
             // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
@@ -62,13 +64,39 @@ namespace APIs.Controllers
         }
 
         /*
-            TODO: 
-            If projectID exists, don't import
-            For the tab of users, if any user does not exist in the DB, skip them.
+            ImportProject Assumes:
+            Project & Assets do not exist in DB.
+            Users exist in DB.
+            Relation between user and assets are not preserved in the import file.
         */
-        private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)
+        private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
-            return Results.NotFound("stub"); // Stub
+            try 
+            {
+                string importTempPath = Path.GetTempFileName();
+                if (file.Length > 0) 
+                {
+                    using (var stream = new FileStream(importTempPath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                        ImportProjectRes result = await adminService.ImportProject(stream);
+                        return Results.Ok(result);
+                    }
+                }
+                else 
+                {
+                    return Results.BadRequest("Empty file");
+                }
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            } 
         }        
 
         private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService) 

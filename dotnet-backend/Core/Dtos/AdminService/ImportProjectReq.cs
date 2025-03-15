@@ -11,4 +11,9 @@ namespace Core.Dtos
         // public IFormFile Folder { get; set; } 
         // metadata_file: [CSV/Excel file with metadata]
     }
+
+    public class ImportProjectRes
+    {
+        public DateTime importedDate { get; set;}
+    }
 }

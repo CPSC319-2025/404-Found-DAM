@@ -9,6 +9,8 @@ using Core.Entities;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore.Query;
 using Core.Services.Utils;
+using ClosedXML.Excel;
+
 
 namespace Core.Services
 {
@@ -23,7 +25,29 @@ namespace Core.Services
             _projRepository = projRepository;
         }
 
-        
+        /*
+            ImportProject Assumes:
+            Project & Assets do not exist in DB.
+            Users exist in DB.
+            Relation between user and assets are not preserved in the import file.
+        */
+        public async Task<ImportProjectRes> ImportProject(FileStream stream)
+        {
+            // Create project and establish collection relations
+            // Create Users and establish ProjectMemberships
+            using var workbook = new XLWorkbook(stream); // Create an Excel workbook instance
+            var wsProject = workbook.Worksheet(1); 
+            var wsMembers = workbook.Worksheet(2);
+            var nonEmptyProjectRows = wsProject.RowsUsed(); 
+            foreach (var row in nonEmptyProjectRows) 
+            {
+                Console.WriteLine(row.Cell(1).Value);
+            }
+
+            ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow };
+            return res;
+        }
+
         public async Task<(string, byte[])> ExportProject(int projectID, int requesterID)
         {
             try
