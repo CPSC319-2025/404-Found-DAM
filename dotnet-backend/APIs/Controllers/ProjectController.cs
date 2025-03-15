@@ -21,13 +21,11 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
-            app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
 
             // TODO: Not implemented yet
-            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
         }
 
@@ -128,34 +126,6 @@ namespace APIs.Controllers
             {
                 return Results.StatusCode(500);
             }        
-        }
-        
-        private static async Task<IResult> ExportProject(int projectID, IProjectService projectService)
-        {
-            try 
-            {
-                // TODO: Check requester's credentials
-
-                // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await projectService.ExportProject(projectID);
-                return excelData == null 
-                    ? Results.NotFound("No project is found to be exported") 
-                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem
-                (
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Internal Server Error"
-                );
-            }
-        }
-
-        private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)
-        {
-            return Results.NotFound("stub"); // Stub
         }
 
         private static async Task<IResult> ArchiveProjects(ArchiveProjectsReq req, IProjectService projectService)

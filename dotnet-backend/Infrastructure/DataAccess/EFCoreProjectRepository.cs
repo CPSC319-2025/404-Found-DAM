@@ -166,8 +166,25 @@ namespace Infrastructure.DataAccess
         // Get ALL assets of a project from database
         public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
         {
-            // TODO: only return assets that were submitted to project
-            return null;
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            var project = await _context.Projects
+                .Include(p => p.Assets)
+                    .ThenInclude(a => a.AssetTags)
+                .Include(p => p.Assets)
+                    .ThenInclude(a => a.AssetMetadata)
+                .AsNoTracking() // Improve performance for Read-only operations
+                .FirstOrDefaultAsync(p => p.ProjectID == projectID);
+            
+            if (project != null) 
+            {
+                List<Asset> projectAssetList = project.Assets.ToList();
+                return projectAssetList;
+            } 
+            else 
+            {
+                throw new DataNotFoundException($"Project {projectID} not found");
+            }
         }
 
         public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
@@ -197,7 +214,7 @@ namespace Infrastructure.DataAccess
                     // Apply filters
                     if (req.assetType.ToLower() != "all")
                     {
-                        query = query.Where(a => a.MimeType.ToLower() == req.assetType.ToLower());
+                        query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
                     }
 
                     if (!string.IsNullOrEmpty(req.postedBy)) 
@@ -208,7 +225,6 @@ namespace Infrastructure.DataAccess
                     // TODO: Dateposted attribute not in datamodel
 
                     // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
-                    // TODO: Tags are not included yet
                     List<Asset> assets = await query
                     .OrderBy(a => a.FileName)
                     .Skip((req.pageNumber - 1) * req.assetsPerPage)

@@ -8,23 +8,61 @@ using Core.Dtos;
 using Core.Entities;
 using Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore.Query;
+using Core.Services.Utils;
 
 namespace Core.Services
 {
     public class AdminService : IAdminService
     {
-        private readonly IAdminRepository _repository;
-        public AdminService(IAdminRepository repository)
+        private readonly IAdminRepository _adminRepository;
+        private readonly IProjectRepository _projRepository;
+
+        public AdminService(IAdminRepository adminRepository, IProjectRepository projRepository)
         {
-            _repository = repository;
+            _adminRepository = adminRepository;
+            _projRepository = projRepository;
         }
+
+        
+        public async Task<(string, byte[])> ExportProject(int projectID, int requesterID)
+        {
+            try
+            {
+                // Fetch project and assets
+                Project project = await _projRepository.GetProjectInDb(projectID);
+
+                // Check if this requester is an admin who owns the project:
+                bool isRequesterProjectAdmin = project.ProjectMemberships.Any(pm => pm.UserID == requesterID && pm.UserRole == ProjectMembership.UserRoleType.Admin);
+
+                if (isRequesterProjectAdmin)
+                {
+                    List<Asset> assets = await _projRepository.GetProjectAssetsInDb(projectID);
+                    (string fileName, byte[] excelByteArray) = AdminServiceHelpers.GenerateProjectExportExcel(project, assets);
+                    return (fileName, excelByteArray);
+                }
+                else
+                {
+                    throw new DataNotFoundException($"No project found for user {requesterID}");
+                }
+            }
+             catch (DataNotFoundException)
+            {
+                throw;
+            }           
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
 
         public async Task<DeleteUsersFromProjectRes> DeleteUsersFromProject(int reqeusterID, int projectID, DeleteUsersFromProjectReq req)
         {
             try 
             {
                 (HashSet<int> removedAdmins, HashSet<int> removedRegularUsers, HashSet<int> failedToRemoveFromAdmins, HashSet<int> failedToRemoveFromRegulars) = 
-                    await _repository.DeleteUsersFromProjectInDb(reqeusterID, projectID, req);
+                    await _adminRepository.DeleteUsersFromProjectInDb(reqeusterID, projectID, req);
                 
                 DeleteUsersFromProjectRes res = new DeleteUsersFromProjectRes
                 { 
@@ -52,7 +90,7 @@ namespace Core.Services
             try 
             {
                 (HashSet<int> newAdmins, HashSet<int> newRegularUsers, HashSet<int> failedToAddAsAdmin, HashSet<int> failedToAddAsRegular) = 
-                    await _repository.AddUsersToProjectInDb(reqeusterID, projectID, req);
+                    await _adminRepository.AddUsersToProjectInDb(reqeusterID, projectID, req);
                 
                 AddUsersToProjectRes res = new AddUsersToProjectRes
                 { 
@@ -80,7 +118,7 @@ namespace Core.Services
         {
             try 
             {
-                (bool isSuccessul, string metadataFieldName) = await _repository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
+                (bool isSuccessul, string metadataFieldName) = await _adminRepository.ToggleMetadataCategoryActivationInDb(projectID, metadataFieldID, setEnabled);
                 if (isSuccessul)
                 {
                     ToggleMetadataStateRes result = new ToggleMetadataStateRes
@@ -112,7 +150,7 @@ namespace Core.Services
         {
             try 
             {
-                (User user, List<ProjectMembership> projectMemberships) = await _repository.GetRoleDetailsInDb(userId);
+                (User user, List<ProjectMembership> projectMemberships) = await _adminRepository.GetRoleDetailsInDb(userId);
                 HashSet<string> userRoles = projectMemberships
                     .Select(pm => pm.UserRole == ProjectMembership.UserRoleType.Regular ? "user" : "admin")
                     .ToHashSet();
@@ -142,7 +180,7 @@ namespace Core.Services
             try 
             {
                 ProjectMembership.UserRoleType roleChangeTo = normalizedRoleString == "admin" ? ProjectMembership.UserRoleType.Admin : ProjectMembership.UserRoleType.Regular;
-                DateTime timeUpdated = await _repository.ModifyRoleInDb(projectID, userID, roleChangeTo);
+                DateTime timeUpdated = await _adminRepository.ModifyRoleInDb(projectID, userID, roleChangeTo);
                 return new ModifyRoleRes
                 {
                         projectID = projectID,
@@ -165,7 +203,7 @@ namespace Core.Services
         {
             try 
             {
-                List<MetadataField> addedMetadataFields = await _repository.AddMetaDataFieldsToProjectInDb(projectID, req);
+                List<MetadataField> addedMetadataFields = await _adminRepository.AddMetaDataFieldsToProjectInDb(projectID, req);
 
                 List<AddMetadataRes> result = new List<AddMetadataRes>();
 
@@ -198,7 +236,7 @@ namespace Core.Services
         {
             try 
             {
-                List<Project> createdProjects = await _repository.CreateProjectsInDb(req, userID);
+                List<Project> createdProjects = await _adminRepository.CreateProjectsInDb(req, userID);
 
                 List<CreateProjectsRes> res = new List<CreateProjectsRes>();
 
