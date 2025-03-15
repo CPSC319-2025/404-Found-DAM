@@ -55,11 +55,19 @@ namespace Core.Entities
         
         public required string FileName { get; set; }
         
-        public required string MimeType { get; set; }
+        public required string MimeType { get; set; } // E.g., image/jpeg, video/mp4, etc.
 
         public double FileSizeInKB { get; set; }
 
         public DateTime LastUpdated { get; set; }
+
+        public enum AssetStateType
+        {
+            UploadedToPalette,    // 0
+            SubmittedToProject     // 1
+        }
+
+        public required AssetStateType assetState { get; set; }
 
         // Foreign keys
         public int? ProjectID { get; set; }
