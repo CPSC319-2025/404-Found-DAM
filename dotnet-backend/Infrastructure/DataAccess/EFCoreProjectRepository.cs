@@ -21,10 +21,11 @@ namespace Infrastructure.DataAccess
 
         public async Task<(List<int>, List<int>)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID)
         {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
             List<int> successfulSubmissions = new List<int>();
 
             // check project exist & if submitter is a member
-            using DAMDbContext _context = _contextFactory.CreateDbContext();
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
             if (isProjectFound) 
             {

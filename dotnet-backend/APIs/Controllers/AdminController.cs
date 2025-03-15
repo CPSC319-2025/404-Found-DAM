@@ -30,7 +30,6 @@ namespace APIs.Controllers
             // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
             // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
-            // remove user(s) from project; check if project exists, if so retrieve users and check if they exists in the system before removing!
         }
 
 
@@ -62,6 +61,11 @@ namespace APIs.Controllers
             }
         }
 
+        /*
+            TODO: 
+            If projectID exists, don't import
+            For the tab of users, if any user does not exist in the DB, skip them.
+        */
         private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)
         {
             return Results.NotFound("stub"); // Stub

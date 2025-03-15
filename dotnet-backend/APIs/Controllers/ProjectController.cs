@@ -153,7 +153,7 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
+                // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
                 int submitterID = MOCKEDUSERID; 
                 SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs, submitterID);
                 return Results.Ok(result);
