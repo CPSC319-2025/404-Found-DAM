@@ -8,7 +8,7 @@ using ZstdSharp.Unsafe;
 
 namespace Core.Services.Utils
 {
-    public static class ProjectServiceHelpers 
+    public static class AdminServiceHelpers 
     {  
         /*
             Each worksheet in a workbook contains details of a given project, inncluding:

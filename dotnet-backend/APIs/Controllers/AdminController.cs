@@ -24,12 +24,48 @@ namespace APIs.Controllers
             app.MapPost("/projects", CreateProjects).WithName("CreateProjects").WithOpenApi();
             app.MapPost("/projects/{projectID}/add-users", AddUsersToProject).WithName("AddUsersToProject").WithOpenApi();
             app.MapPatch("/projects/{projectID}/remove-users", DeleteUsersFromProject).WithName("DeleteUsersFromProject").WithOpenApi();
+            app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
 
             // TODO: Not implemented yet
+            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
             // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
             // remove user(s) from project; check if project exists, if so retrieve users and check if they exists in the system before removing!
         }
+
+
+        private static async Task<IResult> ExportProject(int projectID, IAdminService adminService)
+        {
+            try 
+            {
+                // TODO: Check requester's credentials
+                int requesterID = MOCKEDUSERID;
+
+                // Get binary data of the Excel file containing details of the exported project
+                (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
+                return excelData == null 
+                    ? Results.NotFound("No project is found to be exported") 
+                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+
+        private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)
+        {
+            return Results.NotFound("stub"); // Stub
+        }        
 
         private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService) 
         {

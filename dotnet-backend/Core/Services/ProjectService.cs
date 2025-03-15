@@ -34,7 +34,6 @@ using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
 using ClosedXML.Excel;
-using Core.Services.Utils;
 using Infrastructure.Exceptions;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -140,6 +139,10 @@ namespace Core.Services
             }
         }
 
+        /*
+            GetProject method allows all valid users to retrieve any project in the DB, 
+            regardless of whether they are part of it or not.
+        */
         public async Task<GetProjectRes> GetProject(int projectID) 
         {
             try 
@@ -348,28 +351,6 @@ namespace Core.Services
             catch (DataNotFoundException)
             {
                 throw;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<(string, byte[])> ExportProject(int projectID)
-        {
-            //TODO
-            try
-            {
-                // Fetch project and assets
-                Project project = await _repository.GetProjectInDb(projectID);
-                List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
-
-                // if (project == null) {
-                //     return null;
-                // }
-
-                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(project, assets);
-                return (fileName, excelByteArray);
             }
             catch (Exception)
             {
