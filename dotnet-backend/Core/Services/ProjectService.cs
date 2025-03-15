@@ -146,21 +146,14 @@ namespace Core.Services
             try 
             {
                 Project project = await _repository.GetProjectInDb(projectID);
-
-                string projectAdminName;
-
-                var adminMembership = project.ProjectMemberships
-                    .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
-
-                if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
+                List<string> adminList = new List<string>();
+                List<string> regularUserList = new List<string>();
+                foreach (ProjectMembership pm in project.ProjectMemberships)
                 {
-                    projectAdminName = "None";
+                    (pm.UserRole == ProjectMembership.UserRoleType.Admin 
+                        ? adminList 
+                        : regularUserList).Add(pm.User.Name);
                 }
-                else 
-                {
-                    projectAdminName = adminMembership.User.Name;
-                }
-
                 List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
 
                 // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
@@ -173,7 +166,8 @@ namespace Core.Services
                     location = project.Location,
                     archived = project.Active,
                     archivedAt = project.ArchivedAt,
-                    admin = projectAdminName,
+                    adminNames = adminList,
+                    regularUserNames = regularUserList,
                     tags = tags
                 };
                 return result;
