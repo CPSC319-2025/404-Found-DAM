@@ -11,7 +11,10 @@ dotnet-backend/APIs/appsettings.json
 /dotnet-backend/Infrastructure/Migrations
 dotnet-backend/Infrastructure/Migrations
 *.xlsx
+
+node_modules
 *.png
 *.jpg
 *.jpeg
 *.webp
+**/.idea/
