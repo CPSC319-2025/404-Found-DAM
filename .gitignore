@@ -19,3 +19,4 @@ dotnet-backend/Infrastructure/Migrations
 
 
 **/.idea/
+node_modules
