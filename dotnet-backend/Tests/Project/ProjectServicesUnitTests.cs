@@ -17,25 +17,27 @@ public class ProjectServicesUnitTests
     }
 
     [Fact]
-    public async Task AddAssetsToProject_Successful() 
+    public async Task SubmitAssetstoDb_Successful() 
     {
         // Arrange
         int projectID = 123;
         List<int> blobIDs = new List<int> {1, 2, 3};
-        // Mock AddAssetsToProjectInDb to return true when it is called, regardless of values of its int arguments
-        _projectRepository.AddAssetsToProjectInDb(Arg.Any<int>(), Arg.Any<List<int>>()).Returns(Task.FromResult(true)); 
+        int submitterID = 1;
+        // Mock SubmitAssetstoDb to return true when it is called, regardless of values of its int arguments
+        _projectRepository.SubmitAssetstoDb(Arg.Any<int>(), Arg.Any<List<int>>(), Arg.Any<int>())
+            .Returns(Task.FromResult((new List<int> { 1, 2, 3 }, new List<int> {})));
 
         // Act
-        var response = await _projectService.AddAssetsToProject(projectID, blobIDs);
+        var response = await _projectService.SubmitAssets(projectID, blobIDs, submitterID);
     
         // Assert
         Assert.NotNull(response);
-        Assert.IsType<AddAssetsToProjectRes>(response); // Assert the data type
-        Assert.NotEqual(default(DateTime), response.UploadedAt);
+        Assert.IsType<SubmitAssetsRes>(response); // Assert the data type
+        Assert.NotEqual(default(DateTime), response.submittedAt);
 
-        // Verify that the AddAssetsToProjectInDb method of the mocked repository was called exactly once, 
+        // Verify that the SubmitAssetstoDb method of the mocked repository was called exactly once, 
         // with the provided projectID and blobIDs.
-        await _projectRepository.Received(1).AddAssetsToProjectInDb(projectID, blobIDs);
+        await _projectRepository.Received(1).SubmitAssetstoDb(projectID, blobIDs, submitterID);
     }
 }
 

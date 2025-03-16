@@ -5,6 +5,8 @@ namespace Core.Interfaces
     public interface IImageService 
     {
         void rotate90();
-        void toWebp();
+        void toWebpImageSharp();
+        void toWebpNetVips();
+        void pHashCompare();
     }
 }
