@@ -49,7 +49,7 @@ const pages: Page[] = [
         title: "Users",
         mobileTitle: "Users",
         icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
-      },
+        },
     ]
     : []),
 ];

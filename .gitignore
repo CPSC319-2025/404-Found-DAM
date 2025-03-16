@@ -16,3 +16,6 @@ dotnet-backend/Infrastructure/Migrations
 *.jpg
 *.jpeg
 *.webp
+
+
+**/.idea/
