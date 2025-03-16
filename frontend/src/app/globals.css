@@ -21,6 +21,15 @@ body {
   padding: 0 !important;
 }
 
+.imageEditor-section {
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  text-align: center;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
