@@ -129,11 +129,11 @@ namespace Core.Services
             }
         }
 
-        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req)
+        public async Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req, int userID)
         {
             try 
             {
-                List<Project> createdProjects = await _repository.CreateProjectsInDb(req);
+                List<Project> createdProjects = await _repository.CreateProjectsInDb(req, userID);
 
                 List<CreateProjectsRes> res = new List<CreateProjectsRes>();
 

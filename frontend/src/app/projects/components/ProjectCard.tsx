@@ -1,13 +1,24 @@
 import Link from "next/link";
 
 interface ProjectCardProps {
-  name: string;
   id: string;
+  name: string;
+  creationTime: string;
+  assetCount: number;
+  userNames: string[];
 }
 
 const isAdmin = true;
 
-export default function ProjectCard({ name, id }: ProjectCardProps) {
+export default function ProjectCard({
+  id,
+  name,
+  creationTime,
+  assetCount,
+  userNames,
+}: ProjectCardProps) {
+  //format creationTime into readable string
+  const formattedCreationTime = new Date(creationTime).toLocaleString();
   return (
     <Link href={`/projects/${id}`} passHref>
       <div className="border p-4 rounded-lg hover:shadow-lg transition-shadow duration-300 cursor-pointer bg-white shadow-sm">
@@ -26,11 +37,7 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
               </div>
               <div>
                 <p className="text-l font-semibold">{name}</p>
-                <p className="text-sm text-gray-500">
-                  {new Date().toLocaleDateString()}
-                  {", "}
-                  {new Date().toLocaleTimeString()}
-                </p>
+                <p className="text-sm text-gray-500">{formattedCreationTime}</p>
               </div>
             </div>
             <Link
@@ -59,7 +66,7 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
             </div>
             <div className="flex items-center justify-between mt-2">
               <div className="relative flex -space-x-2">
-                {[...Array(4)].map((_, index) => (
+                {userNames.slice(0, 4).map((username, index) => (
                   <div
                     key={index}
                     className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center"
@@ -78,12 +85,14 @@ export default function ProjectCard({ name, id }: ProjectCardProps) {
                     </svg>
                   </div>
                 ))}
-                <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                  +9
-                </div>
+                {userNames.length > 4 && (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
+                    +(userNames.length - 4)
+                  </div>
+                )}
               </div>
               <div className="w-16 h-8 rounded-md bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                5
+                {assetCount}
               </div>
             </div>
           </div>

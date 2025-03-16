@@ -37,6 +37,18 @@ namespace Infrastructure.DataAccess {
 
             modelBuilder.Entity<AssetTag>()
                 .HasKey(at => new { at.BlobID, at.TagID });
+            
+            modelBuilder.Entity<Project>()
+                .HasIndex(p => p.Name);
+
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Name);
+
+            modelBuilder.Entity<ProjectTag>()
+                .HasIndex(pt => new { pt.ProjectID, pt.TagID });
+
+            modelBuilder.Entity<AssetTag>()
+                .HasIndex(at => new { at.BlobID, at.TagID });
 
             // seed data
             modelBuilder.Entity<User>().HasData(

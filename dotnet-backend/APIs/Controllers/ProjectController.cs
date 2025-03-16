@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 123;
+        private const int MOCKEDUSERID = 1;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -101,7 +101,7 @@ namespace APIs.Controllers
             {
                 // TODO: replace MOCKEDUSERID with authenticated userID
                 int userID = MOCKEDUSERID;
-                GetAllProjecsRes result = await projectService.GetAllProjects(userID);
+                GetAllProjectsRes result = await projectService.GetAllProjects(userID);
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
