@@ -12,5 +12,4 @@ dotnet-backend/APIs/appsettings.json
 dotnet-backend/Infrastructure/Migrations
 
 *.xlsx
-
-**/.idea/
+node_modules
