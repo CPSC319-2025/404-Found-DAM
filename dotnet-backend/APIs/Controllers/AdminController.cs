@@ -27,13 +27,12 @@ namespace APIs.Controllers
             app.MapPost("/projects/{projectID}/add-users", AddUsersToProject).WithName("AddUsersToProject").WithOpenApi();
             app.MapPatch("/projects/{projectID}/remove-users", DeleteUsersFromProject).WithName("DeleteUsersFromProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
+            app.MapPost("/project/import", ImportProject).WithName("ImportProject").DisableAntiforgery();;
 
             // TODO: Not implemented yet
-            app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").DisableAntiforgery();;
             // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
-
 
         private static async Task<IResult> ExportProject(int projectID, IAdminService adminService)
         {

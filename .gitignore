@@ -12,3 +12,7 @@ dotnet-backend/APIs/appsettings.json
 dotnet-backend/Infrastructure/Migrations
 
 *.xlsx
+*.png
+*.jpg
+*.jpeg
+*.webp

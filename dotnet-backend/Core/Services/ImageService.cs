@@ -1,7 +1,9 @@
 ﻿using Core.Interfaces;
-// using NetVips;
-// using SixLabors.ImageSharp;
-// using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
+using CoenM.ImageHash.HashAlgorithms;
+using CoenM.ImageHash;
+using NetVips;
 
 namespace Core.Services
 {
@@ -11,10 +13,17 @@ namespace Core.Services
         {
             // var image = NetVips.Image.NewFromFile("treeRot90.jpg");
             // image = image.Rot90();
-            // image.Webpsave("treeRot90webp.webp", null, false);
         }
 
-        public void toWebp()
+        public void toWebpNetVips()
+        {
+            var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
+            Console.WriteLine("converting...");
+            image.Webpsave("SamplePNGImage_20mbmb.webp", null, false); // Webpsave(string filenameToSaveTo, int qFactor, bool lossless)
+            Console.WriteLine("done...");
+        }
+        
+        public void toWebpImageSharp()
         {
             // using var img = SixLabors.ImageSharp.Image.Load(@"treeRot90.jpg");
             // WebpEncoder encoder = new ()
@@ -22,6 +31,23 @@ namespace Core.Services
             //     FileFormat = WebpFileFormatType.Lossless
             // };
             // img.SaveAsWebp($@"treeRot90.webp", encoder);   
+        }
+
+        public void pHashCompare() 
+        {
+            // var hashAlgorithm = new AverageHash();
+            // // var hashAlgorithm = new DifferenceHash();
+            // // var hashAlgorithm = new PerceptualHash();
+            // string filename1 = "lone-tree-bright.png";
+            // string filename2 = "lone-tree-png.png";
+            // using var imageStream1 = File.OpenRead(filename1);
+            // using var imageStream2 = File.OpenRead(filename2);
+            // ulong hash1 = hashAlgorithm.Hash(imageStream1);
+            // ulong hash2 = hashAlgorithm.Hash(imageStream2);
+            // double percentageImageSimilarity = CompareHash.Similarity(hash1, hash2);
+            // Console.WriteLine($"hash1: ${hash1}");
+            // Console.WriteLine($"hash2: ${hash2}");
+            // Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
         }
     }
 }
