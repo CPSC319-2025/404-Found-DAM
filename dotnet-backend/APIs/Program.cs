@@ -92,6 +92,19 @@ if (app.Environment.IsDevelopment())
     {
         await context.Database.EnsureCreatedAsync();
     }
+} else {
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowFrontend", builder =>
+        {
+            builder.WithOrigins(allowedOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+    });
+
+    // And in the Configure method:
+    app.UseCors("AllowFrontend");
 }
 
 app.Run();
