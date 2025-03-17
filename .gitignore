@@ -13,3 +13,6 @@ dotnet-backend/Infrastructure/Migrations
 
 *.xlsx
 node_modules
+
+**/.env
+**/.idea
