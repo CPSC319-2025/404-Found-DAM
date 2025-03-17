@@ -11,5 +11,6 @@ namespace Core.Interfaces
         Task<DateTime> ModifyRoleInDb(int projectID, int metadataFieldID, bool userToAdmin);
         Task<List<MetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req);
         Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req, int userID);
+        Task<List<User>> GetAllUsers();
     }
 }

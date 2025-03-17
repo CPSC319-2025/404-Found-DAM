@@ -1,6 +1,7 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
 using Infrastructure.Exceptions;
+using Core.Services;
 
 // Use Task<T> or Task for async operations
 
@@ -19,6 +20,7 @@ namespace APIs.Controllers
             app.MapPatch("/projects/{projectID}/accounts/{userID}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
             app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataFieldsToProject).WithName("AddMetaDataFieldsToProject").WithOpenApi();
             app.MapPost("/projects", CreateProjects).WithName("CreateProjects").WithOpenApi();
+            app.MapGet("/users", GetAllUsers).WithName("GetUsers").WithOpenApi();
 
 
             // TODO: Not implemented yet
@@ -125,5 +127,23 @@ namespace APIs.Controllers
         {
             return Results.NotFound("stub"); // Stub
         }
+
+        private static async Task<IResult> GetAllUsers(IAdminService adminService) 
+        {
+            try
+            {
+                //TODO: replace MOCKUSERID with authenticated userID
+                int userID = MOCKEDUSERID;
+                GetAllUsersRes result = await adminService.GetAllUsers(userID);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex) {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) {
+                return Results.StatusCode(500);
+            }
+        }
+        
     }
 }

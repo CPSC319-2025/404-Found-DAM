@@ -269,5 +269,13 @@ namespace Infrastructure.DataAccess
                 throw new Exception("Failed to create projects");
             }
         }
+
+        public async Task<List<User>> GetAllUsers()
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            // Using AsNoTracking for read-only queries
+            return await _context.Users.AsNoTracking().ToListAsync();
+        }
+
     }
 }
