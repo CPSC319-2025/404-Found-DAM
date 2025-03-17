@@ -25,6 +25,8 @@ jobs:
         working-directory: ./frontend
       
       - name: Build Next.js app
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://webappbackend-brdnbve2bta3fqf7.canadacentral-01.azurewebsites.net
         run: npm run build
         working-directory: ./frontend
       
