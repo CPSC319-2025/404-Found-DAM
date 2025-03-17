@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import ProjectCard from "./components/ProjectCard";
-import Search from "./components/Search";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { FormData } from "@/app/components/GenericForm";
+import { fetchWithAuth} from "@/app/utils/api/api";
+import { toast } from 'react-toastify';
 
 // const projects = [
 //   { id: "1", name: "Project One" },
@@ -27,7 +28,7 @@ interface FullProjectInfo {
 }
 
 interface Project {
-  id: string;
+  projectID: number;
   name: string;
   creationTime: string;
   assetCount: number;
@@ -97,6 +98,8 @@ const newProjectFormFields = [
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState<Project[]>([]);
+  const [query, setQuery] = useState<string>("");
+
   const { user } = useUser();
 
   useEffect(() => {
@@ -136,18 +139,22 @@ export default function ProjectsPage() {
           error
         );
       }
-    };
-
-    fetchProjects();
-  }, []);
+      const data = (await response.json()) as GetAllProjectsResponse;
+      return data.fullProjectInfos.map(
+        (project: FullProjectInfo) => ({
+          projectID: project.projectID,
+          name: project.projectName,
+          creationTime: project.creationTime,
+          assetCount: project.assetCount,
+          userNames: project.userNames,
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
 
   const handleAddProject = async (formData: FormData) => {
-    console.log("projectName ", formData.name);
-    console.log("location ", formData.location);
-    console.log("description ", formData.description);
-    console.log("tags ", formData.tags);
-    console.log("admins ", formData.admins);
-    console.log("users ", formData.users);
     const payload = [
       {
         defaultMetadata: {
@@ -166,8 +173,7 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`,
+      const response = await fetchWithAuth('projects',
         {
           method: "POST",
           headers: {
@@ -188,26 +194,56 @@ export default function ProjectsPage() {
         throw new Error("No project returned from the API.");
       }
 
-      setProjectList([
-        ...projectList,
-        {
-          id: createdProject.createdProjectID.toString(),
-          name: formData.name as string,
-          creationTime: new Date().toISOString(),
-          assetCount: 0,
-          userNames: [],
-        },
-      ]);
       setNewProjectModalOpen(false);
+      toast.success("Created new project successfully.");
+      const projects = await fetchProjects();
+      setProjectList(projects);
     } catch (error) {
-      console.log("Error creating project:", error);
+      console.error("Error creating project:", error);
+      toast.error(error.message);
     }
   };
+
+  const doSearch = async () => {
+    const projects = await fetchProjects();
+    if (!query.trim()) {
+      setProjectList(projects);
+      return;
+    }
+
+    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
+
+    if (!response.ok) {
+      throw new Error("Failed to do search");
+    }
+
+    const data = await response.json();
+
+    console.log(data);
+
+    const filteredProjects = projects.filter(p =>
+      data.projects.some((project) => project.projectID === p.projectID)
+    );
+
+    setProjectList(filteredProjects);
+  }
+
+  useEffect(() => {
+    fetchProjects().then(
+      data => setProjectList(data)
+    );
+  }, []);
 
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-        <Search />
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
+          onChange={(e) => setQuery(e.target.value)}
+          onBlur={doSearch}
+        />
         {user?.superadmin && (
           <button
             onClick={() => setNewProjectModalOpen(true)}
@@ -220,9 +256,9 @@ export default function ProjectsPage() {
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
         {projectList.map((project) => (
-          <div key={project.id} className="w-full h-full">
+          <div key={project.projectID} className="w-full h-full">
             <ProjectCard
-              id={project.id}
+              id={String(project.projectID)}
               name={project.name}
               creationTime={project.creationTime}
               assetCount={project.assetCount}
@@ -241,6 +277,8 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
+
+      <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
     </div>
   );
 }

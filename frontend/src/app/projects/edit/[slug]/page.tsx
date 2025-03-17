@@ -5,6 +5,7 @@ import GenericForm, {
   FormData,
   CustomMetadataField,
 } from "@/app/components/GenericForm";
+import { toast } from 'react-toastify';
 
 type ProjectPageProps = {
   params: { slug: string };
@@ -96,6 +97,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     console.log({ newMetadataFields, existingMetadataFields });
 
     setFormData(updatedFormData);
+    toast.success("Successfully updated the project's metadata");
     setLoading(false);
   };
 

@@ -1,9 +1,6 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div>
-      <h1 className="text-2xl fond-bold mb-4">Landing Page</h1>
-    </div>
-  );
+  redirect("/projects");
+  return null;
 }
