@@ -20,6 +20,7 @@ export type FileMetadata = {
   width?: number; // Only for images/videos
   height?: number; // Only for images/videos
   duration?: number; // Only for videos
+  blobId?: number;
 };
 
 // Define context type using built-in React types for setFiles
