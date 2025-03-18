@@ -19,9 +19,9 @@ namespace APIs.Controllers
         }
 
         [HttpGet("retrieve")]
-        public async Task<IActionResult> GetLogs(int? userID, string? action, DateTime? fromDate, DateTime? toDate)
+        public async Task<IActionResult> GetLogs(int userID, User user, string changeType, int projectID, int assetID, DateTime? fromDate, DateTime? toDate)
         {
-            var logs = await _activityLogService.GetLogsAsync(userID, action, fromDate, toDate);
+            var logs = await _activityLogService.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate);
             return Ok(logs);
         }
     }

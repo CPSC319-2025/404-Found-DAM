@@ -31,15 +31,21 @@ namespace Infrastructure.DataAccess;
             }
         }
 
-        public async Task<List<Log>> GetLogsAsync(int? userID, string? action, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.Logs.AsQueryable();
 
             if (userID.HasValue)
                 query = query.Where(log => log.UserID == userID.Value);
 
-            if (!string.IsNullOrEmpty(action))
-                query = query.Where(log => log.Action.Contains(action));
+            if (!string.IsNullOrEmpty(changeType))
+                query = query.Where(log => log.ChangeType.Equals(changeType));
+
+            if (projectID.HasValue)
+                query = query.Where(log => log.ProjectID == projectID.Value);
+
+            if (assetID.HasValue)
+                query = query.Where(log => log.AssetID == assetID.Value);
 
             if (fromDate.HasValue)
                 query = query.Where(log => log.Timestamp >= fromDate.Value);
@@ -47,6 +53,7 @@ namespace Infrastructure.DataAccess;
             if (toDate.HasValue)
                 query = query.Where(log => log.Timestamp <= toDate.Value);
 
-            return await query.OrderByDescending(log => log.Timestamp).ToListAsync();
+            return await query.AsNoTracking().OrderByDescending(log => log.Timestamp).ToListAsync();
         }
+
     }

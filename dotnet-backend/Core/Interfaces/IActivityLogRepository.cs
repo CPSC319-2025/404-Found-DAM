@@ -8,6 +8,6 @@ namespace Core.Interfaces
     public interface IActivityLogRepository
     {
         Task<bool> AddLogAsync(Log log);
-        Task<List<Log>> GetLogsAsync(int? userID, string? action, DateTime? fromDate, DateTime? toDate);
+        Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate);
     }
 }

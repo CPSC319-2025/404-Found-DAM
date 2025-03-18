@@ -8,6 +8,6 @@ namespace Core.Interfaces
     {
         Task<bool> AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID);
 
-        Task<IEnumerable<Log>> GetLogsAsync(int? userID, string? action, DateTime? fromDate, DateTime? toDate);
+        Task<IEnumerable<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate);
     }
 }

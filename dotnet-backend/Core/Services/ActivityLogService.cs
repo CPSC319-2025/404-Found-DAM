@@ -41,11 +41,10 @@ namespace Core.Services
             return await _repository.AddLogAsync(log);
         }
 
-        public async Task<List<Log>> GetLogsAsync(int? userID, string? action, DateTime? fromDate, DateTime? toDate)
+        public async Task<IEnumerable<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate)
         {
-            return await _repository.GetLogsAsync(userID, action, fromDate, toDate);
+            return await _repository.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate);
         }
 
-        public async 
     }
 }
