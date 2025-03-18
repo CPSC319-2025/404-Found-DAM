@@ -24,7 +24,8 @@ interface FullProjectInfo {
   active: boolean;
   archivedAt: string | null;
   assetCount: number;
-  userNames: string[];
+  regularUserNames: string[];
+  adminNames: string[];
 }
 
 interface Project {
@@ -102,57 +103,43 @@ export default function ProjectsPage() {
 
   const { user } = useUser();
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch projects (Status: ${response.status} - ${response.statusText})`
-          );
-        }
-        const data = (await response.json()) as GetAllProjectsResponse;
-
-        // Diagnostic logging: inspect API response structure
-        console.log("[Diagnostics] Response from", url, ":", data);
-
-        const projectsFromBackend = data.fullProjectInfos.map(
-          (project: FullProjectInfo) => ({
-            id: project.projectID.toString(),
-            name: project.projectName,
-            creationTime: project.creationTime,
-            assetCount: project.assetCount,
-            userNames: project.userNames,
-          })
-        );
-
-        console.log("[Diagnostics] Parsed projects:", projectsFromBackend);
-
-        setProjectList(projectsFromBackend);
-      } catch (error) {
-        console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
-        console.error(
-          "[Diagnostics] Error fetching projects from",
-          url,
-          ":",
-          error
+  const fetchProjects = async () => {
+    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`;
+    try {
+      const response = await fetchWithAuth('projects');
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch projects (Status: ${response.status} - ${response.statusText})`
         );
       }
       const data = (await response.json()) as GetAllProjectsResponse;
-      return data.fullProjectInfos.map(
+
+      // Diagnostic logging: inspect API response structure
+      console.log("[Diagnostics] Response from", url, ":", data);
+
+      const projectsFromBackend = data.fullProjectInfos.map(
         (project: FullProjectInfo) => ({
           projectID: project.projectID,
           name: project.projectName,
           creationTime: project.creationTime,
           assetCount: project.assetCount,
-          userNames: project.userNames,
+          userNames: project.adminNames.concat(project.regularUserNames),
         })
       );
+
+      console.log("[Diagnostics] Parsed projects:", projectsFromBackend);
+
+      return projectsFromBackend;
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
+      console.error(
+        "[Diagnostics] Error fetching projects from",
+        url,
+        ":",
+        error
+      );
     }
-  };
+  }
 
   const handleAddProject = async (formData: FormData) => {
     const payload = [
