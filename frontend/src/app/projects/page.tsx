@@ -7,14 +7,6 @@ import GenericForm, { FormData } from "@/app/components/GenericForm";
 import { fetchWithAuth} from "@/app/utils/api/api";
 import { toast } from 'react-toastify';
 
-// const projects = [
-//   { id: "1", name: "Project One" },
-//   { id: "2", name: "Project Two" },
-//   { id: "3", name: "Project Three" },
-//   { id: "4", name: "Project Four" },
-//   { id: "5", name: "Project Five" },
-// ];
-
 interface FullProjectInfo {
   projectID: number;
   projectName: string;
@@ -131,7 +123,6 @@ export default function ProjectsPage() {
 
       return projectsFromBackend;
     } catch (error) {
-      console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
       console.error(
         "[Diagnostics] Error fetching projects from",
         url,
