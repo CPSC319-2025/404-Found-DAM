@@ -123,9 +123,15 @@ namespace Core.Entities
     public class Log
     {
         [Key]
-        public int LogID { get; set; }
+        public int ChangeID { get; set; } // formerly: LogID
         
-        public required string Action { get; set; }
+        public required string ChangeType { get; set; } // formerly: Action
+
+        public required string Description { get; set; }
+
+        public int ProjectID { get; set; }
+
+        public int AssetID { get; set; }
         
         public DateTime Timestamp { get; set; }
         

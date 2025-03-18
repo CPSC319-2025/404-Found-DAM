@@ -32,7 +32,7 @@ namespace Core.Services
                 Timestamp = DateTime.UtcNow,
                 UserID = userID,
                 User = user,
-                ChnageType = changeType,
+                ChangeType = changeType,
                 Description = description,
                 ProjectID = projectID,
                 AssetID = assetID
@@ -45,5 +45,7 @@ namespace Core.Services
         {
             return await _repository.GetLogsAsync(userID, action, fromDate, toDate);
         }
+
+        public async 
     }
 }
