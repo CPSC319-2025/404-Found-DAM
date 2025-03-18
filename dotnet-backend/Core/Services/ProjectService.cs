@@ -50,17 +50,16 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<int> blobIDs, int submitterID)
         {
             try 
             {
-                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _repository.SubmitAssetstoDb(projectID, blobIDs, submitterID);
-                SubmitAssetsRes result = new SubmitAssetsRes
+                (List<int> successfulAssociations, List<int> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
+                AssociateAssetsRes result = new AssociateAssetsRes
                 {
                     projectID = projectID,
-                    successfulSubmissions = successfulSubmissions,
-                    failedSubmissions = failedSubmissions,
-                    submittedAt = DateTime.UtcNow
+                    success = successfulAssociations,
+                    fail = failedAssociations,
                 };
                 return result;
             }

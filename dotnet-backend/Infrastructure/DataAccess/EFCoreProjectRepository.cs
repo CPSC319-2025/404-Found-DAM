@@ -19,11 +19,11 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<(List<int>, List<int>)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<(List<int>, List<int>)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            List<int> successfulSubmissions = new List<int>();
+            List<int> successfulAssociations = new List<int>();
 
             // check project exist & if submitter is a member
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
@@ -33,29 +33,26 @@ namespace Infrastructure.DataAccess
                 if (isSubmitterMember) 
                 {
                     // Retrieve assets using blobIDs
-                    var assetsToBeSubmitted = await _context.Assets
-                        .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID == projectID)
+                    var assetsToBeAssociated = await _context.Assets
+                        .Where(a => blobIDs.Contains(a.BlobID))
                         .ToListAsync();
                     
-                    if (assetsToBeSubmitted == null || assetsToBeSubmitted.Count == 0) 
+                    if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0) 
                     {
-                        // No assets to be submitted, return empty successfulSubmissions, and blobIDs = failedSubmissions
-                        return (successfulSubmissions, blobIDs);
+                        // No assets to be associated, return empty successfulAssociations, and blobIDs = failedAssociations
+                        return (successfulAssociations, blobIDs);
                     }
                     else 
                     {
-                        // process assets, if in project & done, add to successfulSubmissions
-                        foreach (Asset a in assetsToBeSubmitted) 
+                        // Assign projectID t0 each asset and add to successfulAssociations
+                        foreach (Asset a in assetsToBeAssociated)
                         {
-                            if (blobIDs.Contains(a.BlobID))
-                            {
-                                a.assetState = Asset.AssetStateType.SubmittedToProject;
-                                a.LastUpdated = DateTime.UtcNow;
-                                successfulSubmissions.Add(a.BlobID);
-                            } 
+                            a.ProjectID = projectID;
+                            a.LastUpdated = DateTime.UtcNow;
+                            successfulAssociations.Add(a.BlobID);
                         }
                         await _context.SaveChangesAsync();
-                        return (successfulSubmissions, blobIDs.Except(successfulSubmissions).ToList());
+                        return (successfulAssociations, blobIDs.Except(successfulAssociations).ToList());
                     }
                 }
                 else 
