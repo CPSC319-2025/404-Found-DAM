@@ -12,7 +12,7 @@ namespace Core.Interfaces  {
 
         public Task<bool> DeleteAsset(DeletePaletteAssetReq request);
 
-        public Task<bool> UploadAssets(IFormFile file, UploadAssetsReq request);
+        public Task<int> UploadAssets(IFormFile file, UploadAssetsReq request);
         public Task<List<IFormFile>> GetAssetsAsync(int userId);
     }
 }
