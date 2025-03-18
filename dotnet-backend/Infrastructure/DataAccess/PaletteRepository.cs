@@ -71,7 +71,7 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<bool> UploadAssets(IFormFile file, UploadAssetsReq request)
+        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request)
         {
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
@@ -107,12 +107,11 @@ namespace Infrastructure.DataAccess {
                 int num = await _context.SaveChangesAsync();
                 // TODOO USE BLOB FOR PROD
                 await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
+                return asset.BlobID;
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
-                return false;
+                return -1;
             }
-
-            return true;
         }
 
         public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
