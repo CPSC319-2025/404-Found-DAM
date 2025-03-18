@@ -75,7 +75,7 @@ export default function PalettePage() {
     }
 
     alert("Upload successful!");
-    
+
     const assignedImages = files.map((fileMeta) => {
       const id =
         (fileMeta as any).id ||

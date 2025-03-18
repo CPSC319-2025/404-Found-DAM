@@ -222,7 +222,7 @@ const ProjectsTable = () => {
   };
 
   const fetchAssets = async (page: number, filters: {}) => {
-    console.log("Fetching logs with filters: ", filters);
+    console.log("Fetching assets with filters: ", filters);
     // TODO: await fetch logs
     return {
       items: TempAssets.slice(

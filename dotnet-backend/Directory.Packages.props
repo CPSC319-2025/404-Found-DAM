@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Add packages as needed, reference them in appropriate .csproj, and run dotnet restore at root level to install-->
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.13" />

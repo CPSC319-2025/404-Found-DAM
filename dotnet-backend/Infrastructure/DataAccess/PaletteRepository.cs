@@ -106,6 +106,7 @@ namespace Infrastructure.DataAccess {
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
+                // TODOO USE BLOB FOR PROD
                 await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
@@ -137,6 +138,7 @@ namespace Infrastructure.DataAccess {
                 string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
                 if (File.Exists(filePath))
                 {
+                    // TODOO USE BLOB FOR PROD
                     File.Delete(filePath);
                 }
             } 
@@ -170,6 +172,7 @@ namespace Infrastructure.DataAccess {
                 // Create tasks for parallel file reading
                 var readTasks = assetIds.Select(async assetId => {
                     var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
+                    // TODOO USE BLOB FOR PROD
                     var bytes = await File.ReadAllBytesAsync(filePath);
                     
                     string fileName = $"{assetId}.zst";

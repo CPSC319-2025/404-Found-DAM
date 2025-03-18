@@ -45,7 +45,7 @@ export default function EditMetadataPage() {
     if (!fileName) {
       console.error("File name is missing!");
       return;
-  }
+    }
     router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
   }
 
