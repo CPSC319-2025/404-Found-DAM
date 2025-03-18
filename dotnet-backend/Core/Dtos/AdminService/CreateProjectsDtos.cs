@@ -4,7 +4,6 @@ namespace Core.Dtos
     {
         public required DefaultMetadata defaultMetadata { get; set; }
         public List<string>? tags { get; set; }
-
         public List<int>? admins { get; set; }
         public List<int>? users { get; set; }
     }

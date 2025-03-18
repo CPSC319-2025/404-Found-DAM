@@ -34,7 +34,6 @@ using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
 using ClosedXML.Excel;
-using Core.Services.Utils;
 using Infrastructure.Exceptions;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -51,27 +50,25 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs)
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)
         {
-            //TODO
-            //Assets will inherit project's metadata (at least tags)
             try 
             {
-                bool isSuccessul = await _repository.SubmitAssetstoDb(projectID, blobIDs);
-                if (isSuccessul)
+                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _repository.SubmitAssetstoDb(projectID, blobIDs, submitterID);
+                SubmitAssetsRes result = new SubmitAssetsRes
                 {
-                    SubmitAssetsRes result = new SubmitAssetsRes
-                    {
-                        submittedAt = DateTime.UtcNow
-                    };
-                    return result;
-                }
-                else 
-                {
-                    throw new Exception("Failed to add assets to project in database.");
-                }
+                    projectID = projectID,
+                    successfulSubmissions = successfulSubmissions,
+                    failedSubmissions = failedSubmissions,
+                    submittedAt = DateTime.UtcNow
+                };
+                return result;
             }
-            catch (Exception ex) 
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception) 
             {
                 throw;
             }
@@ -140,26 +137,23 @@ namespace Core.Services
             }
         }
 
+        /*
+            GetProject method allows all valid users to retrieve any project in the DB, 
+            regardless of whether they are part of it or not.
+        */
         public async Task<GetProjectRes> GetProject(int projectID) 
         {
             try 
             {
                 Project project = await _repository.GetProjectInDb(projectID);
-
-                string projectAdminName;
-
-                var adminMembership = project.ProjectMemberships
-                    .FirstOrDefault(pm => pm.UserRole == ProjectMembership.UserRoleType.Admin);
-
-                if (adminMembership?.User == null) // Check if adminMembership is null first, then check if its User is null
+                List<string> adminList = new List<string>();
+                List<string> regularUserList = new List<string>();
+                foreach (ProjectMembership pm in project.ProjectMemberships)
                 {
-                    projectAdminName = "None";
+                    (pm.UserRole == ProjectMembership.UserRoleType.Admin 
+                        ? adminList 
+                        : regularUserList).Add(pm.User.Name);
                 }
-                else 
-                {
-                    projectAdminName = adminMembership.User.Name;
-                }
-
                 List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
 
                 // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
@@ -172,7 +166,8 @@ namespace Core.Services
                     location = project.Location,
                     archived = project.Active,
                     archivedAt = project.ArchivedAt,
-                    admin = projectAdminName,
+                    adminNames = adminList,
+                    regularUserNames = regularUserList,
                     tags = tags
                 };
                 return result;
@@ -191,7 +186,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetAllProjectsRes> GetAllProjects(int userID) 
+        public async Task<GetAllProjectsRes> GetAllProjects(int requesterID) 
         {
             try 
             {
@@ -200,29 +195,53 @@ namespace Core.Services
                 List<ProjectMembership> retrievedProjectMemberships;
 
                 (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
-                    await _repository.GetAllProjectsInDb(userID);
+                    await _repository.GetAllProjectsInDb(requesterID);
+
+                // foreach (User user in retrievedUsers)
+                // {
+                //     Console.WriteLine($"User ID: {user.UserID}");
+                // }
+            
+                // foreach (ProjectMembership rpm in retrievedProjectMemberships)
+                // {
+                //     Console.WriteLine($"retrievedProjectMembership project ID: {rpm.ProjectID}");
+                //     Console.WriteLine($"retrievedProjectMembership user ID: {rpm.UserID}");
+                // }
 
                 // Make List retrievedUsers into a map
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 
                 GetAllProjectsRes result = new GetAllProjectsRes();
+
                 result.fullProjectInfos = new List<FullProjectInfo>();
 
                 result.projectCount = retrievedProjects.Count;
 
-                // Create a projectMembershipMap for constructig the return result
-                Dictionary<int, List<string>> projectMembershipMap = new Dictionary<int, List<string>>();
+                // Create a projectMembershipMap for constructig the return result; 
+                // The value is a tuple of 2 string lists: first is for admin, and second is for regular users
+                Dictionary<int, (HashSet<string>, HashSet<string>)> projectMembershipMap = new Dictionary<int, (HashSet<string>, HashSet<string>)>();
                 
                 foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
                     if (!projectMembershipMap.ContainsKey(pm.ProjectID))
                     {
-                        projectMembershipMap[pm.ProjectID] = new List<string>();
+                        projectMembershipMap[pm.ProjectID] = (new HashSet<string>(), new HashSet<string>());
                     }
 
                     if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
                     {
-                        projectMembershipMap[pm.ProjectID].Add(retrievedUserDictionary[pm.UserID].Name);
+                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[pm.ProjectID];
+                        if (pm.UserRole == ProjectMembership.UserRoleType.Admin) 
+                        {
+                            adminSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                        }
+                        else if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
+                        {
+                            regularSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                        }
+                        projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary       
+                        // Console.WriteLine($"adminSet: {string.Join(", ", adminSet)}");         
+                        // Console.WriteLine($"regularSet: {string.Join(", ", regularSet)}");         
                     }
                 }
 
@@ -238,6 +257,7 @@ namespace Core.Services
                         addedProjects.Add(p);
 
                         // Populate fullProjectInfo
+                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[p.ProjectID];
                         FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
                         fullProjectInfo.projectID = p.ProjectID;
                         fullProjectInfo.projectName = p.Name;
@@ -247,7 +267,8 @@ namespace Core.Services
                         fullProjectInfo.active = p.Active;
                         fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
                         fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
-                        fullProjectInfo.userNames = projectMembershipMap[p.ProjectID];
+                        fullProjectInfo.adminNames = adminSet;
+                        fullProjectInfo.regularUserNames = regularSet;
 
                         // Add fullProjectInfo to result
                         result.fullProjectInfos.Add(fullProjectInfo);
@@ -265,13 +286,13 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req)
+        public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
             //TODO
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset);
+                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 int totalAssetsReturned = retrievedAssets.Count;
                 int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
 
@@ -302,6 +323,7 @@ namespace Core.Services
 
                         paginatedProjectAsset.date = a.LastUpdated;
                         paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
+                        paginatedProjectAsset.tags = a.AssetTags.Select(t => t.Tag.Name).ToList();
 
                         if (a.AssetMetadata != null)
                         {
@@ -323,28 +345,6 @@ namespace Core.Services
                 throw;
             }
             catch (Exception)
-            {
-                throw;
-            }
-        }
-
-        public async Task<(string, byte[])> ExportProject(int projectID)
-        {
-            //TODO
-            try
-            {
-                // Fetch project and assets
-                Project project = await _repository.GetProjectInDb(projectID);
-                List<Asset> assets = await _repository.GetProjectAssetsInDb(projectID);
-
-                // if (project == null) {
-                //     return null;
-                // }
-
-                (string fileName, byte[] excelByteArray) = ProjectServiceHelpers.GenerateProjectExportExcel(projectID);
-                return (fileName, excelByteArray);
-            }
-            catch (Exception ex)
             {
                 throw;
             }

@@ -32,7 +32,7 @@ namespace Core.Services
                     location = p.Location,
                     archived = !p.Active,
                     archivedAt = null, //TODO: implement later
-                    admin = "TBD", //TODO: implement later
+                    adminNames = ["TBD"], //TODO: implement later
                     tags = p.ProjectTags.Select(pt => pt.Tag.Name).ToList()
                 }).ToList();
 
