@@ -12,7 +12,7 @@ namespace Core.Dtos
         public string fileName { get; set; }
         public string thumbnailUrl { get; set; }
 
-        public List<string> tags { get; set; } = new();
+        public List<TagCustomInfo> tags { get; set; } = new();
 
         public int projectID { get; set; }
 

@@ -49,7 +49,13 @@ namespace Core.Services
                     blobID = a.BlobID,
                     fileName = a.FileName,
                     thumbnailUrl = a.FileName,
-                    tags = a.AssetTags.Select(at => at.Tag.Name).ToList(),
+                    tags = a.AssetTags
+                        .Select(at => new TagCustomInfo
+                        {
+                            tagID = at.Tag.TagID,
+                            name = at.Tag.Name
+                        })
+                        .ToList(),
                     projectID = a.Project != null ? a.Project.ProjectID : 0,
                     projectName = a.Project != null ? a.Project.Name : "Unknown"
                 }).ToList();

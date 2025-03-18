@@ -8,7 +8,8 @@ namespace Core.Dtos
         public string assetType {get; set; }
         public int pageNumber {get; set; }
         public int assetsPerPage {get; set; }
-        public string? postedBy {get; set; }
+        public int? postedBy {get; set; }
+        public int? tagID {get; set; }
         public string? datePosted {get; set; }
     }
 

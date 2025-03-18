@@ -278,10 +278,14 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
                     }
 
-                    if (!string.IsNullOrEmpty(req.postedBy)) 
+                    if (req.postedBy > 0)
                     {
-                        query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
+                        query = query.Where(a => a.User != null && a.User.UserID == req.postedBy);
                     }
+
+                    // if (req.tagID > 0) {
+                    //     query = query.Where(a => a.Tag != null && a.Tag.TagID == tagID);
+                    // }
 
                     // TODO: Dateposted attribute not in datamodel
 
