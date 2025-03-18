@@ -50,4 +50,3 @@ namespace Infrastructure.DataAccess;
             return await query.OrderByDescending(log => log.Timestamp).ToListAsync();
         }
     }
-}
