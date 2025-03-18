@@ -146,15 +146,35 @@ namespace Core.Services
             try 
             {
                 Project project = await _repository.GetProjectInDb(projectID);
-                List<string> adminList = new List<string>();
-                List<string> regularUserList = new List<string>();
+                List<UserCustomInfo> adminList = new List<UserCustomInfo>();
+                List<UserCustomInfo> regularUserList = new List<UserCustomInfo>();
+
                 foreach (ProjectMembership pm in project.ProjectMemberships)
                 {
-                    (pm.UserRole == ProjectMembership.UserRoleType.Admin 
-                        ? adminList 
-                        : regularUserList).Add(pm.User.Name);
+                    var userInfo = new UserCustomInfo
+                    {
+                        name = pm.User.Name,
+                        email = pm.User.Email,
+                        userID = pm.User.UserID
+                    };
+
+                    if (pm.UserRole == ProjectMembership.UserRoleType.Admin)
+                    {
+                        adminList.Add(userInfo);
+                    }
+                    else
+                    {
+                        regularUserList.Add(userInfo);
+                    }
                 }
-                List<string> tags = project.ProjectTags.Select(pt => pt.Tag.Name).ToList();
+
+                List<TagCustomInfo> tags = project.ProjectTags
+                    .Select(pt => new TagCustomInfo
+                    {
+                        tagID = pt.Tag.TagID,
+                        name = pt.Tag.Name
+                    })
+                    .ToList();
 
                 // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
 
@@ -166,10 +186,11 @@ namespace Core.Services
                     location = project.Location,
                     archived = project.Active,
                     archivedAt = project.ArchivedAt,
-                    adminNames = adminList,
-                    regularUserNames = regularUserList,
+                    admins = adminList,
+                    regularUsers = regularUserList,
                     tags = tags
                 };
+
                 return result;
             }
             catch (DataNotFoundException)
@@ -197,18 +218,6 @@ namespace Core.Services
                 (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
                     await _repository.GetAllProjectsInDb(requesterID);
 
-                // foreach (User user in retrievedUsers)
-                // {
-                //     Console.WriteLine($"User ID: {user.UserID}");
-                // }
-            
-                // foreach (ProjectMembership rpm in retrievedProjectMemberships)
-                // {
-                //     Console.WriteLine($"retrievedProjectMembership project ID: {rpm.ProjectID}");
-                //     Console.WriteLine($"retrievedProjectMembership user ID: {rpm.UserID}");
-                // }
-
-                // Make List retrievedUsers into a map
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 
                 GetAllProjectsRes result = new GetAllProjectsRes();
@@ -217,38 +226,40 @@ namespace Core.Services
 
                 result.projectCount = retrievedProjects.Count;
 
-                // Create a projectMembershipMap for constructig the return result; 
-                // The value is a tuple of 2 string lists: first is for admin, and second is for regular users
-                Dictionary<int, (HashSet<string>, HashSet<string>)> projectMembershipMap = new Dictionary<int, (HashSet<string>, HashSet<string>)>();
+                Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)> projectMembershipMap = new Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)>();
                 
                 foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
                     if (!projectMembershipMap.ContainsKey(pm.ProjectID))
                     {
-                        projectMembershipMap[pm.ProjectID] = (new HashSet<string>(), new HashSet<string>());
+                        projectMembershipMap[pm.ProjectID] = (new HashSet<UserCustomInfo>(), new HashSet<UserCustomInfo>());
                     }
 
                     if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
                     {
-                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[pm.ProjectID];
+                        var user = retrievedUserDictionary[pm.UserID];
+                        var userInfo = new UserCustomInfo
+                        {
+                            name = user.Name,
+                            email = user.Email,
+                            userID = user.UserID
+                        };
+
+                        (HashSet<UserCustomInfo> adminSet, HashSet<UserCustomInfo> regularSet) = projectMembershipMap[pm.ProjectID];
+                        
                         if (pm.UserRole == ProjectMembership.UserRoleType.Admin) 
                         {
-                            adminSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                            adminSet.Add(userInfo);
                         }
                         else if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
                         {
-                            regularSet.Add(retrievedUserDictionary[pm.UserID].Name);
+                            regularSet.Add(userInfo);
                         }
                         projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary       
-                        // Console.WriteLine($"adminSet: {string.Join(", ", adminSet)}");         
-                        // Console.WriteLine($"regularSet: {string.Join(", ", regularSet)}");         
                     }
                 }
 
-                // Constructing the result for return by looping through retrievedProjects and using the retrievedUserDictionary 
-                // Create a HashSet to prevent duplicated retrievedProjects
-
-                // TODO: Check if the user is admin or regular. If user is regular then only include active projects, 
+                // Constructing the result for return by looping through retrievedProjects
                 HashSet<Project> addedProjects = new HashSet<Project>();
                 foreach (var p in retrievedProjects)
                 {
@@ -257,7 +268,7 @@ namespace Core.Services
                         addedProjects.Add(p);
 
                         // Populate fullProjectInfo
-                        (HashSet<string> adminSet, HashSet<string> regularSet) = projectMembershipMap[p.ProjectID];
+                        (HashSet<UserCustomInfo> adminSet, HashSet<UserCustomInfo> regularSet) = projectMembershipMap[p.ProjectID];
                         FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
                         fullProjectInfo.projectID = p.ProjectID;
                         fullProjectInfo.projectName = p.Name;
@@ -267,8 +278,8 @@ namespace Core.Services
                         fullProjectInfo.active = p.Active;
                         fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
                         fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
-                        fullProjectInfo.adminNames = adminSet;
-                        fullProjectInfo.regularUserNames = regularSet;
+                        fullProjectInfo.admins = adminSet;
+                        fullProjectInfo.regularUsers = regularSet;
 
                         // Add fullProjectInfo to result
                         result.fullProjectInfos.Add(fullProjectInfo);
@@ -285,6 +296,7 @@ namespace Core.Services
                 throw;
             }
         }
+
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {

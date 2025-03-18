@@ -32,8 +32,16 @@ namespace Core.Services
                     location = p.Location,
                     archived = !p.Active,
                     archivedAt = null, //TODO: implement later
-                    adminNames = ["TBD"], //TODO: implement later
-                    tags = p.ProjectTags.Select(pt => pt.Tag.Name).ToList()
+                    admins = null, // dont need this
+                    regularUsers = null, // dont need this
+                    tags = null // dont need this
+                    // tags = p.ProjectTags
+                    //     .Select(pt => new TagCustomInfo
+                    //     {
+                    //         tagID = pt.Tag.TagID,
+                    //         name = pt.Tag.Name
+                    //     })
+                    //     .ToList()
                 }).ToList();
 
                 var assetResults = matchingAssets.Select(a => new AssetSearchResultDto
