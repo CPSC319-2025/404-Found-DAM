@@ -2,6 +2,18 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 
+/*
+TODO:
+Consider adding unique constraint to certain attributes (such as tags and metadatafields) and handle duplicate exception 
+so that a project or an asset won't have duplicated tags or metadatafields. W/o this, BE can certainly checks everytime, 
+but it would require going through the database since our server does not track user state. Or if frontend can check before 
+calling API since endpoints for getting a project and an asset should return full metadata and tags to frontend.
+
+Add an attribute of pHashing to asset for detecting image (stripped-away-metadata) duplication, and only remove it the same projectID/paletteID
+
+*/
+
+
 namespace Core.Entities
 {
     // --------------------------
@@ -34,9 +46,8 @@ namespace Core.Entities
     public class Asset
     {
         /*  TODO:
-            - missing thumbnailrul
-            - how to tell if an asset is "uploaded" to palette but not yet "submitted", and if it is "submitted" finally?
-            - separate default metadata from costum metadata?
+            - add missing thumbnailrul
+            - add one enum attribute to show an asset is in palette or  project (or none if this state exists).  
         */
 
         [Key]
@@ -44,11 +55,19 @@ namespace Core.Entities
         
         public required string FileName { get; set; }
         
-        public required string MimeType { get; set; }
+        public required string MimeType { get; set; } // E.g., image/jpeg, video/mp4, etc.
 
         public double FileSizeInKB { get; set; }
 
         public DateTime LastUpdated { get; set; }
+
+        public enum AssetStateType
+        {
+            UploadedToPalette,    // 0
+            SubmittedToProject    // 1
+        }
+
+        public required AssetStateType assetState { get; set; }
 
         // Foreign keys
         public int? ProjectID { get; set; }

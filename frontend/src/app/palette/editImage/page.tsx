@@ -3,12 +3,13 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import "react-image-crop/dist/ReactCrop.css";
 import { useContext, useEffect, useState } from "react";
-import ReactCrop, {type Crop} from 'react-image-crop';
+import ReactCrop, { type Crop } from "react-image-crop";
 import { useFileContext } from "@/app/context/FileContext";
 
 
 function CropImage({ src, setCroppedDimensions }: any) {
   const [crop, setCrop] = useState<Crop>({
+    unit: "%",
     unit: "%",
     x: 25,
     y: 25,
@@ -31,6 +32,7 @@ function CropImage({ src, setCroppedDimensions }: any) {
         />
       </ReactCrop>
     </div>
+  );
   );
 }
 
