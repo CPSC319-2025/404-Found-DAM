@@ -32,13 +32,12 @@ export default function EditImagePage() {
   const searchParams = useSearchParams();
   const fileName = searchParams.get("file");
   const [imageSource, setImageSource] = useState("");
-  const {files} = useFileContext();
+  const { files } = useFileContext();
 
-
-  useEffect(() =>{
-    if(fileName) {
+  useEffect(() => {
+    if (fileName) {
       const fileData = files.find((f) => f.file.name == fileName);
-      if(fileData) {
+      if (fileData) {
         setImageSource(URL.createObjectURL(fileData.file));
       }
     }

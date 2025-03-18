@@ -36,7 +36,11 @@ export default function ProjectCard({
             </div>
             <div>
               <p className="text-l font-semibold">
-                <Link href={`/projects/${id}`} passHref className="text-blue-500">
+                <Link
+                  href={`/projects/${id}`}
+                  passHref
+                  className="text-blue-500"
+                >
                   {name}
                 </Link>
               </p>

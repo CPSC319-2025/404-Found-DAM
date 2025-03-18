@@ -5,7 +5,7 @@ import GenericForm, {
   FormData,
   CustomMetadataField,
 } from "@/app/components/GenericForm";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 type ProjectPageProps = {
   params: { slug: string };

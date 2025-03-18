@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { FormData } from "@/app/components/GenericForm";
-import { fetchWithAuth} from "@/app/utils/api/api";
-import { toast } from 'react-toastify';
+import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
 
 interface FullProjectInfo {
   projectID: number;
@@ -97,7 +97,7 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetchWithAuth('projects');
+      const response = await fetchWithAuth("projects");
       if (!response.ok) {
         throw new Error(
           `Failed to fetch projects (Status: ${response.status} - ${response.statusText})`
@@ -106,21 +106,19 @@ export default function ProjectsPage() {
       const data = (await response.json()) as GetAllProjectsResponse;
 
       const projectsFromBackend = data.fullProjectInfos.map(
-        (project: FullProjectInfo) => ({
-          projectID: project.projectID,
-          name: project.projectName,
-          creationTime: project.creationTime,
-          assetCount: project.assetCount,
-          userNames: project.adminNames.concat(project.regularUserNames),
-        } as Project)
+        (project: FullProjectInfo) =>
+          ({
+            projectID: project.projectID,
+            name: project.projectName,
+            creationTime: project.creationTime,
+            assetCount: project.assetCount,
+            userNames: project.adminNames.concat(project.regularUserNames),
+          }) as Project
       );
 
       return projectsFromBackend;
     } catch (error) {
-      console.error(
-        "[Diagnostics] Error fetching projects: ",
-        error
-      );
+      console.error("[Diagnostics] Error fetching projects: ", error);
       return [];
     }
   };
@@ -144,15 +142,13 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await fetchWithAuth('projects',
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetchWithAuth("projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to create project.");
@@ -182,7 +178,9 @@ export default function ProjectsPage() {
       return;
     }
 
-    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
+    const response = await fetchWithAuth(
+      `/search?query=${encodeURIComponent(query)}`
+    );
 
     if (!response.ok) {
       throw new Error("Failed to do search");
@@ -193,16 +191,16 @@ export default function ProjectsPage() {
     console.log(data);
 
     const filteredProjects = projects.filter((p: Project) =>
-      data.projects.some((project: Project) => project.projectID === p.projectID)
+      data.projects.some(
+        (project: Project) => project.projectID === p.projectID
+      )
     );
 
     setProjectList(filteredProjects);
-  }
+  };
 
   useEffect(() => {
-    fetchProjects().then(
-      data => setProjectList(data)
-    );
+    fetchProjects().then((data) => setProjectList(data));
   }, []);
 
   return (

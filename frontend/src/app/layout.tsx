@@ -26,8 +26,8 @@ const geistMono = localFont({
 });
 
 export default function RootLayout({
-                                     children,
-                                   }: {
+  children,
+}: {
   children: React.ReactNode;
 }) {
   const [loading, setLoading] = useState(true);
@@ -46,8 +46,10 @@ export default function RootLayout({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(event.target as Node)
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(false);
       }
@@ -76,13 +78,13 @@ export default function RootLayout({
   if (loading) {
     return (
       <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-      </body>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <div className="flex min-h-screen items-center justify-center">
+            <p>Loading...</p>
+          </div>
+        </body>
       </html>
     );
   }
@@ -90,56 +92,56 @@ export default function RootLayout({
   if (!user) {
     return (
       <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-      <div className="flex min-h-screen items-center justify-center">
-        <Login setUser={setUser} />
-      </div>
-      </body>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <div className="flex min-h-screen items-center justify-center">
+            <Login setUser={setUser} />
+          </div>
+        </body>
       </html>
     );
   }
 
   return (
     <html lang="en">
-    <body
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
-    <UserProvider value={{ user, setUser }}>
-      <FileProvider>
-        <div className="flex min-h-screen flex-col sm:flex-row relative">
-          <Navbar />
-          <div className="fixed bottom-4 right-4 block" ref={dropdownRef}>
-            <div className="relative">
-              <button
-                ref={buttonRef}
-                onClick={() => setDropdownOpen(!isDropdownOpen)}
-                className="bg-gray-300 p-2 rounded-full hover:bg-gray-300"
-              >
-                <CogIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
-              </button>
-
-              {isDropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32 z-60">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <UserProvider value={{ user, setUser }}>
+          <FileProvider>
+            <div className="flex min-h-screen flex-col sm:flex-row relative">
+              <Navbar />
+              <div className="fixed bottom-4 right-4 block" ref={dropdownRef}>
+                <div className="relative">
                   <button
-                    onClick={handleLogout}
-                    className="w-full text-left p-2 text-red-600 hover:bg-gray-100"
+                    ref={buttonRef}
+                    onClick={() => setDropdownOpen(!isDropdownOpen)}
+                    className="bg-gray-300 p-2 rounded-full hover:bg-gray-300"
                   >
-                    Logout
+                    <CogIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
                   </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32 z-60">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left p-2 text-red-600 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              <main className="p-4 flex-1 mt-16 sm:mt-0 md:sm-64">
+                {children}
+              </main>
             </div>
-          </div>
-          <main className="p-4 flex-1 mt-16 sm:mt-0 md:sm-64">
-            {children}
-          </main>
-        </div>
-        <ToastContainer autoClose={5000} position="top-center" />
-      </FileProvider>
-    </UserProvider>
-    </body>
+            <ToastContainer autoClose={5000} position="top-center" />
+          </FileProvider>
+        </UserProvider>
+      </body>
     </html>
   );
 }
