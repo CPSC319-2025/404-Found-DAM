@@ -120,7 +120,7 @@ export default function ProjectsPage() {
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
-            userNames: project.userNames,
+            userNames: project.regularUserNames.concat(project.adminNames),
           })
         );
 
