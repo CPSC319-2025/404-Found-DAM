@@ -4,7 +4,6 @@ namespace Core.Dtos
     {
         public int projectCount { get; set; }
         public List<FullProjectInfo> fullProjectInfos { get; set; }
-        
     }
 
     public class FullProjectInfo
