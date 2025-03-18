@@ -1,6 +1,5 @@
 using Core.Dtos;
-using System.Threading.Tasks;
-using Core.Entities;
+using Microsoft.AspNetCore.Http;
 using Core.Entities;
 
 namespace Core.Interfaces
