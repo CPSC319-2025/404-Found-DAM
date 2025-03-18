@@ -36,8 +36,6 @@ builder.Services.AddScoped<IImageService, ImageService>();
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
-
-app.UseCors("AllowReactApp");
 // sean test
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -46,28 +44,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Run "dotnet run --seed" to seed database
-if (args.Contains("--seed"))
-{
-    await SeedDatabase(app);
-}
-
-async Task SeedDatabase(WebApplication app)
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        try
-        {   
-            Console.WriteLine("Start populating database with mocked data...");
-            await MockedDataSeeding.Seed(scope);
-            Console.WriteLine("Database seeding completed.");
-        }
-        catch (Exception)
-        {
-            throw;
-        }
-    }
-}
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
@@ -97,6 +73,7 @@ app.MapProjectEndpoints();
 app.MapNotificationEndpoints(); 
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
+app.MapSearchEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
@@ -120,7 +97,6 @@ if (app.Environment.IsDevelopment())
         Console.WriteLine($"An error occurred while applying migrations: {ex.Message}");
     }
 }
-app.MapSearchEndpoints();
 
 app.Run();
 
