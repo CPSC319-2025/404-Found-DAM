@@ -6,24 +6,36 @@ using System.Threading.Tasks;
 
 namespace Core.Services
 {
+    // test
     public class ActivityLogService : IActivityLogService
     {
         private readonly IActivityLogRepository _repository;
 
+        private static int changeID;
+
         public ActivityLogService(IActivityLogRepository repository)
         {
             _repository = repository;
+            changeID = 0;
         }
 
-        public async Task<bool> AddLogAsync(int userID, User user, string action, string detail, int projectID)
+        public int getNextLogNumber() {
+            changeID++;
+            return changeID;
+        }
+
+        public async Task<bool> AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID)
         {
             var log = new Log
             {
+                ChangeID = getNextLogNumber(),
+                Timestamp = DateTime.UtcNow,
                 UserID = userID,
                 User = user,
-                Action = action,
-                Detail = detail,
-                Timestamp = DateTime.UtcNow
+                ChnageType = changeType,
+                Description = description,
+                ProjectID = projectID,
+                AssetID = assetID
             };
 
             return await _repository.AddLogAsync(log);

@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.InkML;
 using System.Reflection.Metadata;
 
 namespace Infrastructure.DataAccess {
+    //
     public class PaletteRepository : IPaletteRepository {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
