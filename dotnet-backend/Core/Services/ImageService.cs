@@ -36,18 +36,18 @@ namespace Core.Services
         public void pHashCompare() 
         {
             // var hashAlgorithm = new AverageHash();
-            // // var hashAlgorithm = new DifferenceHash();
-            // // var hashAlgorithm = new PerceptualHash();
-            // string filename1 = "lone-tree-bright.png";
-            // string filename2 = "lone-tree-png.png";
-            // using var imageStream1 = File.OpenRead(filename1);
-            // using var imageStream2 = File.OpenRead(filename2);
-            // ulong hash1 = hashAlgorithm.Hash(imageStream1);
-            // ulong hash2 = hashAlgorithm.Hash(imageStream2);
-            // double percentageImageSimilarity = CompareHash.Similarity(hash1, hash2);
-            // Console.WriteLine($"hash1: ${hash1}");
-            // Console.WriteLine($"hash2: ${hash2}");
-            // Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
+            var hashAlgorithm = new DifferenceHash();
+            // var hashAlgorithm = new PerceptualHash();
+            string filename1 = "SamplePNGImage_20mbmb.png";
+            string filename2 = "SamplePNGImage_20mbmb.webp";
+            using var imageStream1 = File.OpenRead(filename1);
+            using var imageStream2 = File.OpenRead(filename2);
+            ulong hash1 = hashAlgorithm.Hash(imageStream1);
+            ulong hash2 = hashAlgorithm.Hash(imageStream2);
+            double percentageImageSimilarity = CompareHash.Similarity(hash1, hash2);
+            Console.WriteLine($"hash1: ${hash1}");
+            Console.WriteLine($"hash2: ${hash2}");
+            Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
         }
     }
 }
