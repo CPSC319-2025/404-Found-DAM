@@ -67,6 +67,7 @@ namespace APIs.Controllers
                 - Project, assets, and users do NOT exist in DB, so the IDs are omitted.
                     - Also assume asset has no custom metadata fields and values.
                 - Relation between user and assets are not preserved in the import file.
+            BlobID in the file of "import project example" is asset's local file path
         */
         private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
