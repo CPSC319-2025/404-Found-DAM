@@ -39,7 +39,7 @@ namespace APIs.Controllers
         )
         {
             // TODO: Get requester's ID and replace
-            int requesterID = MockedUserID; 
+            int requesterID = MOCKEDUSERID; 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -106,9 +106,14 @@ namespace APIs.Controllers
             {
                 return Results.NotFound(ex.Message);
             }
-            catch (Exception) 
+            catch (Exception ex) 
             {
-                return Results.StatusCode(500);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );            
             } 
         }
 

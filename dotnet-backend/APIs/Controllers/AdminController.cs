@@ -110,7 +110,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
                     return Results.Ok(result);
                 }
@@ -137,7 +137,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MockedAdminID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
                     return Results.Ok(result);
                 }

@@ -167,30 +167,45 @@ namespace Infrastructure.DataAccess
             }   
         }
 
-        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int userID)
+        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            var projectMemberships = await _context.ProjectMemberships
+            // Get projectmemberhips associated with the requester
+            var requesterProjectMemberships = await _context.ProjectMemberships
                 .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
-                .Where(pm => pm.UserID == userID) // Filter by userID first
+                .Where(pm => pm.UserID == requesterID) // Filter by requesterID first
                 .Include(pm => pm.Project)
-                .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
+                    .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
                 .ToListAsync();
             
-            if (projectMemberships.Any()) 
+            if (requesterProjectMemberships.Any()) 
             {
-                List<Project> projects = projectMemberships.Select(pm => pm.Project).ToList();
+                List<int> projectIDList = requesterProjectMemberships.Select(pm => pm.Project.ProjectID).ToList();
+                // Console.WriteLine($"projects' ID: {string.Join(", ", projectIDList)}");         
 
+                List<Project> foundProjectList = new List<Project>();
                 HashSet<int> userIDSet = new HashSet<int>();
+                List<ProjectMembership> projectMemberships = new List<ProjectMembership>();
 
-                foreach (var p in projects) 
+                foreach (var pID in projectIDList) 
                 {
-                    // Collect all users' IDs via project p's projectMemberships
-                    foreach (var pm in p.ProjectMemberships) 
+                    // Eagerly load project and its collections.
+                    var project = await _context.Projects
+                        .Include(p => p.ProjectMemberships)
+                        .FirstOrDefaultAsync(p => p.ProjectID == pID);                    
+    
+                    // Collect all users' IDs via project p's projectMemberships, and add these projectMemberships
+                    if (project != null && !foundProjectList.Contains(project)) 
                     {
-                        userIDSet.Add(pm.UserID);
-                    }                    
+                        foreach (var pm in project.ProjectMemberships) 
+                        {
+                            // Console.WriteLine($"projectID: ${pID}, userID: ${pm.UserID}");
+                            userIDSet.Add(pm.UserID);
+                            projectMemberships.Add(pm);
+                        }  
+                        foundProjectList.Add(project);
+                    }       
                 }
 
                 // Get all users associated with and ensure no duplicated user by checking against userIDSet
@@ -199,7 +214,7 @@ namespace Infrastructure.DataAccess
                     .Where(u => userIDSet.Contains(u.UserID))
                     .ToListAsync();
                 
-                return (projects, users, projectMemberships);
+                return (foundProjectList, users, projectMemberships);
             }
             else 
             {

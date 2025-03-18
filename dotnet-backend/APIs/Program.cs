@@ -4,8 +4,25 @@ using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
 using MockedData;
+using MockedData;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+//Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy =>
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
 
 
 //Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
@@ -53,11 +70,36 @@ var app = builder.Build();
 
 app.UseCors("AllowReactApp");
 
+app.UseCors("AllowReactApp");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// Run "dotnet run --seed" to seed database
+if (args.Contains("--seed"))
+{
+    await SeedDatabase(app);
+}
+
+async Task SeedDatabase(WebApplication app)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {   
+            Console.WriteLine("Start populating database with mocked data...");
+            await MockedDataSeeding.Seed(scope);
+            Console.WriteLine("Database seeding completed.");
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+    }
 }
 
 // Run "dotnet run --seed" to seed database
@@ -116,3 +158,4 @@ app.MapSearchEndpoints();
 app.Run();
 
 public partial class Program { }
+

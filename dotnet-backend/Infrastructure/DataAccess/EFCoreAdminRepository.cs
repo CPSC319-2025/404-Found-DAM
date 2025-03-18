@@ -78,8 +78,6 @@ namespace Infrastructure.DataAccess
                         // remove admins first
                         foreach (int candidateID in req.removeFromAdmins)
                         {
-                            Console.WriteLine($"admin candidateID is {candidateID}");
-
                             // Check if the admin is non-existent
                             User? candidate = await _context.Users.FindAsync(candidateID);
                             if (candidate == null)
@@ -131,8 +129,6 @@ namespace Infrastructure.DataAccess
                         // Add regular users
                         foreach (int candidateID in req.removeFromRegulars)
                         {
-                            Console.WriteLine($"regular candidateID is {candidateID}");
-
                             // Check if the regular user is non-existent
                             User? candidate = await _context.Users.FindAsync(candidateID);
                             if (candidate == null)
@@ -187,7 +183,9 @@ namespace Infrastructure.DataAccess
             using DAMDbContext _context = _contextFactory.CreateDbContext();
             
             // Check if project exists and retrieve it if so.
-            var project = await _context.Projects.FindAsync(projectID);
+            var project = await _context.Projects.FindAsync(projectID); // Lazy load (some navigation properties may NOT loaded immediately).
+
+            
             if (project == null) 
             {
                 throw new DataNotFoundException($"Project {projectID} not found.");
@@ -213,8 +211,6 @@ namespace Infrastructure.DataAccess
                         // Add admins first
                         foreach (int candidateID in req.addAsAdmin)
                         {
-                            Console.WriteLine($"admin candidateID is {candidateID}");
-
                             User? candidate = await _context.Users.FindAsync(candidateID);
                             if (candidate == null)
                             {
@@ -246,8 +242,6 @@ namespace Infrastructure.DataAccess
                         // Add regular users
                         foreach (int candidateID in req.addAsRegular)
                         {
-                            Console.WriteLine($"regular candidateID is {candidateID}");
-
                             User? candidate = await _context.Users.FindAsync(candidateID);
                             if (candidate == null)
                             {
@@ -276,10 +270,10 @@ namespace Infrastructure.DataAccess
                             } 
                         }
 
-                        await _context.AddRangeAsync(projectMemberships);
+                        await _context.ProjectMemberships.AddRangeAsync(projectMemberships);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync(); // Commit transaction
-
+                    
                         return (newAdmins, newRegularUsers, failedToAddAsAdmin, failedToAddAsRegular);
                     } 
                     catch (Exception ex)
@@ -440,10 +434,9 @@ namespace Infrastructure.DataAccess
             List<Project> projectList = new List<Project>(); // For storing created Projects
             List<Tag> tagList = new List<Tag>(); // For storing created Tags
             List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
-     
             List<ProjectMembership> projectMembershipList = new List<ProjectMembership>(); // For storing project memberships
-
-            using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid artial data in database in case error occurs
+            
+            using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid partial data in database in case error occurs
             try 
             {
                 foreach (CreateProjectsReq data in req) 
@@ -457,26 +450,9 @@ namespace Infrastructure.DataAccess
                         Active = data.defaultMetadata.active
                     };
 
-                    projectList.Add(newProject);                   
-                }
+                    projectList.Add(newProject);
 
-                // Insert and Save new projects first to allow for their projectIDs be generated
-                await _context.AddRangeAsync(projectList);
-                await _context.SaveChangesAsync(); // Save change in the database
 
-                // Now create all relations
-
-                if (req.Count != projectList.Count) 
-                {
-                    throw new Exception("new project count is different from input request.");
-                }
-        
-                for (int i = 0; i < req.Count; i++)
-                {
-                    CreateProjectsReq data = req[i];
-                    Project newProject = projectList[i];
-
-                    Console.WriteLine($"new project ID is {newProject}");
                     ProjectMembership creatorMembership = new ProjectMembership
                     {
                         Project = newProject, // EF will assign ProjectID after saving
@@ -485,8 +461,6 @@ namespace Infrastructure.DataAccess
                         User = creator
                     };
                     projectMembershipList.Add(creatorMembership);
-
-                    Console.WriteLine("added creatorMembership");
 
                     // add any specified admins by the project creator to the project
                     if (data.admins != null && data.admins.Any()) {
@@ -501,8 +475,6 @@ namespace Infrastructure.DataAccess
                             if (adminUser == null) {
                                 throw new Exception($"Admin user with ID {adminID} does not exist!");
                             }
-
-                            Console.WriteLine($"newProjectID is {newProject.ProjectID}");
                             ProjectMembership adminMembership = new ProjectMembership
                             {
                                 Project = newProject,
@@ -536,7 +508,6 @@ namespace Infrastructure.DataAccess
                             projectMembershipList.Add(userMembership);
                         }
                     }
-
                     if (data.tags != null && data.tags.Any()) 
                     {
                         foreach (string tagName in data.tags) 
@@ -556,10 +527,10 @@ namespace Infrastructure.DataAccess
                 }
                 // Insert in batch
                 Console.WriteLine("start inserting");
-                await _context.AddRangeAsync(tagList);
-                await _context.AddRangeAsync(projectTagList);
-                await _context.AddRangeAsync(projectMembershipList);
-                await _context.AddRangeAsync(projectMembershipList);
+                await _context.Projects.AddRangeAsync(projectList);
+                await _context.Tags.AddRangeAsync(tagList);
+                await _context.ProjectTags.AddRangeAsync(projectTagList);
+                await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
                 await _context.SaveChangesAsync(); // Save change in the database
                 
                 await transaction.CommitAsync(); // Commit transaction for data persistence

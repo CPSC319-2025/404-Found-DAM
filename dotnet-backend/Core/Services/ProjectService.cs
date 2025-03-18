@@ -186,7 +186,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetAllProjectsRes> GetAllProjects(int userID) 
+        public async Task<GetAllProjectsRes> GetAllProjects(int requesterID) 
         {
             try 
             {
@@ -195,13 +195,23 @@ namespace Core.Services
                 List<ProjectMembership> retrievedProjectMemberships;
 
                 (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
-                    await _repository.GetAllProjectsInDb(userID);
+                    await _repository.GetAllProjectsInDb(requesterID);
+
+                // foreach (User user in retrievedUsers)
+                // {
+                //     Console.WriteLine($"User ID: {user.UserID}");
+                // }
+            
+                // foreach (ProjectMembership rpm in retrievedProjectMemberships)
+                // {
+                //     Console.WriteLine($"retrievedProjectMembership project ID: {rpm.ProjectID}");
+                //     Console.WriteLine($"retrievedProjectMembership user ID: {rpm.UserID}");
+                // }
 
                 // Make List retrievedUsers into a map
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 
                 GetAllProjectsRes result = new GetAllProjectsRes();
-                result.fullProjectInfos = new List<FullProjectInfo>();
 
                 result.fullProjectInfos = new List<FullProjectInfo>();
 
@@ -229,7 +239,9 @@ namespace Core.Services
                         {
                             regularSet.Add(retrievedUserDictionary[pm.UserID].Name);
                         }
-                        projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary                   
+                        projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary       
+                        // Console.WriteLine($"adminSet: {string.Join(", ", adminSet)}");         
+                        // Console.WriteLine($"regularSet: {string.Join(", ", regularSet)}");         
                     }
                 }
 
