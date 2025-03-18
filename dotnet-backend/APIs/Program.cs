@@ -71,7 +71,7 @@ var app = builder.Build();
 app.UseCors("AllowReactApp");
 
 app.UseCors("AllowReactApp");
-
+// sean test
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
