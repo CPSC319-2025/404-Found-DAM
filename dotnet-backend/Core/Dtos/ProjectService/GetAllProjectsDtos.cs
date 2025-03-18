@@ -15,10 +15,10 @@ namespace Core.Dtos
         public string description { get; set; }
         public DateTime creationTime { get; set; }
         public bool active { get; set; }
-        public DateTime? archivedAt { get; set; } 
-        public int assetCount { get; set; } 
-        public HashSet<UserCustomInfo> admins { get; set; } 
-        public HashSet<UserCustomInfo> regularUsers { get; set; } 
+        public DateTime? archivedAt { get; set; }
+        public int assetCount { get; set; }
+        public HashSet<UserCustomInfo> admins { get; set; }
+        public HashSet<UserCustomInfo> regularUsers { get; set; }
 
         public FullProjectInfo()
         {
