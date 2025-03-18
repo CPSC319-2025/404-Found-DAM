@@ -5,17 +5,18 @@ import Image from "next/image";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
-
-interface User {
-  userId: string;
-  name: string;
-}
+import { fetchWithAuth } from "@/app/utils/api/api";
+import { User, Tag, Project } from "@/app/types";
 
 const TempUsers: User[] = [
-  { userId: "1", name: "John" },
-  { userId: "2", name: "Luke" },
-  { userId: "3", name: "Dave" },
+  { userID: 1, name: "John", email: "john@example.com" },
+  { userID: 2, name: "Luke", email: "luke@example.com" },
+  { userID: 3, name: "Dave", email: "dave@example.com" },
 ];
+
+interface ProjectWithTags extends Project {
+  tags: Tag[];
+}
 
 const TempAssets = [
   {
@@ -187,34 +188,26 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
 
 const itemsPerPage = 10;
 
-const ProjectsTable = () => {
+const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<any>([]);
 
-  const [selectedUser, setSelectedUser] = useState<any>("");
-  const [selectedDate, setSelectedDate] = useState<any>("");
-  // const [selectedStatus, setSelectedStatus] = useState<any>("");
-  const [searchTag, setSearchTag] = useState<any>("");
-
-  const [pendingSearchTag, setPendingSearchTag] = useState<any>("");
-
-  // TODO: we need list of users within the project
+  const [selectedUser, setSelectedUser] = useState<number>(0);
+  const [selectedTag, setSelectedTag] = useState<number>(0);
+  const [selectedAssetType, setSelectedAssetType] = useState<string>("");
 
   // TODO: ADD IMAGE SIZE
 
-  const [users, setUsers] = useState<any>(TempUsers);
-
-  const handleTagBlur = () => {
-    setSearchTag(pendingSearchTag);
-  };
+  const [users, setUsers] = useState<User[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const handleChange = async (e: any, page: number) => {
     // await mock api call
     const { items, totalPages } = await fetchAssets(page, {
       selectedUser,
-      selectedDate,
-      searchTag,
+      selectedTag,
+      selectedAssetType,
     });
     setCurrentPage(page);
     setTotalPages(totalPages);
@@ -233,16 +226,46 @@ const ProjectsTable = () => {
     };
   };
 
+  const getProject = async () => {
+    console.log("Fetching project");
+    const response = await fetchWithAuth(`projects/${projectID}`);
+
+    if (!response.ok) {
+      throw new Error("Failed to get project.");
+    }
+
+    const project = await response.json();
+
+    if (!project) {
+      throw new Error("No project returned from the API.");
+    }
+
+    console.log(project);
+    return project as ProjectWithTags;
+  }
+
   useEffect(() => {
     fetchAssets(1, {
       selectedUser,
-      selectedDate,
-      searchTag,
+      selectedTag,
+      selectedAssetType,
     }).then(({ items, totalPages }) => {
       setCurrentItems(items);
       setTotalPages(totalPages);
     });
-  }, [selectedUser, selectedDate, searchTag]);
+  }, [selectedUser, selectedTag, selectedAssetType]);
+
+  useEffect(() => {
+    // TODO: get this project
+    getProject()
+      .then((project: ProjectWithTags) => {
+        setUsers(project.admins.concat(project.regularUsers))
+        setTags(project.tags)
+      })
+      .catch((error) => {
+        console.error("Error fetching project:", error);
+      })
+  }, [])
 
   return (
     <>
@@ -251,34 +274,44 @@ const ProjectsTable = () => {
           <select
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
+            onChange={(e) => setSelectedUser(Number(e.target.value))}
           >
             <option value="">Filter by User</option>
             {users.map((user: any) => (
-              <option key={user.userId} value={user.userId}>
+              <option key={user.userID} value={user.userID}>
                 {user.name}
               </option>
             ))}
           </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <input
-            type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Filter by Date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(Number(e.target.value))}
+          >
+            <option value="">Filter by Tag</option>
+            {tags.map((tag: Tag) => (
+              <option key={tag.tagID} value={tag.tagID}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search by Tags"
-            value={pendingSearchTag}
-            onChange={(e) => setPendingSearchTag(e.target.value)}
-            onBlur={handleTagBlur}
-          />
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedAssetType}
+            onChange={(e) => setSelectedAssetType(e.target.value)}
+          >
+            <option value="all">Filter by Asset Type</option>
+            <option value="image">
+              image
+            </option>
+            <option value="video">
+              video
+            </option>
+          </select>
         </div>
       </div>
       <Items currentItems={currentItems} setCurrentItems={setCurrentItems} />
