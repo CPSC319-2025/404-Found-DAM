@@ -23,7 +23,8 @@ interface FullProjectInfo {
   active: boolean;
   archivedAt: string | null;
   assetCount: number;
-  userNames: string[];
+  regularUserNames: string[];
+  adminNames: string[];
 }
 
 interface Project {
