@@ -96,7 +96,6 @@ export default function ProjectsPage() {
   const { user } = useUser();
 
   const fetchProjects = async () => {
-    const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`;
     try {
       const response = await fetchWithAuth('projects');
       if (!response.ok) {
@@ -106,9 +105,6 @@ export default function ProjectsPage() {
       }
       const data = (await response.json()) as GetAllProjectsResponse;
 
-      // Diagnostic logging: inspect API response structure
-      console.log("[Diagnostics] Response from", url, ":", data);
-
       const projectsFromBackend = data.fullProjectInfos.map(
         (project: FullProjectInfo) => ({
           projectID: project.projectID,
@@ -116,21 +112,18 @@ export default function ProjectsPage() {
           creationTime: project.creationTime,
           assetCount: project.assetCount,
           userNames: project.adminNames.concat(project.regularUserNames),
-        })
+        } as Project)
       );
-
-      console.log("[Diagnostics] Parsed projects:", projectsFromBackend);
 
       return projectsFromBackend;
     } catch (error) {
       console.error(
-        "[Diagnostics] Error fetching projects from",
-        url,
-        ":",
+        "[Diagnostics] Error fetching projects: ",
         error
       );
+      return [];
     }
-  }
+  };
 
   const handleAddProject = async (formData: FormData) => {
     const payload = [
@@ -178,7 +171,7 @@ export default function ProjectsPage() {
       setProjectList(projects);
     } catch (error) {
       console.error("Error creating project:", error);
-      toast.error(error.message);
+      toast.error((error as Error).message);
     }
   };
 
@@ -199,8 +192,8 @@ export default function ProjectsPage() {
 
     console.log(data);
 
-    const filteredProjects = projects.filter(p =>
-      data.projects.some((project) => project.projectID === p.projectID)
+    const filteredProjects = projects.filter((p: Project) =>
+      data.projects.some((project: Project) => project.projectID === p.projectID)
     );
 
     setProjectList(filteredProjects);
