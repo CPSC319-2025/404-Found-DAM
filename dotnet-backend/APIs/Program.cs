@@ -4,7 +4,6 @@ using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
 using MockedData;
-using MockedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +27,8 @@ builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>(); // should this be AddScoped or AddSingleton?
+
 
 
 

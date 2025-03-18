@@ -10,29 +10,33 @@ using Core.Entities;
 namespace Infrastructure.DataAccess;
     public class ActivityLogRepository : IActivityLogRepository
     {
-        private DAMDbContext _context;
+        private readonly IDbContextFactory<DAMDbContext> _contextFactory;
 
-        public ActivityLogRepository(DAMDbContext context)
+        public ActivityLogRepository(IDbContextFactory<DAMDbContext> contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<bool> AddLogAsync(Log log)
         {
+
+            using var _context = _contextFactory.CreateDbContext();
             try
             {
                 _context.Logs.Add(log);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error occurred while saving log: {ex.Message}");
                 return false;
             }
         }
 
         public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate)
         {
+            using var _context = _contextFactory.CreateDbContext();
             var query = _context.Logs.AsQueryable();
 
             if (userID.HasValue)
