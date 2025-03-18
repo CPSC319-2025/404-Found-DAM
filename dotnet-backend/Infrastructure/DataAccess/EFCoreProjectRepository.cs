@@ -69,11 +69,12 @@ namespace Infrastructure.DataAccess
             }            
         }
 
-        public async Task<bool> ArchiveProjectsInDb(List<int> projectIDs)
+        public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
          {
-            // Create an empty list for storing unfound projectIDs
+            // Create empty lists and dictionaries for storing process results
             List<int> unfoundProjectIDs = new List<int>();
-    
+            Dictionary<int, DateTime> NewArchivedProjects = new Dictionary<int, DateTime>();
+            Dictionary<int, DateTime> ProjectsArchivedAlready = new Dictionary<int, DateTime>();
             try 
             {            
                 // Set each project Active to false for archiving
@@ -91,57 +92,39 @@ namespace Infrastructure.DataAccess
                 {
                     var project = projects.FirstOrDefault(p => p.ProjectID == projectID);
 
-                    if (project == null) 
+                    if (project == null)    // Projects not found
                     {
                         unfoundProjectIDs.Add(projectID);   
                     }
-                    else 
+                    else if (!project.Active)   // Porjects already archived
+                    {
+                        if (project.ArchivedAt != null) 
+                        {
+                            ProjectsArchivedAlready[project.ProjectID] = project.ArchivedAt.Value;
+                        }
+                    }
+                    else    // Projects to be archived
                     {
                         project.Active = false;
                         project.ArchivedAt = DateTime.UtcNow;
-
-                        // TODO: Set each asset's Active to false?
-                        
-                        // Console.WriteLine("Remove regular users from this archived project");
-                        // Remove regular users from this archived project
-                        List<ProjectMembership> projectMemberships = project.ProjectMemberships.ToList();
-                        foreach (var pm in projectMemberships)
-                        {
-                            if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
-                            {
-                                _context.ProjectMemberships.Remove(pm);
-                            }
-                        }
+                        NewArchivedProjects[project.ProjectID] = project.ArchivedAt.Value;
                     }
                 }
                 
                 // Console.WriteLine("Save the change");
                 // Save the change
                 await _context.SaveChangesAsync();
-
-                if (unfoundProjectIDs.Count != 0) 
-                {
-                    string unfoundProjects = string.Join(",", unfoundProjectIDs.Select(id => id.ToString()));
-                    throw new PartialSuccessException($"Partial success. Unfound and not archived: {unfoundProjects}");
-                }
-                else 
-                {
-                    return true;
-                }
-            }
-            catch (PartialSuccessException)
-            {
-                throw;
+                return (unfoundProjectIDs, NewArchivedProjects, ProjectsArchivedAlready);
             }
             catch (Exception)
             {
-                return false;
+                throw;
             }
         }
 
         public async Task<List<Log>> GetArchivedProjectLogsInDb()
         {
-            //TODO
+            //TODO: only allow admin to access
             return null;
         }
 

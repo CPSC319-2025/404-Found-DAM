@@ -82,20 +82,38 @@ namespace Core.Services
             } else {
                 try 
                 {
-                    bool isSuccessul = await _repository.ArchiveProjectsInDb(projectIDs);
-                    if (isSuccessul)
+                    List<ArchivedProject> projectsNewlyArchived = new List<ArchivedProject>();
+                    List<ArchivedProject> projectsAlreadyArchived = new List<ArchivedProject>();
+
+                    (List<int> unfoundProjectIDs, Dictionary<int, DateTime> NewArchivedProjects, Dictionary<int, DateTime> ProjectsArchivedAlready) 
+                        = await _repository.ArchiveProjectsInDb(projectIDs);
+
+                    if (NewArchivedProjects != null)
                     {
-                        ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
-                        return result;
+                        foreach (KeyValuePair<int, DateTime> pair in NewArchivedProjects)
+                        {
+                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
+                            projectsNewlyArchived.Add(ap);
+                        }
                     }
-                    else 
+
+                    if (ProjectsArchivedAlready != null)
                     {
-                        throw new Exception("Failed to archive projects in database.");
-                    }
-                }
-                catch (PartialSuccessException) 
-                {
-                    throw;
+                        foreach (KeyValuePair<int, DateTime> pair in ProjectsArchivedAlready)
+                        {
+                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
+                            projectsAlreadyArchived.Add(ap);
+                        }
+                    } 
+
+                    ArchiveProjectsRes res = new ArchiveProjectsRes
+                    { 
+                        projectsNewlyArchived = projectsNewlyArchived, 
+                        projectsAlreadyArchived = projectsAlreadyArchived, 
+                        unfoundProjectIDs = unfoundProjectIDs 
+                    };
+
+                    return res;
                 }
                 catch (Exception) 
                 {
@@ -164,7 +182,7 @@ namespace Core.Services
                     name = project.Name,
                     description = project.Description,
                     location = project.Location,
-                    archived = project.Active,
+                    active = project.Active,
                     archivedAt = project.ArchivedAt,
                     adminNames = adminList,
                     regularUserNames = regularUserList,
@@ -265,7 +283,7 @@ namespace Core.Services
                         fullProjectInfo.description = p.Description;
                         fullProjectInfo.creationTime = p.CreationTime;
                         fullProjectInfo.active = p.Active;
-                        fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
+                        fullProjectInfo.archivedAt = p.Active ? null : p.ArchivedAt;
                         fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
                         fullProjectInfo.adminNames = adminSet;
                         fullProjectInfo.regularUserNames = regularSet;
