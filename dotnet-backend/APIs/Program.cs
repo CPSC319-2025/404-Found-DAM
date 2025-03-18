@@ -41,6 +41,7 @@ builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IImageService, ImageService>();
 
 
 

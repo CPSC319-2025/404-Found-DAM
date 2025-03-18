@@ -7,14 +7,10 @@ namespace Core.Dtos
 
     public class SubmitAssetsRes
     {
-        // public int projectID {get; set; }
-        // public List<AssignedAsset> assignedAssets { get; set; }
+        public int projectID {get; set; }
+        public List<int> successfulSubmissions {get; set; }
+        public List<int> failedSubmissions {get; set; }
         public DateTime submittedAt { get; set; }
-    }
 
-    // public class AssignedAsset
-    // {
-    //     public int id { get; set; }
-    //     public string filename { get; set; }
-    // }
+    }
 }

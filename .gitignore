@@ -10,6 +10,13 @@ obj/
 dotnet-backend/APIs/appsettings.json
 
 *.xlsx
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+
+**/.idea/
 node_modules
 
 **/.env

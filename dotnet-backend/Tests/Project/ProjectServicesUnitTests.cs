@@ -39,5 +39,3 @@ public class ProjectServicesUnitTests
         // await _projectRepository.Received(1).AddAssetsToProjectInDb(projectID, blobIDs);
     }
 }
-
-
