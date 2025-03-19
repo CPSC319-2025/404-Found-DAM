@@ -283,7 +283,7 @@ export default function GenericForm({
         ref={formRef}
         className={
           isModal
-            ? "bg-white p-6 rounded shadow-lg w-96"
+            ? "bg-white p-6 rounded shadow-lg w-96 max-h-screen overflow-y-auto"
             : "bg-white p-6 shadow-lg max-w-xl"
         }
       >

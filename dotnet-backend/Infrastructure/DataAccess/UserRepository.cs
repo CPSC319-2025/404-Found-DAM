@@ -16,7 +16,7 @@ namespace Infrastructure.DataAccess
         public async Task<User?> GetUserByEmailAsync(string email)
         {
             return await _context.Users
-                .Include(u => u.ProjectMemberships) 
+                .Include(u => u.ProjectMemberships) // Load related project memberships if needed
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
     }

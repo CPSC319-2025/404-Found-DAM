@@ -40,11 +40,20 @@ export default function EditMetadataPage() {
     router.push("/palette");
   }
 
+  function handleEditImage() {
+    // Navigate to a new page under /palette/ for image editing
+    if (!fileName) {
+      console.error("File name is missing!");
+      return;
+    }
+    router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-white shadow-xl rounded-lg p-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Edit Metadata
+          Edit Image
         </h1>
 
         <div className="mb-6">
@@ -98,12 +107,18 @@ export default function EditMetadataPage() {
           </div>
         </div>
 
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex justify-center space-x-4">
           <button
             onClick={handleSave}
             className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
           >
             Save Changes
+          </button>
+          <button
+            onClick={handleEditImage}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
+          >
+            Edit Image
           </button>
         </div>
       </div>

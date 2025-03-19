@@ -2,6 +2,18 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 
+/*
+TODO:
+Consider adding unique constraint to certain attributes (such as tags and metadatafields) and handle duplicate exception 
+so that a project or an asset won't have duplicated tags or metadatafields. W/o this, BE can certainly checks everytime, 
+but it would require going through the database since our server does not track user state. Or if frontend can check before 
+calling API since endpoints for getting a project and an asset should return full metadata and tags to frontend.
+
+Add an attribute of pHashing to asset for detecting image (stripped-away-metadata) duplication, and only remove it the same projectID/paletteID
+
+*/
+
+
 namespace Core.Entities
 {
     // --------------------------
@@ -20,6 +32,8 @@ namespace Core.Entities
         public required string Name { get; set; }
         
         public required string Email { get; set; }
+
+        public required string PasswordHash { get; set; }
         
         public bool IsSuperAdmin { get; set; }
 
@@ -33,22 +47,24 @@ namespace Core.Entities
 
     public class Asset
     {
-        /*  TODO:
-            - missing thumbnailrul
-            - how to tell if an asset is "uploaded" to palette but not yet "submitted", and if it is "submitted" finally?
-            - separate default metadata from costum metadata?
-        */
-
         [Key]
         public int BlobID { get; set; }
         
         public required string FileName { get; set; }
         
-        public required string MimeType { get; set; }
+        public required string MimeType { get; set; } // E.g., image/jpeg, video/mp4, etc.
 
         public double FileSizeInKB { get; set; }
 
         public DateTime LastUpdated { get; set; }
+
+        public enum AssetStateType
+        {
+            UploadedToPalette,    // 0
+            SubmittedToProject    // 1
+        }
+
+        public required AssetStateType assetState { get; set; }
 
         // Foreign keys
         public int? ProjectID { get; set; }
@@ -71,7 +87,6 @@ namespace Core.Entities
         /*
             TODO:
             version type string or double? default/start at 0.0?
-            active indicates archived?
         */
         [Key]
         public int ProjectID { get; set; }
@@ -83,11 +98,11 @@ namespace Core.Entities
         public required string Location { get; set; }
         
         public required string Description { get; set; }
-        
-        public DateTime CreationTime { get; set; }
-        
-        public bool Active { get; set; }
 
+        public required DateTime CreationTime { get; set; }
+        
+        public required bool Active { get; set; } = true; // Default to true
+        
         public DateTime? ArchivedAt { get; set; } 
         
         // Navigation properties
@@ -97,8 +112,8 @@ namespace Core.Entities
 
         public virtual ICollection<ProjectTag> ProjectTags { get; set; } = new List<ProjectTag>();
         
-        // Each project can have one Palette ??
-        public virtual Palette Palette { get; set; }
+        // // Each project can have one Palette ??
+        // public virtual Palette Palette { get; set; }
     }
 
     public class Log
@@ -140,21 +155,21 @@ namespace Core.Entities
         public required virtual User User { get; set; }
     }
 
-    public class Palette
-    {
-        [Key]
-        public int PaletteID { get; set; }
+    // public class Palette
+    // {
+    //     [Key]
+    //     public int PaletteID { get; set; }
         
-        // Assume each Palette belongs to a Project.
-        public int ProjectID { get; set; }
+    //     // Assume each Palette belongs to a Project.
+    //     public int ProjectID { get; set; }
         
-        // Why project has palette ??
-        [ForeignKey("ProjectID")]
-        public virtual Project Project { get; set; }
+    //     // Why project has palette ??
+    //     [ForeignKey("ProjectID")]
+    //     public virtual Project Project { get; set; }
         
-        // Palette can have many metadata fields.
-        public virtual ICollection<MetadataField> MetadataFields { get; set; } = new List<MetadataField>();
-    }
+    //     // Palette can have many metadata fields.
+    //     public virtual ICollection<MetadataField> MetadataFields { get; set; } = new List<MetadataField>();
+    // }
 
     public class MetadataField
     {
@@ -173,12 +188,12 @@ namespace Core.Entities
         
         public required FieldDataType FieldType { get; set; }
         
-        // Optionally, associate a field with a Palette.
-        public int? PaletteID { get; set; }
+        // // Optionally, associate a field with a Palette.
+        // public int? PaletteID { get; set; }
         
-        // Why metadata has palette ??
-        [ForeignKey("PaletteID")]
-        public virtual Palette Palette { get; set; }
+        // // Why metadata has palette ??
+        // [ForeignKey("PaletteID")]
+        // public virtual Palette Palette { get; set; }
         
         public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();

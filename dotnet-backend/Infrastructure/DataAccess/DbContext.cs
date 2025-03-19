@@ -12,7 +12,7 @@ namespace Infrastructure.DataAccess {
         public DbSet<Project> Projects { get; set; }
         public DbSet<Log> Logs { get; set; }
         public DbSet<ProjectMembership> ProjectMemberships { get; set; }
-        public DbSet<Palette> Palettes { get; set; }
+        // public DbSet<Palette> Palettes { get; set; }
         public DbSet<MetadataField> MetadataFields { get; set; }
         public DbSet<ProjectMetadataField> ProjectMetadataFields { get; set; }
         public DbSet<AssetMetadata> AssetMetadata { get; set; }
@@ -51,9 +51,15 @@ namespace Infrastructure.DataAccess {
                 .HasIndex(at => new { at.BlobID, at.TagID });
 
             // seed data
-            modelBuilder.Entity<User>().HasData(
-                new User { UserID = 1, Name = "userTest", Email = "userTest@example.com", IsSuperAdmin = true
+            modelBuilder.Entity<User>().HasData( new User
+                {
+                    UserID = 1,
+                    Name = "userTest",
+                    Email = "userTest@example.com",
+                    PasswordHash = "hashed_password_here", // A proper hash should be here.
+                    IsSuperAdmin = true,
                 });
+
 
             base.OnModelCreating(modelBuilder);
         }

@@ -1,5 +1,9 @@
-public interface IUserRepository
+using Core.Entities;
+
+namespace Core.Interfaces
 {
-    Task<User?> GetUserByEmailAsync(string email);
-    
+    public interface IUserRepository
+    {
+        Task<User?> GetUserByEmailAsync(string email);
+    }
 }

@@ -23,7 +23,7 @@ namespace Core.Services
             _configuration = configuration;
         }
         
-        public async Task<AuthResponseDtos?> AuthenticateAsync(string email, string password)
+        public async Task<AuthResponseDto?> AuthenticateAsync(string email, string password)
         {
             // Retrieve user by email
             var user = await _userRepository.GetUserByEmailAsync(email);
@@ -36,7 +36,7 @@ namespace Core.Services
             if (result == PasswordVerificationResult.Failed)
                 return null;
             
-            // Create claims for the token, including the user ID
+            // Create claims for the token
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
@@ -44,7 +44,7 @@ namespace Core.Services
                 new Claim("userId", user.UserID.ToString())
             };
             
-            // Optionally include project memberships as a claim if needed
+            // include project memberships as a claim
             var membershipsForClaim = user.ProjectMemberships
                 .Select(pm => new { pm.ProjectID, Role = pm.UserRole.ToString() })
                 .ToList();
@@ -70,21 +70,21 @@ namespace Core.Services
             var tokenString = tokenHandler.WriteToken(token);
             
             // Map project memberships to DTOs
-            var membershipsDtos = user.ProjectMemberships.Select(pm => new ProjectMembershipDtos
+            var membershipsDto = user.ProjectMemberships.Select(pm => new ProjectMembershipDto
             {
                 ProjectId = pm.ProjectID,
                 Role = pm.UserRole.ToString().ToLower()
             }).ToList();
             
             // Build the authentication response DTO
-            var authResponse = new AuthResponseDtos
+            var authResponse = new AuthResponseDto
             {
                 Token = tokenString,
                 ExpiresIn = (int)(expires - DateTime.UtcNow).TotalSeconds,
                 Id = user.UserID,
                 Email = user.Email,
                 IsSuperAdmin = user.IsSuperAdmin,
-                ProjectMemberships = membershipsDtos
+                ProjectMemberships = membershipsDto
             };
             
             return authResponse;

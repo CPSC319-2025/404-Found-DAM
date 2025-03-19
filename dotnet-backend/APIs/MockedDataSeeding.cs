@@ -36,7 +36,8 @@ namespace MockedData
             var adminService = scope.ServiceProvider.GetService<IAdminService>();
             if (adminService != null) 
             {
-                filePath = @"..\Core\MockedSeed\mockedProjects.json";
+                // for mac its / for windows its \
+                filePath = @"../Core/MockedSeed/mockedProjects.json";
                 jsonString = File.ReadAllText(filePath);
                 List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(jsonString);
                 if (req != null) {

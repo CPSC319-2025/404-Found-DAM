@@ -41,6 +41,7 @@ builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
@@ -119,6 +120,20 @@ if (app.Environment.IsDevelopment())
     await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
     {
         await context.Database.EnsureCreatedAsync();
+    }
+} else {
+    try
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migrations applied successfully");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"An error occurred while applying migrations: {ex.Message}");
     }
 }
 

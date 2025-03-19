@@ -4,6 +4,6 @@ namespace Core.Interfaces
 {
     public interface IAuthService
     {
-        Task<AuthResponseDtos?> AuthenticateAsync(string email, string password);
+        Task<AuthResponseDto?> AuthenticateAsync(string email, string password);
     }
 }
