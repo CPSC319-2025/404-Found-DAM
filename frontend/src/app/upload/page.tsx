@@ -27,7 +27,7 @@ export default function UploadPage() {
 
       // Use native FormData
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const FormData = require("form-data");
+      // const FormData = require("form-data");
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
       formData.append("name", "My Upload Batch");

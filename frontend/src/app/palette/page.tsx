@@ -91,7 +91,7 @@ export default function PalettePage() {
   }
   async function fetchPaletteAssets() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const FormData = require("form-data");
+    // const FormData = require("form-data");
     const formData = new FormData();
     formData.append("UserId", "1"); // Fixed requirement: UserId=1
 
@@ -236,7 +236,7 @@ export default function PalettePage() {
 
       // 3.2 Use native FormData (NOT require("form-data"))
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const FormData = require("form-data");
+      // const FormData = require("form-data");
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
       formData.append("name", "My Upload Batch");
@@ -310,13 +310,18 @@ export default function PalettePage() {
 
       // Prepare form data
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const FormData = require("form-data");
+      // const FormData = require("form-data");
       const formData = new FormData();
       formData.append("UserId", "1");
 
       // Use whatever property holds the "blobId" or "name" you need to pass
       // For example, if your file object has "blobId":
-      formData.append("Name", fileToRemove.blobId);
+      if (fileToRemove.blobId !== undefined) {
+        formData.append("Name", fileToRemove.blobId.toString());
+      } else {
+        console.warn("No blobId found for file:", fileToRemove.file.name);
+        // Continue with deletion from UI even if we can't delete from server
+      }
 
       // Make the DELETE request with form data
       fetch("http://localhost:5155/palette/asset", {
