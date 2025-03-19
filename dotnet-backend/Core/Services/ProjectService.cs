@@ -305,7 +305,7 @@ namespace Core.Services
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
-            //TODO
+            //TODO: May need to retrive actual assets from Blob to return together.
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
@@ -352,6 +352,7 @@ namespace Core.Services
                                 }
                             }
                         }
+                        paginatedProjectAssets.Add(paginatedProjectAsset);
                     }
                 }
                 GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};

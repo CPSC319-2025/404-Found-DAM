@@ -22,7 +22,6 @@ namespace Core.Dtos
     public class PaginatedProjectAsset
     {
         public int blobID { get; set; }
-        public string thumbnailUrl { get; set; }
         public string filename { get; set; }
         public PaginatedProjectAssetUploadedBy uploadedBy { get; set; }
         public DateTime date { get; set; }
