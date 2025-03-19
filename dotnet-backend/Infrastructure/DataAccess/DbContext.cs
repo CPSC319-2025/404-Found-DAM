@@ -12,7 +12,7 @@ namespace Infrastructure.DataAccess {
         public DbSet<Project> Projects { get; set; }
         public DbSet<Log> Logs { get; set; }
         public DbSet<ProjectMembership> ProjectMemberships { get; set; }
-        public DbSet<Palette> Palettes { get; set; }
+        // public DbSet<Palette> Palettes { get; set; }
         public DbSet<MetadataField> MetadataFields { get; set; }
         public DbSet<ProjectMetadataField> ProjectMetadataFields { get; set; }
         public DbSet<AssetMetadata> AssetMetadata { get; set; }

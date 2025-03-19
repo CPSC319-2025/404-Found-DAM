@@ -41,6 +41,7 @@ namespace Infrastructure.DataAccess
             await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
 
             await _context.SaveChangesAsync();
+            // Console.WriteLine("imported");
 
             // Retrieve new Project's ID
             List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
@@ -406,6 +407,8 @@ namespace Infrastructure.DataAccess
                 // Add all ProjectMetadataField entities and save
                 await _context.ProjectMetadataFields.AddRangeAsync(projectMetadataFieldsToAdd);
                 await _context.SaveChangesAsync();
+
+                // TODO: Make all assets in this project inherit the added metadatafields (check duplication) 
                 
                 return metadataFieldsToAdd;
             }
@@ -447,6 +450,7 @@ namespace Infrastructure.DataAccess
                         Version = "0",
                         Location = data.defaultMetadata.location == null ? "" : data.defaultMetadata.location,
                         Description = data.defaultMetadata.description == null ? "" : data.defaultMetadata.description,
+                        CreationTime = DateTime.UtcNow,
                         Active = data.defaultMetadata.active
                     };
 
