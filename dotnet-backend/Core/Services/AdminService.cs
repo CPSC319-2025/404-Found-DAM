@@ -321,7 +321,7 @@ namespace Core.Services
 
         public async Task<GetAllUsersRes> GetAllUsers(int userID)
         {
-            var users = await _repository.GetAllUsers();
+            var users = await _adminRepository.GetAllUsers();
 
             var userDtos = users?.Select(u => new UserDto
             {
