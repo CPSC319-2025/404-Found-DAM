@@ -240,7 +240,7 @@ namespace Infrastructure.DataAccess
             {
                 // Retrieve matched Assets and their tags
                 IQueryable<Asset> query = _context.Assets
-                    .Where(a => a.ProjectID == req.projectID)
+                    .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
                     .Include(a => a.AssetTags)
                         .ThenInclude(at => at.Tag);
                                      
