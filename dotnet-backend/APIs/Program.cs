@@ -41,12 +41,39 @@ builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 
+// Configure JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+});
 
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
+
+// Add Authentication & Authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -84,6 +111,7 @@ app.MapNotificationEndpoints();
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
 app.MapSearchEndpoints();
+app.MapAuthEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
