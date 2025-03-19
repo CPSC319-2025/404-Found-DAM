@@ -3,16 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { User, Tag, Project, Asset, Pagination as PaginationType } from "@/app/types";
-
-const TempUsers: User[] = [
-  { userID: 1, name: "John", email: "john@example.com" },
-  { userID: 2, name: "Luke", email: "luke@example.com" },
-  { userID: 3, name: "Dave", email: "dave@example.com" },
-];
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -145,7 +138,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const fetchAssets = async (page: number) => {
     const queryParams = new URLSearchParams({
-      assetsPerPage: String(1),
+      assetsPerPage: String(10),
       pageNumber: String(page),
       postedBy: String(selectedUser),
       tagID: String(selectedTag),
