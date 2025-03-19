@@ -10,16 +10,16 @@ import React, {
 } from "react";
 
 export type FileMetadata = {
-  file: File;            // The raw file object
-  fileName?: string;     // Optional custom name
+  file: File; // The raw file object
+  fileName?: string; // Optional custom name
   fileSize: string;
   description: string;
   location: string;
   tags: string[];
-  width?: number;        // For images/videos
-  height?: number;       // For images/videos
-  duration?: number;     // For videos
-  project?: string;      // Each file can store its own project name
+  width?: number; // For images/videos
+  height?: number; // For images/videos
+  duration?: number; // For videos
+  project?: string; // Each file can store its own project name
   blobId?: number;
 };
 
@@ -40,14 +40,14 @@ export function FileProvider({ children }: { children: ReactNode }) {
 
   function updateMetadata(index: number, metadata: Partial<FileMetadata>) {
     setFiles((prevFiles) =>
-        prevFiles.map((f, i) => (i === index ? { ...f, ...metadata } : f))
+      prevFiles.map((f, i) => (i === index ? { ...f, ...metadata } : f))
     );
   }
 
   return (
-      <FileContext.Provider value={{ files, setFiles, updateMetadata }}>
-        {children}
-      </FileContext.Provider>
+    <FileContext.Provider value={{ files, setFiles, updateMetadata }}>
+      {children}
+    </FileContext.Provider>
   );
 }
 

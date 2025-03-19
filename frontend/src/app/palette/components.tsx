@@ -29,12 +29,12 @@ type FileTableProps = {
 };
 
 export default function FileTable({
-                                    files,
-                                    removeFile,
-                                    selectedIndices,
-                                    setSelectedIndices,
-                                    projects,
-                                  }: FileTableProps) {
+  files,
+  removeFile,
+  selectedIndices,
+  setSelectedIndices,
+  projects,
+}: FileTableProps) {
   const router = useRouter();
   const { setFiles } = useFileContext();
 
@@ -51,7 +51,7 @@ export default function FileTable({
   }
   function handleSelectRow(index: number) {
     setSelectedIndices((prev) =>
-        prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
   }
 
@@ -59,12 +59,10 @@ export default function FileTable({
     setFiles((prev) => {
       const updated = [...prev];
 
-
       updated[fileIndex] = {
         ...updated[fileIndex],
         tags: updated[fileIndex].tags.filter((_, i) => i !== tagIndex),
       };
-
 
       return updated;
     });
@@ -86,7 +84,9 @@ export default function FileTable({
   // ----- Edit Metadata -----
   function handleEditMetadata(rawFileName: string) {
     // Navigate to /palette/editmetadata?file=<filename>
-    router.push(`/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`);
+    router.push(
+      `/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`
+    );
   }
 
   // ----- Modal Preview Logic -----
@@ -102,18 +102,18 @@ export default function FileTable({
   }
 
   return (
-      <div className="overflow-auto">
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-50">
+    <div className="overflow-auto">
+      <table className="min-w-full bg-white border border-gray-200">
+        <thead className="bg-gray-50">
           <tr>
             <th className="px-6 py-3 text-center">
               <div className="flex items-center justify-center">
                 <input
-                    type="checkbox"
-                    checked={
-                        selectedIndices.length === files.length && files.length > 0
-                    }
-                    onChange={handleSelectAll}
+                  type="checkbox"
+                  checked={
+                    selectedIndices.length === files.length && files.length > 0
+                  }
+                  onChange={handleSelectAll}
                 />
                 <span className="ml-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Select All
@@ -153,8 +153,8 @@ export default function FileTable({
               Remove
             </th>
           </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
           {files.map((fileMeta, index) => {
             const rawFile = fileMeta.file;
             const displayName = rawFile.name;
@@ -172,169 +172,169 @@ export default function FileTable({
             }
 
             return (
-                <tr
-                    key={index}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleSelectRow(index)}
-                >
-                  {/* Checkbox */}
-                  <td className="px-6 py-4 text-center">
-                    <input
-                        type="checkbox"
-                        checked={selectedIndices.includes(index)}
-                        onChange={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectRow(index);
-                        }}
-                    />
-                  </td>
+              <tr
+                key={index}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleSelectRow(index)}
+              >
+                {/* Checkbox */}
+                <td className="px-6 py-4 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIndices.includes(index)}
+                    onChange={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectRow(index);
+                    }}
+                  />
+                </td>
 
-                  {/* Preview cell */}
-                  <td className="px-6 py-4">
-                    {isImage && previewUrlObj && (
-                        <div
-                            className="h-20 w-20 relative"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPreview(previewUrlObj!, rawFile.type);
-                            }}
-                        >
-                          <img
-                              src={previewUrlObj}
-                              alt="Preview"
-                              className="object-cover rounded w-full h-full"
-                          />
-                        </div>
-                    )}
-                    {isVideo && previewUrlObj && (
-                        <div
-                            className="h-20 w-20 relative"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPreview(previewUrlObj!, rawFile.type);
-                            }}
-                        >
-                          <video
-                              src={previewUrlObj}
-                              className="object-cover rounded w-full h-full"
-                          />
-                        </div>
-                    )}
-                  </td>
-
-                  {/* File name */}
-                  <td className="px-6 py-4">{displayName}</td>
-
-                  {/* File Type */}
-                  <td className="px-6 py-4">{rawFile.type}</td>
-
-                  {/* File Size */}
-                  <td className="px-6 py-4">{fileMeta.fileSize}</td>
-
-                  {/* Project dropdown */}
-                  <td className="px-6 py-4">
-                    <select
-                        className="border border-gray-300 rounded p-1"
-                        value={fileMeta.project || ""}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => handleProjectChange(index, e.target.value)}
+                {/* Preview cell */}
+                <td className="px-6 py-4">
+                  {isImage && previewUrlObj && (
+                    <div
+                      className="h-20 w-20 relative"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPreview(previewUrlObj!, rawFile.type);
+                      }}
                     >
-                      <option value="">Select project...</option>
-                      {projects.map((p) => (
-                          <option key={p.projectID} value={p.projectID.toString()}>
-                            {p.projectName}
-                          </option>
-                      ))}
-                    </select>
-                  </td>
+                      <img
+                        src={previewUrlObj}
+                        alt="Preview"
+                        className="object-cover rounded w-full h-full"
+                      />
+                    </div>
+                  )}
+                  {isVideo && previewUrlObj && (
+                    <div
+                      className="h-20 w-20 relative"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPreview(previewUrlObj!, rawFile.type);
+                      }}
+                    >
+                      <video
+                        src={previewUrlObj}
+                        className="object-cover rounded w-full h-full"
+                      />
+                    </div>
+                  )}
+                </td>
 
-                  {/* Tags */}
-                  <td className="px-6 py-4">
-                    {fileMeta.tags.length > 0 ? (
-                        fileMeta.tags.map((tag, tagIndex) => (
-                            <span
-                                key={tagIndex}
-                                className="inline-flex items-center px-2 py-1 mr-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
-                            >
+                {/* File name */}
+                <td className="px-6 py-4">{displayName}</td>
+
+                {/* File Type */}
+                <td className="px-6 py-4">{rawFile.type}</td>
+
+                {/* File Size */}
+                <td className="px-6 py-4">{fileMeta.fileSize}</td>
+
+                {/* Project dropdown */}
+                <td className="px-6 py-4">
+                  <select
+                    className="border border-gray-300 rounded p-1"
+                    value={fileMeta.project || ""}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleProjectChange(index, e.target.value)}
+                  >
+                    <option value="">Select project...</option>
+                    {projects.map((p) => (
+                      <option key={p.projectID} value={p.projectID.toString()}>
+                        {p.projectName}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                {/* Tags */}
+                <td className="px-6 py-4">
+                  {fileMeta.tags.length > 0 ? (
+                    fileMeta.tags.map((tag, tagIndex) => (
+                      <span
+                        key={tagIndex}
+                        className="inline-flex items-center px-2 py-1 mr-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                      >
                         {tag}
-                              <button
-                                  onClick={(evt) => {
-                                    evt.stopPropagation();
-                                    handleRemoveTag(index, tagIndex);
-                                  }}
-                                  className="ml-1 text-red-500 hover:text-red-700"
-                              >
+                        <button
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            handleRemoveTag(index, tagIndex);
+                          }}
+                          className="ml-1 text-red-500 hover:text-red-700"
+                        >
                           ×
                         </button>
                       </span>
-                        ))
-                    ) : (
-                        <span className="text-gray-400 text-xs">No tags</span>
-                    )}
-                  </td>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs">No tags</span>
+                  )}
+                </td>
 
-                  {/* Edit button */}
-                  <td className="px-6 py-4">
-                    <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditMetadata(rawFile.name);
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                  </td>
+                {/* Edit button */}
+                <td className="px-6 py-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditMetadata(rawFile.name);
+                    }}
+                    className="text-indigo-600 hover:text-indigo-900"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                </td>
 
-                  {/* Remove button */}
-                  <td className="px-6 py-4">
-                    <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeFile(index);
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
+                {/* Remove button */}
+                <td className="px-6 py-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFile(index);
+                    }}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </td>
+              </tr>
             );
           })}
-          </tbody>
-        </table>
+        </tbody>
+      </table>
 
-        {/* Modal for full preview */}
-        {isModalOpen && previewUrl && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="relative bg-white p-4 rounded shadow-lg max-w-3xl max-h-[80vh] overflow-auto">
-                {/* Close Button */}
-                <button
-                    onClick={closeModal}
-                    className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
+      {/* Modal for full preview */}
+      {isModalOpen && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="relative bg-white p-4 rounded shadow-lg max-w-3xl max-h-[80vh] overflow-auto">
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
 
-                {/* Image or Video Preview */}
-                {previewType?.startsWith("image/") && (
-                    <img
-                        src={previewUrl}
-                        alt="Full Preview"
-                        className="max-w-full max-h-[70vh]"
-                    />
-                )}
-                {previewType?.startsWith("video/") && (
-                    <video
-                        src={previewUrl}
-                        controls
-                        className="max-w-full max-h-[70vh]"
-                    />
-                )}
-              </div>
-            </div>
-        )}
-      </div>
+            {/* Image or Video Preview */}
+            {previewType?.startsWith("image/") && (
+              <img
+                src={previewUrl}
+                alt="Full Preview"
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+            {previewType?.startsWith("video/") && (
+              <video
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

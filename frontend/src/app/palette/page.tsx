@@ -1,15 +1,15 @@
 "use client";
 
-import React, {useCallback, useState, useEffect, useRef} from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
 
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import FileTable from "./components";
-import { ZstdCodec } from 'zstd-codec';
-import {compressFileZstd} from "@/app/palette/compressFileZstd";
-import JSZip from 'jszip';
-import { decompressSync } from 'zstd.ts';
+import { ZstdCodec } from "zstd-codec";
+import { compressFileZstd } from "@/app/palette/compressFileZstd";
+import JSZip from "jszip";
+import { decompressSync } from "zstd.ts";
 
 interface Project {
   projectID: number;
@@ -38,7 +38,6 @@ export default function PalettePage() {
   }, []);
 
   function getMimeTypeFromFileName(filename: string): string {
-
     const extension = filename.split(".").pop()?.toLowerCase();
     //console.log(filename)
     if (!extension) return "unknown";
@@ -65,14 +64,20 @@ export default function PalettePage() {
       // Look for filename=
       if (trimmed.toLowerCase().startsWith("filename=")) {
         // e.g. filename=11.zst
-        const val = trimmed.substring("filename=".length).trim().replace(/^"|"$/g, "");
+        const val = trimmed
+          .substring("filename=".length)
+          .trim()
+          .replace(/^"|"$/g, "");
         return val;
       }
 
       // Look for filename*= (UTF-8)
       if (trimmed.toLowerCase().startsWith("filename*=")) {
         // e.g. filename*=UTF-8''11.zst
-        const val = trimmed.substring("filename*=".length).trim().replace(/^"|"$/g, "");
+        const val = trimmed
+          .substring("filename*=".length)
+          .trim()
+          .replace(/^"|"$/g, "");
         // If it starts with UTF-8'', remove that and decode
         if (val.toLowerCase().startsWith("utf-8''")) {
           return decodeURIComponent(val.substring(7));
@@ -85,6 +90,7 @@ export default function PalettePage() {
     return "defaultFilename.zst";
   }
   async function fetchPaletteAssets() {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const FormData = require("form-data");
     const formData = new FormData();
     formData.append("UserId", "1"); // Fixed requirement: UserId=1
@@ -101,7 +107,7 @@ export default function PalettePage() {
       throw new Error(`Fetch failed with status ${response.status}`);
     }
 
-    console.log(response)
+    console.log(response);
 
     const blob = await response.blob();
     const contentType = response.headers.get("content-type");
@@ -132,9 +138,9 @@ export default function PalettePage() {
       }
 
       const file = new File(
-          [decompressed],
-          filename, // ensure that filename is defined in your context
-          {type: getMimeTypeFromFileName(filename)}
+        [decompressed],
+        filename, // ensure that filename is defined in your context
+        { type: getMimeTypeFromFileName(filename) }
       );
 
       const fileSize = (file.size / 1024).toFixed(2) + " KB";
@@ -163,7 +169,6 @@ export default function PalettePage() {
           fileMeta.duration = Math.floor(video.duration);
           // Add metadata to state
           setFiles((prev) => [...prev, fileMeta]);
-
         };
         video.src = URL.createObjectURL(file);
       } else {
@@ -175,50 +180,50 @@ export default function PalettePage() {
       // const fileContents: FileMetadata[] = [];
       // console.log("zip");
       await Promise.all(
-          Object.keys(zip.files).map(async (filename) => {
-            const fileData = await zip.files[filename].async("uint8array");
-            const decompressedData = await decompressZstd(fileData);
+        Object.keys(zip.files).map(async (filename) => {
+          const fileData = await zip.files[filename].async("uint8array");
+          const decompressedData = await decompressZstd(fileData);
 
-            const file = new File(
-                [decompressedData],
-                filename, // ensure that filename is defined in your context
-                {type: getMimeTypeFromFileName(filename)}
-            );
+          const file = new File(
+            [decompressedData],
+            filename, // ensure that filename is defined in your context
+            { type: getMimeTypeFromFileName(filename) }
+          );
 
-            const fileSize = (file.size / 1024).toFixed(2) + " KB";
-            const fileMeta: FileMetadata = {
-              file,
-              fileSize,
-              description: "",
-              location: "",
-              tags: [],
-            };
+          const fileSize = (file.size / 1024).toFixed(2) + " KB";
+          const fileMeta: FileMetadata = {
+            file,
+            fileSize,
+            description: "",
+            location: "",
+            tags: [],
+          };
 
-            if (file.type.startsWith("image/")) {
-              const img = new Image();
-              img.onload = () => {
-                fileMeta.width = img.width;
-                fileMeta.height = img.height;
-                setFiles((prev) => [...prev, fileMeta]);
-              };
-              img.src = URL.createObjectURL(file);
-            } else if (file.type.startsWith("video/")) {
-              const video = document.createElement("video");
-              video.preload = "metadata";
-              video.onloadedmetadata = () => {
-                fileMeta.width = video.videoWidth;
-                fileMeta.height = video.videoHeight;
-                fileMeta.duration = Math.floor(video.duration);
-                // Add metadata to state
-                setFiles((prev) => [...prev, fileMeta]);
-
-              };
-              video.src = URL.createObjectURL(file);
-            } else {
-              // Other file types:
+          if (file.type.startsWith("image/")) {
+            const img = new Image();
+            img.onload = () => {
+              fileMeta.width = img.width;
+              fileMeta.height = img.height;
               setFiles((prev) => [...prev, fileMeta]);
-            }
-          }));
+            };
+            img.src = URL.createObjectURL(file);
+          } else if (file.type.startsWith("video/")) {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+              fileMeta.width = video.videoWidth;
+              fileMeta.height = video.videoHeight;
+              fileMeta.duration = Math.floor(video.duration);
+              // Add metadata to state
+              setFiles((prev) => [...prev, fileMeta]);
+            };
+            video.src = URL.createObjectURL(file);
+          } else {
+            // Other file types:
+            setFiles((prev) => [...prev, fileMeta]);
+          }
+        })
+      );
     } else {
       console.error("Unexpected content type:", contentType);
     }
@@ -230,6 +235,7 @@ export default function PalettePage() {
       const compressedFile = await compressFileZstd(fileMeta.file);
 
       // 3.2 Use native FormData (NOT require("form-data"))
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const FormData = require("form-data");
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
@@ -260,18 +266,15 @@ export default function PalettePage() {
 
         // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
-            prevFiles.map((f) =>
-                f === fileMeta
-                    ? { ...f, blobId: detail.blobID }
-                    : f
-            )
+          prevFiles.map((f) =>
+            f === fileMeta ? { ...f, blobId: detail.blobID } : f
+          )
         );
       }
     } catch (err) {
       console.error("Error uploading file:", err);
     }
   }
-
 
   // 1. Fetch the project logs from Beeceptor once on mount
   useEffect(() => {
@@ -306,6 +309,7 @@ export default function PalettePage() {
       const fileToRemove = updated[index];
 
       // Prepare form data
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const FormData = require("form-data");
       const formData = new FormData();
       formData.append("UserId", "1");
@@ -320,18 +324,18 @@ export default function PalettePage() {
         body: formData,
         // No need to set 'Content-Type'; fetch does it automatically for FormData
       })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Network response was not ok");
-            }
-            return response.json(); // or response.text() depending on your API
-          })
-          .then((data) => {
-            console.log("Delete successful:", data);
-          })
-          .catch((error) => {
-            console.error("Error deleting:", error);
-          });
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json(); // or response.text() depending on your API
+        })
+        .then((data) => {
+          console.log("Delete successful:", data);
+        })
+        .catch((error) => {
+          console.error("Error deleting:", error);
+        });
 
       // Remove the file from state
       updated.splice(index, 1);
@@ -339,55 +343,54 @@ export default function PalettePage() {
     });
   }
 
-
   // 3. Drag-and-drop for images/videos
   const onDrop = useCallback(
-      (acceptedFiles: File[]) => {
-        acceptedFiles.forEach((file) => {
-          const fileSize = (file.size / 1024).toFixed(2) + " KB";
-          const fileMeta: FileMetadata = {
-            file,
-            fileSize,
-            description: "",
-            location: "",
-            tags: [],
-          };
+    (acceptedFiles: File[]) => {
+      acceptedFiles.forEach((file) => {
+        const fileSize = (file.size / 1024).toFixed(2) + " KB";
+        const fileMeta: FileMetadata = {
+          file,
+          fileSize,
+          description: "",
+          location: "",
+          tags: [],
+        };
 
-          if (file.type.startsWith("image/")) {
-            const img = new Image();
-            img.onload = () => {
-              fileMeta.width = img.width;
-              fileMeta.height = img.height;
+        if (file.type.startsWith("image/")) {
+          const img = new Image();
+          img.onload = () => {
+            fileMeta.width = img.width;
+            fileMeta.height = img.height;
 
-              // Add metadata to state
-              setFiles((prev) => [...prev, fileMeta]);
-              // Immediately upload
-              uploadFileZstd(fileMeta).catch(console.error);
-            };
-            img.src = URL.createObjectURL(file);
-          } else if (file.type.startsWith("video/")) {
-            const video = document.createElement("video");
-            video.preload = "metadata";
-            video.onloadedmetadata = () => {
-              fileMeta.width = video.videoWidth;
-              fileMeta.height = video.videoHeight;
-              fileMeta.duration = Math.floor(video.duration);
-
-              // Add metadata to state
-              setFiles((prev) => [...prev, fileMeta]);
-              // Immediately upload
-              uploadFileZstd(fileMeta).catch(console.error);
-            };
-            video.src = URL.createObjectURL(file);
-          } else {
-            // Other file types:
+            // Add metadata to state
             setFiles((prev) => [...prev, fileMeta]);
             // Immediately upload
             uploadFileZstd(fileMeta).catch(console.error);
-          }
-        });
-      },
-      [setFiles]
+          };
+          img.src = URL.createObjectURL(file);
+        } else if (file.type.startsWith("video/")) {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          video.onloadedmetadata = () => {
+            fileMeta.width = video.videoWidth;
+            fileMeta.height = video.videoHeight;
+            fileMeta.duration = Math.floor(video.duration);
+
+            // Add metadata to state
+            setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            uploadFileZstd(fileMeta).catch(console.error);
+          };
+          video.src = URL.createObjectURL(file);
+        } else {
+          // Other file types:
+          setFiles((prev) => [...prev, fileMeta]);
+          // Immediately upload
+          uploadFileZstd(fileMeta).catch(console.error);
+        }
+      });
+    },
+    [setFiles]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -432,15 +435,15 @@ export default function PalettePage() {
 
       try {
         const response = await fetch(
-            `http://localhost:5155/projects/${projectId}/submit-assets`,
-            {
-              method: "PATCH",
-              headers: {
-                Authorization: "Bearer MY_TOKEN",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": [123, 456] }
-            }
+          `http://localhost:5155/projects/${projectId}/submit-assets`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: "Bearer MY_TOKEN",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": [123, 456] }
+          }
         );
 
         if (!response.ok) {
@@ -453,20 +456,24 @@ export default function PalettePage() {
 
         // 3) Remove these files from our palette state
         setFiles((prev) =>
-            prev.filter(
-                (file) =>
-                    file.project !== projectId || // keep files from other projects
-                    !file.blobId ||
-                    !blobIDs.includes(file.blobId) // keep files not in this batch
-            )
+          prev.filter(
+            (file) =>
+              file.project !== projectId || // keep files from other projects
+              !file.blobId ||
+              !blobIDs.includes(file.blobId) // keep files not in this batch
+          )
         );
 
         // Also remove them from the selectedIndices array
         setSelectedIndices((prev) =>
-            prev.filter((i) => {
-              const f = files[i];
-              return f.project !== projectId || !f.blobId || !blobIDs.includes(f.blobId);
-            })
+          prev.filter((i) => {
+            const f = files[i];
+            return (
+              f.project !== projectId ||
+              !f.blobId ||
+              !blobIDs.includes(f.blobId)
+            );
+          })
         );
       } catch (err) {
         console.error("Error submitting assets:", err);
@@ -474,62 +481,59 @@ export default function PalettePage() {
     }
   }
 
-
   return (
-      <div className="p-6 min-h-screen">
-        <FileTable
-            files={files}
-            removeFile={removeFile}
-            selectedIndices={selectedIndices}
-            setSelectedIndices={setSelectedIndices}
-            projects={projects} // Pass in the array from Beeceptor
-        />
+    <div className="p-6 min-h-screen">
+      <FileTable
+        files={files}
+        removeFile={removeFile}
+        selectedIndices={selectedIndices}
+        setSelectedIndices={setSelectedIndices}
+        projects={projects} // Pass in the array from Beeceptor
+      />
 
-        <div className="mt-6 bg-white p-4 rounded shadow flex flex-col items-center">
-          <div
-              {...getRootProps()}
-              className="w-96 h-48 border-2 border-dashed border-gray-300 p-4 rounded-lg text-center cursor-pointer flex flex-col items-center justify-center"
-          >
-            <input {...getInputProps()} />
-            {isDragActive ? (
-                <p className="text-xl text-teal-600">Drop files here...</p>
-            ) : (
-                <>
-                  <p className="text-xl font-semibold text-gray-700 mb-1">
-                    Drag and Drop here
-                  </p>
-                  <p className="text-gray-500 mb-2">or</p>
-                  <button
-                      type="button"
-                      className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                  >
-                    Select files
-                  </button>
-                  <p className="text-sm text-gray-400 mt-2">
-                    (Images &amp; Videos Only)
-                  </p>
-                </>
-            )}
-          </div>
-
-          {/* Button that uploads each selected file individually */}
-          <button
-              onClick={handleSubmitAssets}
-              className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Upload Assets
-          </button>
-
-          {/*TODO*/}
-          {/*<button*/}
-          {/*    onClick={handleUpload}*/}
-          {/*    className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"*/}
-          {/*>*/}
-          {/*  Select Files to Upload*/}
-          {/*</button>*/}
-
-
+      <div className="mt-6 bg-white p-4 rounded shadow flex flex-col items-center">
+        <div
+          {...getRootProps()}
+          className="w-96 h-48 border-2 border-dashed border-gray-300 p-4 rounded-lg text-center cursor-pointer flex flex-col items-center justify-center"
+        >
+          <input {...getInputProps()} />
+          {isDragActive ? (
+            <p className="text-xl text-teal-600">Drop files here...</p>
+          ) : (
+            <>
+              <p className="text-xl font-semibold text-gray-700 mb-1">
+                Drag and Drop here
+              </p>
+              <p className="text-gray-500 mb-2">or</p>
+              <button
+                type="button"
+                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              >
+                Select files
+              </button>
+              <p className="text-sm text-gray-400 mt-2">
+                (Images &amp; Videos Only)
+              </p>
+            </>
+          )}
         </div>
+
+        {/* Button that uploads each selected file individually */}
+        <button
+          onClick={handleSubmitAssets}
+          className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Upload Assets
+        </button>
+
+        {/*TODO*/}
+        {/*<button*/}
+        {/*    onClick={handleUpload}*/}
+        {/*    className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"*/}
+        {/*>*/}
+        {/*  Select Files to Upload*/}
+        {/*</button>*/}
       </div>
+    </div>
   );
 }
