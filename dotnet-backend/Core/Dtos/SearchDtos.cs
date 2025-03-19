@@ -10,7 +10,6 @@ namespace Core.Dtos
     {
         public int blobID { get; set; }
         public string fileName { get; set; }
-        public string thumbnailUrl { get; set; }
 
         public List<TagCustomInfo> tags { get; set; } = new();
 

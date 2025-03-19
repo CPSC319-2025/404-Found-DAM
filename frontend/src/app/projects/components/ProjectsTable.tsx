@@ -59,7 +59,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="h-20 w-20 relative">
                     <Image
-                      src={asset.thumbnailUrl ?? "/images/missing-image.png"}
+                      src="/images/missing-image.png"
                       alt={`${asset.filename} thumbnail`}
                       width={120}
                       height={120}

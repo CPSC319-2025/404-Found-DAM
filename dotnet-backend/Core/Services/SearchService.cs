@@ -48,7 +48,6 @@ namespace Core.Services
                 {
                     blobID = a.BlobID,
                     fileName = a.FileName,
-                    thumbnailUrl = a.FileName,
                     tags = a.AssetTags
                         .Select(at => new TagCustomInfo
                         {

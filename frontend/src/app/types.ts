@@ -28,7 +28,6 @@ export interface Project {
 
 export interface Asset {
   blobID: number;
-  thumbnailUrl: string;
   filename: string;
   uploadedBy: {
     userID: number;

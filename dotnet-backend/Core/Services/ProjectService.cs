@@ -319,7 +319,6 @@ namespace Core.Services
                 List<PaginatedProjectAsset> paginatedProjectAssets = retrievedAssets.Select(a => new PaginatedProjectAsset
                     {
                         blobID = a.BlobID,
-                        // thumbnailUrl = a.thumbnailUrl, // TODO: add this!
                         filename = a.FileName,
                         uploadedBy = new PaginatedProjectAssetUploadedBy
                         {
