@@ -10,19 +10,6 @@ fi
 #############################################
 # Configuration Variables and Versions
 #############################################
-# MySQL Docker container settings
-MYSQL_ROOT_PASSWORD="YourRootPass"
-MYSQL_DATABASE="MyProjectDB"
-MYSQL_USER="MyUser"
-MYSQL_PASSWORD="MyUser@Passw0rd"
-CONTAINER_NAME="mysql_dev"
-MYSQL_PORT=3306
-MYSQL_IMAGE="mysql:8.0.33"  # Using MySQL 8.0.33
-
-# Azure Storage connection string (if applicable)
-export AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=yourstorageaccount;AccountKey=yourAccountKey;EndpointSuffix=core.windows.net"
-export AZURE_STORAGE_CONTAINER="dam-assets-container"
-export ENVIRONMENT="Production"
 
 # Versions for .NET and Node.js (for React)
 DOTNET_VERSION="8.0.100"   # Expected .NET SDK version
@@ -74,77 +61,11 @@ fi
 #############################################
 # Start/Restart MySQL Docker Container
 #############################################
-echo "Setting up MySQL container '${CONTAINER_NAME}'..."
-if [ "$(docker ps -a -q -f name=${CONTAINER_NAME})" ]; then
-    echo "Removing existing container named ${CONTAINER_NAME}..."
-    docker rm -f ${CONTAINER_NAME}
-fi
 
-echo "Starting MySQL container '${CONTAINER_NAME}' with image ${MYSQL_IMAGE}..."
-docker run --name ${CONTAINER_NAME} \
-  -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
-  -e MYSQL_DATABASE=${MYSQL_DATABASE} \
-  -e MYSQL_USER=${MYSQL_USER} \
-  -e MYSQL_PASSWORD=${MYSQL_PASSWORD} \
-  -p ${MYSQL_PORT}:3306 \
-  -d ${MYSQL_IMAGE}
+echo "Starting MySQL container"
+docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 
 echo "Waiting for MySQL to initialize (this may take a few seconds)..."
-sleep 30
-
-echo "MySQL container '${CONTAINER_NAME}' is now running."
-echo "Connection details:"
-echo "  Host: localhost"
-echo "  Port: ${MYSQL_PORT}"
-echo "  Database: ${MYSQL_DATABASE}"
-echo "  User: ${MYSQL_USER}"
-echo "  Password: ${MYSQL_PASSWORD}"
-
-#############################################
-# Create .NET Backend Project
-#############################################
-BACKEND_DIR="dotnet-backend"
-if [ ! -d "${BACKEND_DIR}" ]; then
-    echo "Creating .NET backend project in '${BACKEND_DIR}'..."
-    mkdir "${BACKEND_DIR}"
-    pushd "${BACKEND_DIR}" > /dev/null
-    dotnet new webapi --no-https -o .
-    # Create appsettings.json with MySQL connection string
-    cat > appsettings.json <<EOF
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=${MYSQL_PORT};Database=${MYSQL_DATABASE};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning",
-      "Microsoft.Hosting.Lifetime": "Information"
-    }
-  }
-}
-EOF
-    popd > /dev/null
-    echo ".NET backend project created."
-else
-    echo ".NET backend directory '${BACKEND_DIR}' already exists; skipping creation."
-fi
-
-#############################################
-# Check node version before creating React Frontend Project
-#############################################
-# FRONTEND_DIR="react-frontend"
-# if [ ! -d "${FRONTEND_DIR}" ]; then
-#     echo "Creating React frontend project in '${FRONTEND_DIR}'..."
-#     mkdir "${FRONTEND_DIR}"
-#     pushd "${FRONTEND_DIR}" > /dev/null
-#     # Use create-react-app to scaffold the project
-#     npx create-react-app . --template cra-template
-#     popd > /dev/null
-#     echo "React frontend project created."
-# else
-#     echo "React frontend directory '${FRONTEND_DIR}' already exists; skipping creation."
-# fi
 
 #############################################
 # Verify Node and npm Versions for React Frontend
@@ -174,19 +95,17 @@ else
 fi
 
 
+
+echo "Setup ef core tool and update database using the commented out commands commands in setup.sh "
+# dotnet tool install --global dotnet-ef
+# copy paste the exporting path to bash_profile at the buttom of dotnet tool install --global dotnet-ef
+dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
+
+
 #############################################
 # Final Message
 #############################################
 echo "--------------------------------------------------"
 echo "Setup complete!"
-echo "MySQL container '${CONTAINER_NAME}' is running."
-echo ".NET backend project is in the '${BACKEND_DIR}' directory."
-echo "React frontend project is in the '${FRONTEND_DIR}' directory."
 echo "Remember to update your backend code to connect to MySQL using the connection string in appsettings.json."
 echo "--------------------------------------------------"
-
-dotnet tool install --global dotnet-ef
-echo "export PATH="$PATH:/Users/user/.dotnet/tools"" >> ~/.bash_profile
-dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
-docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
