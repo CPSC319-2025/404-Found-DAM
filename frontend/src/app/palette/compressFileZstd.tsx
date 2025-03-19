@@ -16,7 +16,7 @@ export async function compressFileZstd(file: File): Promise<File> {
             const inputData = new Uint8Array(result as ArrayBuffer);
 
             // Initialize zstd by calling ZstdCodec.run(...)
-            ZstdCodec.run((zstd) => {
+            ZstdCodec.run((zstd : any) => {
                 try {
                     const simpleZstd = new zstd.Simple();
                     const compressedData = simpleZstd.compress(inputData);
