@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Infrastructure.DataAccess;
+using Core.Services;
 
 namespace APIs.Controllers
 {
@@ -46,6 +48,13 @@ namespace APIs.Controllers
         // }
         public static async Task<IResult> GetActivityLog(HttpRequest request, [FromServices] IActivityLogService activityService)
         {
+
+            // AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID)
+            User user = new User { UserID = 5, Email = "test_for_logs@example.com", Name = "Test Log" };
+
+            await activityService.AddLogAsync(1, user, "created", "image1", 1, 2);
+            await activityService.AddLogAsync(1, user, "created", "image2", 1, 2);
+            await activityService.AddLogAsync(1, user, "created", "image3", 1, 2);
             var query = request.Query;
 
             int? projectID = query.ContainsKey("projectID") ? int.Parse(query["projectID"]) : null;
@@ -138,35 +147,47 @@ namespace APIs.Controllers
     {
         var body = await new StreamReader(request.Body).ReadToEndAsync();
         
-        Console.WriteLine($"Request Body: {body}");
+        // Console.WriteLine($"Request Body: {body}");
 
 
-        var log = JsonSerializer.Deserialize<Log>(body);
+        // var log = JsonSerializer.Deserialize<Log>(body);
 
-        if (log == null)
-        {
-            return Results.BadRequest("Failed to deserialize log object.");
-        }
+        // if (log == null)
+        // {
+        //     return Results.BadRequest("Failed to deserialize log object.");
+        // }
 
-        if (string.IsNullOrEmpty(log.Description) || log.UserID == 0 || log.AssetID == 0 || log.ProjectID == 0)
-        {
-            return Results.BadRequest("Missing required fields.");
-        }
+        // if (string.IsNullOrEmpty(log.Description) || log.UserID == 0 || log.AssetID == 0 || log.ProjectID == 0)
+        // {
+        //     return Results.BadRequest("Missing required fields.");
+        // }
 
         User user = new User { UserID = 5, Email = "test_for_logs@example.com", Name = "Test Log" };
 
-        bool result = await activityLogService.AddLogAsync(
-            log.UserID,
+        bool result = await activityLogService.AddLogAsync( // mock data
+            5,
             user,
-            log.ChangeType,
-            log.Description,
-            log.ProjectID,
-            log.AssetID
+            "Created",
+            "Image1",
+            2,
+            2
         );
+
+        // var log2 = new Log
+        // {
+        //     ChangeType = "Create",
+        //     Description = "Image 1",
+        //     ProjectID = 101,
+        //     AssetID = 202,
+        //     UserID = 5,
+        //     Timestamp = DateTime.UtcNow,
+        //     User = user,
+        // };
 
         if (result)
         {
-            return Results.Created($"/logs/{log.ChangeID}", log);
+            // return Results.Created($"/logs/{log.ChangeID}", log);
+            return Results.Created("success", "success");
         }
         else
         {
