@@ -8,8 +8,8 @@ namespace Core.Dtos
         public string assetType {get; set; }
         public int pageNumber {get; set; }
         public int assetsPerPage {get; set; }
-        public string? postedBy {get; set; }
-        public string? datePosted {get; set; }
+        public int? postedBy {get; set; } // userID
+        public int? tagID { get; set; }
     }
 
     public class GetPaginatedProjectAssetsRes
@@ -22,7 +22,6 @@ namespace Core.Dtos
     public class PaginatedProjectAsset
     {
         public int blobID { get; set; }
-        public string thumbnailUrl { get; set; }
         public string filename { get; set; }
         public PaginatedProjectAssetUploadedBy uploadedBy { get; set; }
         public DateTime date { get; set; }

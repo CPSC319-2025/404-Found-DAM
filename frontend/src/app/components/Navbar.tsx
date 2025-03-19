@@ -49,14 +49,14 @@ const pages: Page[] = [
         title: "Users",
         mobileTitle: "Users",
         icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
-      },
+        },
     ]
     : []),
 ];
 
 export default function Navbar() {
   return (
-    <nav className="w-full sm:w-64 bg-navbar p-2 fixed sm:relative">
+    <nav className="w-full sm:w-64 bg-navbar p-2 fixed sm:relative z-50">
       <div className="block sm:hidden">
         <ul className="flex justify-around space-x-4">
           {pages.map((page) => (

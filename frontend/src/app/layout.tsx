@@ -9,6 +9,7 @@ import Login from "@/app/components/Login";
 import { FileProvider } from "@/app/context/FileContext";
 import { UserProvider } from "@/app/context/UserContext";
 import { getUserFromToken, User } from "@/app/utils/api/auth";
+import React from "react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -42,10 +43,6 @@ export default function RootLayout({
       setLoading(true);
     };
   }, []);
-
-  const handleLogout = () => {
-    setUser(null);
-  };
 
   if (loading) {
     return (

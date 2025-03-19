@@ -45,8 +45,8 @@ export const users: User[] = [
   },
 ];
 
-export async function login(email: string): Promise<string | null> {
-  return new Promise((resolve, reject) => {
+export async function login(email: string): Promise<unknown> {
+  return new Promise((resolve, _reject) => {
     const user = users.find((u) => u.email === email);
     if (!user) {
       resolve(null);
@@ -79,7 +79,7 @@ export async function getUserFromToken() {
 
   try {
     const { payload } = await jwtVerify(token, secret);
-    return payload;
+    return payload as unknown as User;
   } catch (error) {
     console.error("Invalid token:", error);
     return null;

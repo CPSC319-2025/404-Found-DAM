@@ -21,27 +21,25 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
-            app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/associate-assets", AssociateAssetsWithProject).WithName("AssociateAssetsWithProject").WithOpenApi();
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
-
-            // TODO: Not implemented yet
-            // app.MapPost("/projects/{projectID}/import", ImportProject).WithName("ImportProject").WithOpenApi();
-            // app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
-            string? postedBy,
-            string? datePosted,
+            int? postedBy,
+            int? tagID,
             IProjectService projectService,
             string assetType = DefaultAssetType,
             int pageNumber = DefaultPageNumber, 
             int assetsPerPage = DefaultPageSize
         )
         {
+            // TODO: Get requester's ID and replace
+            int requesterID = MOCKEDUSERID; 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -58,10 +56,10 @@ namespace APIs.Controllers
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
                     postedBy = postedBy,
-                    datePosted = datePosted
+                    tagID = tagID
                 };
 
-                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req);
+                GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
                 return Results.Ok(result);
             } 
             catch (DataNotFoundException ex) 
@@ -108,9 +106,14 @@ namespace APIs.Controllers
             {
                 return Results.NotFound(ex.Message);
             }
-            catch (Exception) 
+            catch (Exception ex) 
             {
-                return Results.StatusCode(500);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );            
             } 
         }
 
@@ -122,31 +125,10 @@ namespace APIs.Controllers
                 GetArchivedProjectLogsRes result = await projectService.GetArchivedProjectLogs();
                 return Results.Ok(result);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return Results.StatusCode(500);
             }        
-        }
-        
-        private static async Task<IResult> ExportProject(int projectID, IProjectService projectService)
-        {
-            try 
-            {
-                // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await projectService.ExportProject(projectID);
-                return excelData == null 
-                    ? Results.NotFound("No project is found to be exported") 
-                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
-            }
-            catch (Exception ex)
-            {
-                return Results.StatusCode(500);
-            }  
-        }
-
-        private static async Task<IResult> ImportProject(ImportProjectReq req, IProjectService projectService)
-        {
-            return Results.NotFound("stub"); // Stub
         }
 
         private static async Task<IResult> ArchiveProjects(ArchiveProjectsReq req, IProjectService projectService)
@@ -172,13 +154,18 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IProjectService projectService)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsReq req, IProjectService projectService)
         {
-            // May need to add varification to check if client data is bad.
             try 
             {
-                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs);
+                // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
+                int submitterID = MOCKEDUSERID; 
+                AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
                 return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
             }
             catch (Exception ex)
             {

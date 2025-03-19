@@ -18,6 +18,278 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
+        public async Task<int> ImportProjectInDB
+        (
+            List<Project> projectList, 
+            List<ProjectTag> projectTagList, 
+            List<Tag> tagList, 
+            List<Asset> assetList, 
+            List<AssetTag> assetTagList, 
+            List<User> userList, 
+            List<ProjectMembership> projectMembershipList
+        )
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            // TODO: Save assets to blob and get their BlobID
+            await _context.Tags.AddRangeAsync(tagList);
+            await _context.Users.AddRangeAsync(userList);
+            await _context.Projects.AddRangeAsync(projectList);
+            await _context.Assets.AddRangeAsync(assetList);
+            await _context.ProjectTags.AddRangeAsync(projectTagList);
+            await _context.AssetTags.AddRangeAsync(assetTagList);
+            await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
+
+            await _context.SaveChangesAsync();
+            // Console.WriteLine("imported");
+
+            // Retrieve new Project's ID
+            List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
+            return newProjectIDs[0];
+        }
+
+        public async Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> DeleteUsersFromProjectInDb(int reqeusterID, int projectID, DeleteUsersFromProjectReq req)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            // Check if project exists and retrieve it if so.
+            var project = await _context.Projects.FindAsync(projectID);
+            if (project == null) 
+            {
+                throw new DataNotFoundException($"Project {projectID} not found.");
+            }
+            else 
+            {
+                // Check if the requester is an admin of the prokect w/o getting that admin
+                bool isRequesterAdmin = await _context.ProjectMemberships
+                    .AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == reqeusterID && pm.UserRole == ProjectMembership.UserRoleType.Admin);
+                
+                if (isRequesterAdmin) 
+                {
+                    // Create empty sets for storing processed results
+                    HashSet<int> removedAdmins = new HashSet<int>();
+                    HashSet<int> removedRegularUsers = new HashSet<int>();
+                    HashSet<int> failedToRemoveFromAdmins = new HashSet<int>();
+                    HashSet<int> failedToRemoveFromRegulars = new HashSet<int>();
+                    HashSet<ProjectMembership> pmTobeRemoved = new HashSet<ProjectMembership>();
+
+                    using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid partial data
+                    try 
+                    {
+                        // remove admins first
+                        foreach (int candidateID in req.removeFromAdmins)
+                        {
+                            // Check if the admin is non-existent
+                            User? candidate = await _context.Users.FindAsync(candidateID);
+                            if (candidate == null)
+                            {
+                                failedToRemoveFromAdmins.Add(candidateID); // Candidate does not exist in user pool.
+                            } 
+                            else
+                            {
+                                // Check if the to-be-removed admin is in the project
+                                ProjectMembership? projectMembership = await _context.ProjectMemberships.FindAsync(projectID, candidateID);
+                                if (projectMembership == null) // to-be-removed admin candidate is not in the project.
+                                {
+                                    failedToRemoveFromAdmins.Add(candidateID); 
+                                } 
+                                else // to-be-removed admin candidate is in the project.
+                                {
+                                    // Check if the to-be-removed admin candidate is an admin in the project.
+                                    if (projectMembership.UserRole == ProjectMembership.UserRoleType.Admin) 
+                                    {
+                                        // Admin should not remove themselves
+                                        if (candidateID == reqeusterID) 
+                                        {
+                                            failedToRemoveFromAdmins.Add(candidateID); // to-be-removed admin candidate is the requester themselves!
+                                        }
+                                        else if (candidate.IsSuperAdmin) 
+                                        {
+                                            // Admin should not remove super admin.
+                                            failedToRemoveFromAdmins.Add(candidateID); // to-be-removed admin candidate is the requester themselves!
+                                        }
+                                        else 
+                                        {
+                                            // Check if this admin is already in the pmTobeRemoved set
+                                            if (!pmTobeRemoved.Contains(projectMembership))
+                                            {
+                                                pmTobeRemoved.Add(projectMembership);
+                                                removedAdmins.Add(candidateID);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // FE should guard this already, so in BE this case will be ignored for now.
+                                         Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                    }
+                                }
+                            } 
+                        }
+
+                        // Add regular users
+                        foreach (int candidateID in req.removeFromRegulars)
+                        {
+                            // Check if the regular user is non-existent
+                            User? candidate = await _context.Users.FindAsync(candidateID);
+                            if (candidate == null)
+                            {
+                                failedToRemoveFromRegulars.Add(candidateID); // Candidate does not exist in user pool.
+                            } 
+                            else
+                            {
+                                // Check if the to-be-removed candidate is in the project
+                                ProjectMembership? projectMembership = await _context.ProjectMemberships.FindAsync(projectID, candidateID);
+                                if (projectMembership == null) // to-be-removed candidate is not in the project
+                                {
+                                    failedToRemoveFromRegulars.Add(candidateID);
+                                } 
+                                else 
+                                {
+                                    // Check if the to-be-removed candidate in the project is actually a regular user of this project
+                                    if (projectMembership.UserRole == ProjectMembership.UserRoleType.Regular) 
+                                    {
+                                        pmTobeRemoved.Add(projectMembership);
+                                        removedRegularUsers.Add(candidateID);
+                                    }
+                                    else 
+                                    {
+                                        // FE should guard this already, so in BE this case will be ignored for now.
+                                        Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                    }
+                                }
+                            } 
+                        }
+
+                        _context.RemoveRange(pmTobeRemoved);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync(); // Commit transaction
+                        return (removedAdmins, removedRegularUsers, failedToRemoveFromAdmins, failedToRemoveFromRegulars);
+                    } 
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync(); // Undo any changes made within a database transaction
+                        throw new Exception($"Error adding users: {ex.Message}");
+                    }
+                }
+                else 
+                {
+                    throw new DataNotFoundException($"Request issued from non-admin of project {projectID}.");
+                }
+            }
+        }
+
+        public async Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> AddUsersToProjectInDb(int reqeusterID, int projectID, AddUsersToProjectReq req)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            // Check if project exists and retrieve it if so.
+            var project = await _context.Projects.FindAsync(projectID); // Lazy load (some navigation properties may NOT loaded immediately).
+
+            
+            if (project == null) 
+            {
+                throw new DataNotFoundException($"Project {projectID} not found.");
+            }
+            else 
+            {
+                // Check if the requester is an admin of the prokect w/o getting that admin
+                bool isRequesterAdmin = await _context.ProjectMemberships
+                    .AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == reqeusterID && pm.UserRole == ProjectMembership.UserRoleType.Admin);
+                
+                if (isRequesterAdmin) 
+                {
+                    // Create empty sets for storing processed results
+                    HashSet<int> newAdmins = new HashSet<int>();
+                    HashSet<int> newRegularUsers = new HashSet<int>();
+                    HashSet<int> failedToAddAsAdmin = new HashSet<int>();
+                    HashSet<int> failedToAddAsRegular = new HashSet<int>();
+                    HashSet<ProjectMembership> projectMemberships = new HashSet<ProjectMembership>();
+
+                    using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid partial data
+                    try 
+                    {
+                        // Add admins first
+                        foreach (int candidateID in req.addAsAdmin)
+                        {
+                            User? candidate = await _context.Users.FindAsync(candidateID);
+                            if (candidate == null)
+                            {
+                                failedToAddAsAdmin.Add(candidateID); // Candidate does not exist in user pool.
+                            } 
+                            else
+                            {
+                                bool isAddedAlready = await _context.ProjectMemberships
+                                    .AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == candidateID);
+                                if (isAddedAlready)
+                                {
+                                    failedToAddAsAdmin.Add(candidateID); // Candidate is in project aready.
+                                }
+                                else 
+                                {
+                                    ProjectMembership projectMembership = new ProjectMembership
+                                    {
+                                        Project = project,
+                                        User = candidate,
+                                        UserRole = ProjectMembership.UserRoleType.Admin
+                                    };
+                                    
+                                    newAdmins.Add(candidateID);
+                                    projectMemberships.Add(projectMembership);
+                                }
+                            } 
+                        }
+
+                        // Add regular users
+                        foreach (int candidateID in req.addAsRegular)
+                        {
+                            User? candidate = await _context.Users.FindAsync(candidateID);
+                            if (candidate == null)
+                            {
+                                failedToAddAsRegular.Add(candidateID); // Candidate does not exist in user pool.
+                            } 
+                            else
+                            {
+                                bool isAddedAlready = await _context.ProjectMemberships
+                                    .AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == candidateID);
+                                if (isAddedAlready)
+                                {
+                                    failedToAddAsRegular.Add(candidateID); // Candidate is in project aready.
+                                }
+                                else 
+                                {
+                                    ProjectMembership projectMembership = new ProjectMembership
+                                    {
+                                        Project = project,
+                                        User = candidate,
+                                        UserRole = ProjectMembership.UserRoleType.Regular
+                                    };
+
+                                    newRegularUsers.Add(candidateID);
+                                    projectMemberships.Add(projectMembership);
+                                }
+                            } 
+                        }
+
+                        await _context.ProjectMemberships.AddRangeAsync(projectMemberships);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync(); // Commit transaction
+                    
+                        return (newAdmins, newRegularUsers, failedToAddAsAdmin, failedToAddAsRegular);
+                    } 
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync(); // Undo any changes made within a database transaction
+                        throw new Exception($"Error adding users: {ex.Message}");
+                    }
+                }
+                else 
+                {
+                    throw new DataNotFoundException($"Request issued from non-admin of project {projectID}.");
+                }
+            }
+        }
+
         public async Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
@@ -55,6 +327,7 @@ namespace Infrastructure.DataAccess
 
             // get User and associated ProjectMemberships
             var user = await _context.Users
+                .AsNoTracking()
                 .Include(u => u.ProjectMemberships)
                 .FirstOrDefaultAsync(u => u.UserID == userID);
 
@@ -63,8 +336,10 @@ namespace Infrastructure.DataAccess
                 : throw new DataNotFoundException("No user found.");
         }
 
-        public async Task<DateTime> ModifyRoleInDb(int projectID, int userID, bool userToAdmin)
+        public async Task<DateTime> ModifyRoleInDb(int projectID, int userID, ProjectMembership.UserRoleType roleChangeTo)
         {
+            // TODO: Can't demote a SuperAdmin to regular user.
+
             using DAMDbContext _context = _contextFactory.CreateDbContext();
             
             // Get the ProjectMembership and update the user role if found
@@ -73,9 +348,8 @@ namespace Infrastructure.DataAccess
 
             if (projectMembership != null)
             {
-                projectMembership.UserRole = userToAdmin 
-                    ? ProjectMembership.UserRoleType.Admin 
-                    : ProjectMembership.UserRoleType.Regular;
+                projectMembership.UserRole = roleChangeTo;
+                await _context.SaveChangesAsync();
                 return DateTime.UtcNow;
             }
             else 
@@ -133,6 +407,8 @@ namespace Infrastructure.DataAccess
                 // Add all ProjectMetadataField entities and save
                 await _context.ProjectMetadataFields.AddRangeAsync(projectMetadataFieldsToAdd);
                 await _context.SaveChangesAsync();
+
+                // TODO: Make all assets in this project inherit the added metadatafields (check duplication) 
                 
                 return metadataFieldsToAdd;
             }
@@ -174,6 +450,7 @@ namespace Infrastructure.DataAccess
                         Version = "0",
                         Location = data.defaultMetadata.location == null ? "" : data.defaultMetadata.location,
                         Description = data.defaultMetadata.description == null ? "" : data.defaultMetadata.description,
+                        CreationTime = DateTime.UtcNow,
                         Active = data.defaultMetadata.active
                     };
 
@@ -250,21 +527,23 @@ namespace Infrastructure.DataAccess
                             projectTagList.Add(newProjectTag);                   
                         }
                     }
-                }
 
+                }
                 // Insert in batch
-                await _context.AddRangeAsync(projectList);
-                await _context.AddRangeAsync(tagList);
-                await _context.AddRangeAsync(projectTagList);
-                await _context.AddRangeAsync(projectMembershipList);
+                Console.WriteLine("start inserting");
+                await _context.Projects.AddRangeAsync(projectList);
+                await _context.Tags.AddRangeAsync(tagList);
+                await _context.ProjectTags.AddRangeAsync(projectTagList);
+                await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
                 await _context.SaveChangesAsync(); // Save change in the database
                 
                 await transaction.CommitAsync(); // Commit transaction for data persistence
-                Console.WriteLine("Save to database");
+                Console.WriteLine("done");
                 return projectList;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 await transaction.RollbackAsync(); // Undo any changes made within a database transaction
                 throw new Exception("Failed to create projects");
             }

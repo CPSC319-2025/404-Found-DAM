@@ -71,7 +71,7 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<bool> UploadAssets(IFormFile file, UploadAssetsReq request)
+        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request)
         {
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
@@ -99,19 +99,20 @@ namespace Infrastructure.DataAccess {
                     MimeType = file.ContentType,
                     ProjectID = null,
                     UserID = request.UserId,
+                    assetState = Asset.AssetStateType.UploadedToPalette
                 };
 
             // Add the asset to the database context and save changes
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
+                // TODOO USE BLOB FOR PROD
                 await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
+                return asset.BlobID;
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
-                return false;
+                return -1;
             }
-
-            return true;
         }
 
         public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
@@ -136,6 +137,7 @@ namespace Infrastructure.DataAccess {
                 string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
                 if (File.Exists(filePath))
                 {
+                    // TODOO USE BLOB FOR PROD
                     File.Delete(filePath);
                 }
             } 
@@ -169,6 +171,7 @@ namespace Infrastructure.DataAccess {
                 // Create tasks for parallel file reading
                 var readTasks = assetIds.Select(async assetId => {
                     var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
+                    // TODOO USE BLOB FOR PROD
                     var bytes = await File.ReadAllBytesAsync(filePath);
                     
                     string fileName = $"{assetId}.zst";

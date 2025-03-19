@@ -1,6 +1,7 @@
 using Core.Interfaces;
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
+using System.Reflection.Metadata;
 
 
 namespace Core.Services
@@ -14,14 +15,14 @@ namespace Core.Services
             _paletteRepository = paletteRepository;
         }
 
-        public async Task<bool> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
+        public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
         {
             try {
                 return await _paletteRepository.UploadAssets(file, request);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");
-                return false;
+                return -1;
             }
         }
 
@@ -30,8 +31,9 @@ namespace Core.Services
             var uploadTasks = files.Select(async file => 
             {
                 var res = await ProcessUploadAsync(file, request);
-                if (res){
-                    return new { 
+                if (res != -1) {
+                    return new {
+                        BlobID = res, 
                         Success = true, 
                         FileName = file.FileName, 
                         Size = file.Length
@@ -39,6 +41,7 @@ namespace Core.Services
                 }
                 else {
                     return new { 
+                        BlobID = -1,
                         Success = false, 
                         FileName = file.FileName, 
                         Size = file.Length
