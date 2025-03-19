@@ -41,6 +41,8 @@ builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -113,6 +115,7 @@ app.MapAdminEndpoints();
 app.MapPaletteEndpoints(); 
 app.MapSearchEndpoints();
 app.MapAuthEndpoints();
+app.MapUserEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
