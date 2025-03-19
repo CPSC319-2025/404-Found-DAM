@@ -5,6 +5,7 @@ namespace APIs.Controllers
 {
     public static class PaletteController
     {
+        private const int MOCKEDUSERID = 1;
 
         // PUT /palette/assets/{assetId} edit asset in the pallete
         // DELETE /projects/assign-assets  delete an asset from palette
@@ -12,7 +13,7 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapPost("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
+        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
         {
             return await GetPaletteAssets(request, paletteService);
         })
@@ -65,7 +66,7 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
             // Console.WriteLine("Request received. Form data: " + string.Join(", ", request.Form.Keys));
-            int userId = int.Parse(request.Form["UserId"].ToString());
+            int userId = MOCKEDUSERID;
 
             if (string.IsNullOrEmpty(userId.ToString()))
             {

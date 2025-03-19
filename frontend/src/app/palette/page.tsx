@@ -96,11 +96,10 @@ export default function PalettePage() {
     formData.append("UserId", "1"); // Fixed requirement: UserId=1
 
     const response = await fetch("http://localhost:5155/palette/assets", {
-      method: "POST",
+      method: "GET",
       headers: {
         Authorization: "Bearer MY_TOKEN",
       },
-      body: formData,
     });
 
     if (!response.ok) {
