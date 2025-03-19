@@ -49,12 +49,12 @@ namespace APIs.Controllers
         public static async Task<IResult> GetActivityLog(HttpRequest request, [FromServices] IActivityLogService activityService)
         {
 
-            // AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID)
-            User user = new User { UserID = 5, Email = "test_for_logs@example.com", Name = "Test Log" };
+            // // AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID)
+            // User user = new User { UserID = 5, Email = "test_for_logs@example.com", Name = "Test Log" };
 
-            await activityService.AddLogAsync(1, user, "created", "image1", 1, 2);
-            await activityService.AddLogAsync(1, user, "created", "image2", 1, 2);
-            await activityService.AddLogAsync(1, user, "created", "image3", 1, 2);
+            // await activityService.AddLogAsync(1, user, "created", "image1", 1, 2);
+            // await activityService.AddLogAsync(1, user, "created", "image2", 1, 2);
+            // await activityService.AddLogAsync(1, user, "created", "image3", 1, 2);
             var query = request.Query;
 
             int? projectID = query.ContainsKey("projectID") ? int.Parse(query["projectID"]) : null;
