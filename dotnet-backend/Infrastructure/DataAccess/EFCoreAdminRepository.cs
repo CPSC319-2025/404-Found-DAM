@@ -41,6 +41,7 @@ namespace Infrastructure.DataAccess
             await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
 
             await _context.SaveChangesAsync();
+            // Console.WriteLine("imported");
 
             // Retrieve new Project's ID
             List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
