@@ -144,7 +144,13 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [tags, setTags] = useState<Tag[]>([]);
 
   const fetchAssets = async (page: number) => {
-    const queryParams = new URLSearchParams({ assetsPerPage: 1, pageNumber: page, postedBy: selectedUser, tagID: selectedTag, assetType: selectedAssetType }).toString();
+    const queryParams = new URLSearchParams({
+      assetsPerPage: String(1),
+      pageNumber: String(page),
+      postedBy: String(selectedUser),
+      tagID: String(selectedTag),
+      assetType: selectedAssetType
+    }).toString();
     const response = await fetchWithAuth(`projects/${projectID}/assets/pagination?${queryParams}`);
 
     if (!response.ok) {
