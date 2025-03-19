@@ -228,7 +228,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -258,14 +258,21 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
                     }
 
-                    if (!string.IsNullOrEmpty(req.postedBy)) 
+                    if (req.postedBy.HasValue && req.postedBy.Value > 0)
                     {
-                        query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
+                        query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
                     }
 
-                    // TODO: Dateposted attribute not in datamodel
+                    if (req.tagID.HasValue && req.tagID.Value > 0) 
+                    {
+                        query = query.Where(a => a.AssetTags.Any(at => at.TagID == req.tagID.Value));
+                    }
+
 
                     // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                   
+                    int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
+                    
                     List<Asset> assets = await query
                     .OrderBy(a => a.FileName)
                     .Skip((req.pageNumber - 1) * req.assetsPerPage)
@@ -273,7 +280,7 @@ namespace Infrastructure.DataAccess
                     .Include(a => a.User)
                     .ToListAsync();
 
-                    return assets;
+                    return (assets,totalFilteredAssetCount);
                 }
             }
             else 

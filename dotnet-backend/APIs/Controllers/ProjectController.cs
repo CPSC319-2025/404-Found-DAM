@@ -30,8 +30,8 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
-            string? postedBy,
-            string? datePosted,
+            int? postedBy,
+            int? tagID,
             IProjectService projectService,
             string assetType = DefaultAssetType,
             int pageNumber = DefaultPageNumber, 
@@ -56,7 +56,7 @@ namespace APIs.Controllers
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
                     postedBy = postedBy,
-                    datePosted = datePosted
+                    tagID = tagID
                 };
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
