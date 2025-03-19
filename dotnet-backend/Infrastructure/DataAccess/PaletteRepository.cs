@@ -92,10 +92,19 @@ namespace Infrastructure.DataAccess {
                 {
                     Directory.CreateDirectory(storageDirectory);
                 }
+
+                string finalName = file.FileName;
+                string suffix = ".zst";
+                if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    finalName = finalName.Substring(0, finalName.Length - suffix.Length);
+                }
+                string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
+
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
-                    FileName = request.Name,
+                    FileName = finalName,
                     MimeType = file.ContentType,
                     ProjectID = null,
                     UserID = request.UserId,
@@ -107,6 +116,7 @@ namespace Infrastructure.DataAccess {
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
                 // TODOO USE BLOB FOR PROD
+                // Console.WriteLine($"FileType before compression: {finalExtension}");
                 await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
                 return asset.BlobID;
             } catch (Exception ex) {
@@ -128,10 +138,10 @@ namespace Infrastructure.DataAccess {
                 }
 
                 // Get the asset to retrieve filename before deletion
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == int.Parse(request.Name));
 
                 // Delete the asset from the database
-                await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
+                await _context.Assets.Where(a => a.BlobID == int.Parse(request.Name)).ExecuteDeleteAsync();
                 
                 // Delete the corresponding file
                 string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
@@ -155,27 +165,27 @@ namespace Infrastructure.DataAccess {
 
             try {
                 var compressedFiles = new List<IFormFile>();
-                
+
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
                 if (!Directory.Exists(storageDirectory)) {
                     Directory.CreateDirectory(storageDirectory);
                 }
-                
+
                 // Get all Assets for the user
                 var assetIds = await _context.Assets
                     .Where(ass => ass.UserID == userId)
                     .Select(ass => ass.BlobID)
                     .ToListAsync();
-                
+
                 // Create tasks for parallel file reading
                 var readTasks = assetIds.Select(async assetId => {
                     var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
                     // TODOO USE BLOB FOR PROD
                     var bytes = await File.ReadAllBytesAsync(filePath);
-                    
+
                     string fileName = $"{assetId}.zst";
-                    
+
                     // Convert byte array to IFormFile
                     var stream = new MemoryStream(bytes);
                     var formFile = new FormFile(
@@ -185,13 +195,13 @@ namespace Infrastructure.DataAccess {
                         name: "file",
                         fileName: fileName
                     );
-                    
+
                     return formFile;
                 }).ToList();
-                
+
                 // Wait for all tasks to complete
                 var files = await Task.WhenAll(readTasks);
-                
+
                 compressedFiles.AddRange(files);
                 return compressedFiles;
             } catch (Exception ex) {

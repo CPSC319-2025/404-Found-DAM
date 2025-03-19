@@ -12,7 +12,7 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) => 
+        app.MapPost("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
         {
             return await GetPaletteAssets(request, paletteService);
         })
@@ -64,7 +64,7 @@ namespace APIs.Controllers
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
-
+            // Console.WriteLine("Request received. Form data: " + string.Join(", ", request.Form.Keys));
             int userId = int.Parse(request.Form["UserId"].ToString());
 
             if (string.IsNullOrEmpty(userId.ToString()))
