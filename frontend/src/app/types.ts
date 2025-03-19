@@ -25,3 +25,23 @@ export interface Project {
   admins: User[];
   regularUsers: User[];
 }
+
+export interface Asset {
+  blobID: number;
+  thumbnailUrl: string;
+  filename: string;
+  uploadedBy: {
+    userID: number;
+    name: string;
+  },
+  date: string;
+  filesizeInKB: 0;
+  tags: string[];
+}
+
+export interface Pagination {
+  pageNumber: number;
+  assetsPerPage: number;
+  totalAssetsReturned: number;
+  totalPages: number;
+}

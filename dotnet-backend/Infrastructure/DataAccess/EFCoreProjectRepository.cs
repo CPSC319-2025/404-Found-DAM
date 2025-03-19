@@ -248,7 +248,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset> assets, int totalAssetCount)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -283,11 +283,15 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.User != null && a.User.UserID == req.postedBy);
                     }
 
-                    // if (req.tagID > 0) {
-                    //     query = query.Where(a => a.Tag != null && a.Tag.TagID == tagID);
-                    // }
+                    if (req.tagID > 0)
+                    {
+                        query = query.Where(a => a.AssetTags.Any(at => at.TagID == req.tagID));
+                    }
 
                     // TODO: Dateposted attribute not in datamodel
+
+                    // number of total assets
+                    int totalAssetCount = await query.CountAsync();
 
                     // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
                     List<Asset> assets = await query
@@ -297,7 +301,7 @@ namespace Infrastructure.DataAccess
                     .Include(a => a.User)
                     .ToListAsync();
 
-                    return assets;
+                    return (assets, totalAssetCount);
                 }
             }
             else 

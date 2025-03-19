@@ -6,7 +6,7 @@ import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
-import { User, Tag, Project } from "@/app/types";
+import { User, Tag, Project, Asset, Pagination as PaginationType } from "@/app/types";
 
 const TempUsers: User[] = [
   { userID: 1, name: "John", email: "john@example.com" },
@@ -18,64 +18,10 @@ interface ProjectWithTags extends Project {
   tags: Tag[];
 }
 
-const TempAssets = [
-  {
-    id: "1",
-    user: TempUsers[0],
-    datePosted: "2025-01-26",
-    tags: ["construction", "building"],
-    thumbnail: "/images/image1.jpg",
-    name: "filename",
-  },
-  {
-    id: "2",
-    user: TempUsers[1],
-    datePosted: "2025-01-29",
-    tags: ["office", "building"],
-    thumbnail: "/images/image2.jpg",
-    name: "filename",
-  },
-  {
-    id: "3",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: ["sports", "soccer", "ball"],
-    thumbnail: "/images/image3.jpg",
-    name: "filename",
-  },
-  {
-    id: "4",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image4.jpg",
-    name: "filename",
-  },
-  {
-    id: "5",
-    user: TempUsers[1],
-    datePosted: "2025-02-26",
-    tags: ["travel", "fast", "usa"],
-    thumbnail: "/images/image5.jpg",
-    name: "filename",
-  },
-  {
-    id: "6",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image6.jpg",
-    name: "filename",
-  },
-  {
-    id: "7",
-    user: TempUsers[0],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image7.jpg",
-    name: "filename",
-  },
-];
+interface PaginatedAssets {
+  assets: Asset[];
+  pagination: PaginationType;
+}
 
 interface ItemsProps {
   currentItems?: any;
@@ -110,18 +56,18 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentItems.map((asset: any) => (
-              <tr key={asset.id} className="cursor-pointer hover:bg-gray-50">
+            {currentItems.map((asset: Asset) => (
+              <tr key={asset.blobID} className="cursor-pointer hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {asset.id}
+                    {asset.blobID}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="h-20 w-20 relative">
                     <Image
-                      src={asset.thumbnail}
-                      alt={`${asset.name} thumbnail`}
+                      src={asset.thumbnailUrl ?? "/images/missing-image.png"}
+                      alt={`${asset.filename} thumbnail`}
                       width={120}
                       height={120}
                       className="object-cover rounded w-full h-full"
@@ -129,10 +75,10 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {asset.datePosted}
+                  {new Date(asset.date).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{asset.user.name}</div>
+                  <div className="text-sm text-gray-900">{asset.uploadedBy?.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex gap-1">
@@ -152,7 +98,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                       className="text-indigo-600 hover:text-indigo-900"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // EDIT LOGIC
+                        // TODO: EDIT LOGIC
                       }}
                     >
                       <PencilIcon className="h-5 w-5" />
@@ -166,10 +112,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                             "Are you sure you want to delete this project?"
                           )
                         ) {
-                          const updatedImages = currentItems.filter(
-                            (img: any) => img.id !== asset.id
-                          );
-                          setCurrentItems(updatedImages);
+                          // TODO
                         }
                       }}
                     >
@@ -186,12 +129,10 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
   );
 }
 
-const itemsPerPage = 10;
-
 const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentItems, setCurrentItems] = useState<any>([]);
+  const [currentItems, setCurrentItems] = useState<Asset[]>([]);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedTag, setSelectedTag] = useState<number>(0);
@@ -202,32 +143,24 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
 
-  const handleChange = async (e: any, page: number) => {
-    // await mock api call
-    const { items, totalPages } = await fetchAssets(page, {
-      selectedUser,
-      selectedTag,
-      selectedAssetType,
-    });
-    setCurrentPage(page);
-    setTotalPages(totalPages);
-    setCurrentItems(items);
-  };
+  const fetchAssets = async (page: number) => {
+    const queryParams = new URLSearchParams({ assetsPerPage: 1, pageNumber: page, postedBy: selectedUser, tagID: selectedTag, assetType: selectedAssetType }).toString();
+    const response = await fetchWithAuth(`projects/${projectID}/assets/pagination?${queryParams}`);
 
-  const fetchAssets = async (page: number, filters: {}) => {
-    console.log("Fetching assets with filters: ", filters);
-    // TODO: await fetch logs
+    if (!response.ok) {
+      console.error(`Failed to fetch assets (Status: ${response.status} - ${response.statusText})`)
+      return { assets: [], totalPages: 0 };
+    }
+
+    const data = (await response.json()) as PaginatedAssets;
+
     return {
-      items: TempAssets.slice(
-        page * itemsPerPage - itemsPerPage,
-        page * itemsPerPage
-      ),
-      totalPages: totalPages,
-    };
+      assets: data.assets,
+      totalPages: data.pagination.totalPages
+    }
   };
 
   const getProject = async () => {
-    console.log("Fetching project");
     const response = await fetchWithAuth(`projects/${projectID}`);
 
     if (!response.ok) {
@@ -240,23 +173,29 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       throw new Error("No project returned from the API.");
     }
 
-    console.log(project);
     return project as ProjectWithTags;
   }
 
+  const handlePageChange = (e: any, page: number) => {
+    setCurrentPage(page);
+    fetchAssets(currentPage)
+      .then(({ assets, totalPages }) => {
+        setCurrentItems(assets);
+        setTotalPages(totalPages);
+      });
+  }
+
   useEffect(() => {
-    fetchAssets(1, {
-      selectedUser,
-      selectedTag,
-      selectedAssetType,
-    }).then(({ items, totalPages }) => {
-      setCurrentItems(items);
-      setTotalPages(totalPages);
-    });
+    // upon filter change we go back to page 1
+    setCurrentPage(1);
+    fetchAssets(currentPage)
+      .then(({ assets, totalPages }) => {
+        setCurrentItems(assets);
+        setTotalPages(totalPages);
+      });
   }, [selectedUser, selectedTag, selectedAssetType]);
 
   useEffect(() => {
-    // TODO: get this project
     getProject()
       .then((project: ProjectWithTags) => {
         setUsers(project.admins.concat(project.regularUsers))
@@ -318,7 +257,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       <Pagination
         count={totalPages}
         page={currentPage}
-        onChange={handleChange}
+        onChange={handlePageChange}
         shape="rounded"
         color="standard"
         className="border border-gray-300"

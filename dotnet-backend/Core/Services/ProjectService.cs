@@ -304,52 +304,35 @@ namespace Core.Services
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
-                List<Asset> retrievedAssets = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
-                int totalAssetsReturned = retrievedAssets.Count;
+                var (retrievedAssets, totalAssetsReturned) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
+
                 int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
 
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination
                 {
                     pageNumber = req.pageNumber, 
                     assetsPerPage = req.assetsPerPage, 
-                    totalAssetsReturned = totalAssetsReturned, 
+                    totalAssetsReturned = retrievedAssets.Count, 
                     totalPages = totalPages
                 };
                 
-                // Loop through retrievedAssets to build the return result
-                List<PaginatedProjectAsset> paginatedProjectAssets = new List<PaginatedProjectAsset>();
-                foreach (Asset a in retrievedAssets)
-                {
-                    if (a != null) {
-                        PaginatedProjectAsset paginatedProjectAsset = new PaginatedProjectAsset();
-                        paginatedProjectAsset.blobID = a.BlobID;
-                        // paginatedProjectAsset.thumbnailUrl = a.thumbnailUrl;
-                        paginatedProjectAsset.filename = a.FileName;
-                        if (a.User != null) 
+                List<PaginatedProjectAsset> paginatedProjectAssets = retrievedAssets.Select(a => new PaginatedProjectAsset
+                    {
+                        blobID = a.BlobID,
+                        // thumbnailUrl = a.thumbnailUrl, // TODO: add this!
+                        filename = a.FileName,
+                        uploadedBy = new PaginatedProjectAssetUploadedBy
                         {
-                            paginatedProjectAsset.uploadedBy = new PaginatedProjectAssetUploadedBy
-                            {
-                                userID = a.User.UserID, name = a.User.Name
-                            };
-                        }
+                            userID = a.User?.UserID ?? -1,
+                            name = a.User?.Name ?? "Unknown"
+                        },
+                        date = a.LastUpdated,
+                        filesizeInKB = a.FileSizeInKB,
+                        tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
+                    }).ToList();
 
-                        paginatedProjectAsset.date = a.LastUpdated;
-                        paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
-                        paginatedProjectAsset.tags = a.AssetTags.Select(t => t.Tag.Name).ToList();
-
-                        if (a.AssetMetadata != null)
-                        {
-                            foreach (AssetMetadata am in a.AssetMetadata)
-                            {
-                                if (am.MetadataField != null)
-                                {
-                                    // for 
-                                }
-                            }
-                        }
-                    }
-                }
                 GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
+
                 return result;
             }
             catch (DataNotFoundException)
