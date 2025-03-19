@@ -8,6 +8,7 @@ using Core.Entities;
 using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
+using ZstdSharp.Unsafe;
 
 namespace Infrastructure.DataAccess
 {
@@ -25,16 +26,24 @@ namespace Infrastructure.DataAccess
 
             List<int> successfulAssociations = new List<int>();
 
-            // check project exist & if submitter is a member
-            var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
-            if (isProjectFound) 
+            // Get the project to be associated with & check if submitter is a member
+            var projectToBeAssociated = await _context.Projects
+                .Where(p => p.ProjectID == projectID)
+                .Include(p => p.ProjectTags)
+                    .ThenInclude(pt => pt.Tag) // Eagerly load the Tag entities
+                .Include(p => p.ProjectMetadataFields)
+                .FirstOrDefaultAsync();
+
+            if (projectToBeAssociated != null) 
             {
                 var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
                 if (isSubmitterMember) 
                 {
                     // Retrieve assets using blobIDs
                     var assetsToBeAssociated = await _context.Assets
-                        .Where(a => blobIDs.Contains(a.BlobID))
+                        .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID != projectID) // Avoid including assets already in the projectToBeAssociated.
+                        .Include(a => a.AssetTags)
+                        .Include(a => a.AssetMetadata)
                         .ToListAsync();
                     
                     if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0) 
@@ -44,11 +53,23 @@ namespace Infrastructure.DataAccess
                     }
                     else 
                     {
-                        // Assign projectID t0 each asset and add to successfulAssociations
+                        // Take away association with the current project, assign new association with the new project, and add to successfulAssociations
                         foreach (Asset a in assetsToBeAssociated)
                         {
-                            a.ProjectID = projectID;
+                            // Remove current assoication
+                            _context.AssetTags.RemoveRange(a.AssetTags);
+                            _context.AssetMetadata.RemoveRange(a.AssetMetadata);
+
+                            // Create new association
                             a.LastUpdated = DateTime.UtcNow;
+                            a.Project = projectToBeAssociated;
+
+                            foreach (ProjectTag pt in projectToBeAssociated.ProjectTags)
+                            {
+                                AssetTag at = new AssetTag { Asset = a, Tag = pt.Tag };
+                                _context.AssetTags.Add(at);
+                            }
+
                             successfulAssociations.Add(a.BlobID);
                         }
                         await _context.SaveChangesAsync();
