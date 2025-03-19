@@ -12,11 +12,18 @@ namespace APIs.Controllers
 
         public static void MapActivityLogEndpoints(this WebApplication app)
         {
-            app.MapGet("/logs", async (HttpRequest request, IActivityLogService activityLogService) =>
+            app.MapGet("/logs", async (HttpRequest request, [FromServices] IActivityLogService activityLogService) =>
             {
                 return await GetActivityLog(request, activityLogService);
             })
             .WithName("GetActivityLog")
+            .WithOpenApi();
+
+            app.MapPost("/logs", async ([FromBody] Log log, [FromServices] IActivityLogService activityLogService) =>
+            {
+                return await AddActivityLog(log, activityLogService);
+            })
+            .WithName("AddActivityLog")
             .WithOpenApi();
         }
         // private readonly IActivityLogService _activityLogService;
@@ -32,7 +39,7 @@ namespace APIs.Controllers
         //     var logs = await _activityLogService.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate);
         //     return Ok(logs);
         // }
-        public static async Task<IResult> GetActivityLog(HttpRequest request, IActivityLogService activityService)
+        public static async Task<IResult> GetActivityLog(HttpRequest request, [FromServices] IActivityLogService activityService)
         {
             var query = request.Query;
 
@@ -84,6 +91,42 @@ namespace APIs.Controllers
                 data = response
             });
         }
+
+        public static async Task<IResult> AddActivityLog([FromBody] Log log, IActivityLogService activityLogService)
+        {
+            // var log = await request.ReadFromJsonAsync<Log>();
+
+            if (log == null)
+            {
+                return Results.BadRequest("Invalid log data.");
+            }
+            
+            if (string.IsNullOrEmpty(log.Description) || log.UserID == 0 || log.AssetID == 0 || log.ProjectID == 0)
+            {
+                return Results.BadRequest("Missing required fields.");
+            }
+
+            User user = new User { UserID = 5, Email = "test_for_logs@example.com", Name = "Test Log"}; 
+
+            bool result = await activityLogService.AddLogAsync(
+                log.UserID, 
+                user, 
+                log.ChangeType, 
+                log.Description, 
+                log.ProjectID, 
+                log.AssetID
+            );
+
+            if (result)
+            {
+                return Results.Created($"/logs/{log.ChangeID}", log);
+            }
+            else
+            {
+                return Results.BadRequest("Failed to add log.");
+            }
+        }
+
 
     }
 }

@@ -7,6 +7,22 @@ using MockedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+//Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy =>
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -23,27 +39,24 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAdminRepository, EFCoreAdminRepository>();
 builder.Services.AddScoped<IPaletteService, PaletteService>();
 builder.Services.AddScoped<IPaletteRepository, PaletteRepository>();
-builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>(); // should this be AddScoped or AddSingleton?
-
-
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>(); // sean added
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>(); // sean added
 
 
 
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
-// sean test
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
@@ -74,6 +87,7 @@ app.MapNotificationEndpoints();
 app.MapAdminEndpoints(); 
 app.MapPaletteEndpoints(); 
 app.MapSearchEndpoints();
+app.MapActivityLogEndpoints(); // sean todo
 
 if (app.Environment.IsDevelopment())
 {
@@ -101,4 +115,3 @@ if (app.Environment.IsDevelopment())
 app.Run();
 
 public partial class Program { }
-
