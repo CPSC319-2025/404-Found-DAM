@@ -318,6 +318,24 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<GetAllUsersRes> GetAllUsers(int userID)
+        {
+            var users = await _repository.GetAllUsers();
+
+            var userDtos = users?.Select(u => new UserDto
+            {
+                UserID = u.UserID,
+                Name = u.Name,
+                Email = u.Email
+            }).ToList() ?? [];
+
+            return new GetAllUsersRes
+            { 
+                UserCount = userDtos.Count, // 0 if userDtos is empty
+                Users = userDtos // [] if userDtos is empty
+            };
+        }
     }
 }
 
