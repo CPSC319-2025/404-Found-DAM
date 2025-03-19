@@ -5,7 +5,7 @@ namespace Core.Interfaces
 {
     public interface IPaletteService
     {
-        Task<bool> ProcessUploadAsync(IFormFile file, UploadAssetsReq request);
+        Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request);
         Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request);
 
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);

@@ -45,11 +45,6 @@ namespace Core.Entities
 
     public class Asset
     {
-        /*  TODO:
-            - add missing thumbnailrul
-            - add one enum attribute to show an asset is in palette or  project (or none if this state exists).  
-        */
-
         [Key]
         public int BlobID { get; set; }
         
@@ -90,7 +85,6 @@ namespace Core.Entities
         /*
             TODO:
             version type string or double? default/start at 0.0?
-            active indicates archived?
         */
         [Key]
         public int ProjectID { get; set; }
@@ -102,11 +96,11 @@ namespace Core.Entities
         public required string Location { get; set; }
         
         public required string Description { get; set; }
-        
-        public DateTime CreationTime { get; set; }
-        
-        public bool Active { get; set; }
 
+        public required DateTime CreationTime { get; set; }
+        
+        public required bool Active { get; set; } = true; // Default to true
+        
         public DateTime? ArchivedAt { get; set; } 
         
         // Navigation properties
@@ -116,8 +110,8 @@ namespace Core.Entities
 
         public virtual ICollection<ProjectTag> ProjectTags { get; set; } = new List<ProjectTag>();
         
-        // Each project can have one Palette ??
-        public virtual Palette Palette { get; set; }
+        // // Each project can have one Palette ??
+        // public virtual Palette Palette { get; set; }
     }
 
     public class Log
@@ -165,21 +159,21 @@ namespace Core.Entities
         public required virtual User User { get; set; }
     }
 
-    public class Palette
-    {
-        [Key]
-        public int PaletteID { get; set; }
+    // public class Palette
+    // {
+    //     [Key]
+    //     public int PaletteID { get; set; }
         
-        // Assume each Palette belongs to a Project.
-        public int ProjectID { get; set; }
+    //     // Assume each Palette belongs to a Project.
+    //     public int ProjectID { get; set; }
         
-        // Why project has palette ??
-        [ForeignKey("ProjectID")]
-        public virtual Project Project { get; set; }
+    //     // Why project has palette ??
+    //     [ForeignKey("ProjectID")]
+    //     public virtual Project Project { get; set; }
         
-        // Palette can have many metadata fields.
-        public virtual ICollection<MetadataField> MetadataFields { get; set; } = new List<MetadataField>();
-    }
+    //     // Palette can have many metadata fields.
+    //     public virtual ICollection<MetadataField> MetadataFields { get; set; } = new List<MetadataField>();
+    // }
 
     public class MetadataField
     {
@@ -198,12 +192,12 @@ namespace Core.Entities
         
         public required FieldDataType FieldType { get; set; }
         
-        // Optionally, associate a field with a Palette.
-        public int? PaletteID { get; set; }
+        // // Optionally, associate a field with a Palette.
+        // public int? PaletteID { get; set; }
         
-        // Why metadata has palette ??
-        [ForeignKey("PaletteID")]
-        public virtual Palette Palette { get; set; }
+        // // Why metadata has palette ??
+        // [ForeignKey("PaletteID")]
+        // public virtual Palette Palette { get; set; }
         
         public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();

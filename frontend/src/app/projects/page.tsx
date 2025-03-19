@@ -23,7 +23,8 @@ interface FullProjectInfo {
   active: boolean;
   archivedAt: string | null;
   assetCount: number;
-  userNames: string[];
+  regularUserNames: string[];
+  adminNames: string[];
 }
 
 interface Project {
@@ -120,7 +121,7 @@ export default function ProjectsPage() {
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
-            userNames: project.userNames,
+            userNames: project.regularUserNames.concat(project.adminNames),
           })
         );
 

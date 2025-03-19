@@ -4,6 +4,7 @@ using Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DAMDbContext))]
-    partial class DAMDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250318023940_AddAssetStateColumn")]
+    partial class AddAssetStateColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,9 +141,33 @@ namespace Infrastructure.Migrations
                     b.Property<int>("FieldType")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PaletteID")
+                        .HasColumnType("int");
+
                     b.HasKey("FieldID");
 
+                    b.HasIndex("PaletteID");
+
                     b.ToTable("MetadataFields");
+                });
+
+            modelBuilder.Entity("Core.Entities.Palette", b =>
+                {
+                    b.Property<int>("PaletteID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaletteID"));
+
+                    b.Property<int>("ProjectID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PaletteID");
+
+                    b.HasIndex("ProjectID")
+                        .IsUnique();
+
+                    b.ToTable("Palettes");
                 });
 
             modelBuilder.Entity("Core.Entities.Project", b =>
@@ -360,6 +387,26 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Core.Entities.MetadataField", b =>
+                {
+                    b.HasOne("Core.Entities.Palette", "Palette")
+                        .WithMany("MetadataFields")
+                        .HasForeignKey("PaletteID");
+
+                    b.Navigation("Palette");
+                });
+
+            modelBuilder.Entity("Core.Entities.Palette", b =>
+                {
+                    b.HasOne("Core.Entities.Project", "Project")
+                        .WithOne("Palette")
+                        .HasForeignKey("Core.Entities.Palette", "ProjectID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("Core.Entities.ProjectMembership", b =>
                 {
                     b.HasOne("Core.Entities.Project", "Project")
@@ -431,9 +478,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("ProjectMetadataFields");
                 });
 
+            modelBuilder.Entity("Core.Entities.Palette", b =>
+                {
+                    b.Navigation("MetadataFields");
+                });
+
             modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Navigation("Assets");
+
+                    b.Navigation("Palette")
+                        .IsRequired();
 
                     b.Navigation("ProjectMemberships");
 
