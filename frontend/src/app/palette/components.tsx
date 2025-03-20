@@ -69,16 +69,54 @@ export default function FileTable({
   }
 
   // ----- Project Dropdown -----
-  function handleProjectChange(index: number, newProjectID: string) {
+  async function handleProjectChange(index: number, newProjectID: string) {
+    if (!newProjectID) return; // Don't do anything if no project selected
+    
+    const fileMeta = files[index];
+    if (!fileMeta.blobId) {
+      console.warn("File missing blobId:", fileMeta.file.name);
+      return;
+    }
+    
+    // Update the UI state first for responsiveness
     setFiles((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
-        // parse or store as string depending on your preference:
         project: newProjectID,
       };
       return updated;
     });
+    
+    // Call the API to associate the asset with the project
+    try {
+      const response = await fetch(
+        `http://localhost:5155/projects/${newProjectID}/associate-assets`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: "Bearer MY_TOKEN",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ blobIDs: [fileMeta.blobId] }),
+        }
+      );
+      
+      if (!response.ok) {
+        console.error("Associate asset failed:", response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log("Association success:", data);
+      
+      // Remove the file from the table if successfully associated
+      if (data.successfulSubmissions?.includes(fileMeta.blobId)) {
+        removeFile(index);
+      }
+    } catch (err) {
+      console.error("Error associating asset with project:", err);
+    }
   }
 
   // ----- Edit Metadata -----

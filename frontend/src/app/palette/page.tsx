@@ -449,6 +449,13 @@ export default function PalettePage() {
       return;
     }
 
+    // Check if any selected files don't have a project assigned
+    const filesWithoutProject = selectedIndices.filter((index) => !files[index].project);
+    if (filesWithoutProject.length > 0) {
+      alert(`Warning: ${filesWithoutProject.length} selected file(s) don't have a project assigned. Please select a project for all files before submitting.`);
+      return;
+    }
+
     // 1) Group selected files by their project
     const projectMap: Record<string, number[]> = {};
     //   projectMap[projectID] => [blobIDs]
@@ -477,6 +484,7 @@ export default function PalettePage() {
     for (const projectId in projectMap) {
       const blobIDs = projectMap[projectId];
 
+
       try {
         const response = await fetch(
           `http://localhost:5155/palette/${projectId}/submit-assets`,
@@ -494,6 +502,8 @@ export default function PalettePage() {
           console.error("Submit assets failed:", response.status);
           continue;
         }
+
+        
 
         const data = await response.json();
         console.log("Submission success:", data);
@@ -567,7 +577,7 @@ export default function PalettePage() {
           onClick={handleSubmitAssets}
           className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          Upload Assets
+          Submit Assets
         </button>
 
         {/*TODO*/}

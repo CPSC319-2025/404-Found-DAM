@@ -87,7 +87,7 @@ namespace APIs.Controllers
             // If no files were found
             if (files == null || !files.Any())
             {
-                return Results.NotFound("No files found for this user.");
+                return Results.Ok(new { assets = Array.Empty<object>() }); 
             }
             
             // If there's only one file, return it directly
@@ -207,6 +207,7 @@ namespace APIs.Controllers
              {
                  // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
                  int submitterID = MOCKEDUSERID; 
+                 Console.WriteLine(req.blobIDs);
                  SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
                  return Results.Ok(result);
              }
