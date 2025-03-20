@@ -32,7 +32,7 @@ export interface Asset {
   uploadedBy: {
     userID: number;
     name: string;
-  },
+  };
   date: string;
   filesizeInKB: 0;
   tags: string[];

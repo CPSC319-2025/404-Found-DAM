@@ -5,7 +5,13 @@ import Image from "next/image";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
-import { User, Tag, Project, Asset, Pagination as PaginationType } from "@/app/types";
+import {
+  User,
+  Tag,
+  Project,
+  Asset,
+  Pagination as PaginationType,
+} from "@/app/types";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -50,7 +56,10 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {currentItems.map((asset: Asset) => (
-              <tr key={asset.blobID} className="cursor-pointer hover:bg-gray-50">
+              <tr
+                key={asset.blobID}
+                className="cursor-pointer hover:bg-gray-50"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {asset.blobID}
@@ -71,7 +80,9 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                   {new Date(asset.date).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{asset.uploadedBy?.name}</div>
+                  <div className="text-sm text-gray-900">
+                    {asset.uploadedBy?.name}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex gap-1">
@@ -142,12 +153,16 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       pageNumber: String(page),
       postedBy: String(selectedUser),
       tagID: String(selectedTag),
-      assetType: selectedAssetType
+      assetType: selectedAssetType,
     }).toString();
-    const response = await fetchWithAuth(`projects/${projectID}/assets/pagination?${queryParams}`);
+    const response = await fetchWithAuth(
+      `projects/${projectID}/assets/pagination?${queryParams}`
+    );
 
     if (!response.ok) {
-      console.error(`Failed to fetch assets (Status: ${response.status} - ${response.statusText})`)
+      console.error(
+        `Failed to fetch assets (Status: ${response.status} - ${response.statusText})`
+      );
       return { assets: [], totalPages: 0 };
     }
 
@@ -155,8 +170,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
     return {
       assets: data.assets,
-      totalPages: data.pagination.totalPages
-    }
+      totalPages: data.pagination.totalPages,
+    };
   };
 
   const getProject = async () => {
@@ -173,37 +188,35 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
 
     return project as ProjectWithTags;
-  }
+  };
 
   const handlePageChange = (e: any, page: number) => {
     setCurrentPage(page);
-    fetchAssets(currentPage)
-      .then(({ assets, totalPages }) => {
-        setCurrentItems(assets);
-        setTotalPages(totalPages);
-      });
-  }
+    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+      setCurrentItems(assets);
+      setTotalPages(totalPages);
+    });
+  };
 
   useEffect(() => {
     // upon filter change we go back to page 1
     setCurrentPage(1);
-    fetchAssets(currentPage)
-      .then(({ assets, totalPages }) => {
-        setCurrentItems(assets);
-        setTotalPages(totalPages);
-      });
+    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+      setCurrentItems(assets);
+      setTotalPages(totalPages);
+    });
   }, [selectedUser, selectedTag, selectedAssetType]);
 
   useEffect(() => {
     getProject()
       .then((project: ProjectWithTags) => {
-        setUsers(project.admins.concat(project.regularUsers))
-        setTags(project.tags)
+        setUsers(project.admins.concat(project.regularUsers));
+        setTags(project.tags);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
-      })
-  }, [])
+      });
+  }, []);
 
   return (
     <>
@@ -243,12 +256,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             onChange={(e) => setSelectedAssetType(e.target.value)}
           >
             <option value="all">Filter by Asset Type</option>
-            <option value="image">
-              image
-            </option>
-            <option value="video">
-              video
-            </option>
+            <option value="image">image</option>
+            <option value="video">video</option>
           </select>
         </div>
       </div>
