@@ -119,7 +119,7 @@ namespace Infrastructure.DataAccess
                     );
                     
                     // Set content type if needed
-                    formFile.ContentType = properties.Value.ContentType;
+                    // formFile.ContentType = properties.Value.ContentType;
                     
                     formFiles.Add(formFile);
                 }
