@@ -51,12 +51,6 @@ var app = builder.Build();
 
 app.UseCors("AllowReactApp");
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
@@ -91,12 +85,17 @@ app.MapUserEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
+    // Configure the HTTP request pipeline.
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
     await using (var serviceScope = app.Services.CreateAsyncScope())
     await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
     {
         await context.Database.EnsureCreatedAsync();
     }
 } else {
+    builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
     try
     {
         using (var scope = app.Services.CreateScope())
