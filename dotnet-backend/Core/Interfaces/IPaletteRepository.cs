@@ -12,5 +12,6 @@ namespace Core.Interfaces  {
 
         public Task<string> UploadAssets(IFormFile file, UploadAssetsReq request);
         public Task<List<IFormFile>> GetAssetsAsync(int userId);
+        Task<(List<int> successfulSubmissions, List<int> failedSubmissions)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID);    
     }
 }

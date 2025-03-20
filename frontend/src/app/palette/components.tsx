@@ -5,18 +5,39 @@ import { useRouter } from "next/navigation";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 
+interface Project {
+  projectID: number;
+  projectName: string;
+  location: string;
+  description: string;
+  creationTime: string;
+  assetCount: number;
+  adminNames: string[];
+  regularUserNames: string[];
+}
+
 type FileTableProps = {
   files: FileMetadata[];
-  removeFile: any;
+  removeFile: (index: number) => void;
+
+  // Row selection from parent
+  selectedIndices: number[];
+  setSelectedIndices: React.Dispatch<React.SetStateAction<number[]>>;
+
+  // The newly fetched logs from Beeceptor
+  projects: Project[];
 };
 
-export default function FileTable({ files, removeFile }: FileTableProps) {
+export default function FileTable({
+  files,
+  removeFile,
+  selectedIndices,
+  setSelectedIndices,
+  projects,
+}: FileTableProps) {
   const router = useRouter();
   const { setFiles } = useFileContext();
 
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
@@ -28,37 +49,90 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
       setSelectedIndices([]);
     }
   }
-
   function handleSelectRow(index: number) {
     setSelectedIndices((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
   }
 
-  function handleRemoveTag(fileMeta: FileMetadata, tagIndex: number) {
-    setFiles((prevFiles) =>
-      prevFiles.map((f) =>
-        f.file.name === fileMeta.file.name
-          ? { ...f, tags: f.tags.filter((_, i) => i !== tagIndex) }
-          : f
-      )
-    );
+  function handleRemoveTag(fileIndex: number, tagIndex: number) {
+    setFiles((prev) => {
+      const updated = [...prev];
+
+      updated[fileIndex] = {
+        ...updated[fileIndex],
+        tags: updated[fileIndex].tags.filter((_, i) => i !== tagIndex),
+      };
+
+      return updated;
+    });
   }
 
+  // ----- Project Dropdown -----
+  async function handleProjectChange(index: number, newProjectID: string) {
+    if (!newProjectID) return; // Don't do anything if no project selected
+    
+    const fileMeta = files[index];
+    if (!fileMeta.blobId) {
+      console.warn("File missing blobId:", fileMeta.file.name);
+      return;
+    }
+    
+    // Update the UI state first for responsiveness
+    setFiles((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        project: newProjectID,
+      };
+      return updated;
+    });
+    
+    // Call the API to associate the asset with the project
+    try {
+      const response = await fetch(
+        `http://localhost:5155/projects/${newProjectID}/associate-assets`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: "Bearer MY_TOKEN",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ blobIDs: [fileMeta.blobId] }),
+        }
+      );
+      
+      if (!response.ok) {
+        console.error("Associate asset failed:", response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log("Association success:", data);
+      
+      // Remove the file from the table if successfully associated
+      if (data.successfulSubmissions?.includes(fileMeta.blobId)) {
+        removeFile(index);
+      }
+    } catch (err) {
+      console.error("Error associating asset with project:", err);
+    }
+  }
+
+  // ----- Edit Metadata -----
   function handleEditMetadata(rawFileName: string) {
+    // Navigate to /palette/editmetadata?file=<filename>
     router.push(
       `/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`
     );
   }
 
-  // Open modal to show full preview
+  // ----- Modal Preview Logic -----
   function openPreview(url: string, fileType: string) {
     setPreviewUrl(url);
     setPreviewType(fileType);
     setIsModalOpen(true);
   }
-
-  // Close modal
   function closeModal() {
     setIsModalOpen(false);
     setPreviewUrl(null);
@@ -84,26 +158,37 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                 </span>
               </div>
             </th>
+            {/* Preview */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Preview
             </th>
+            {/* File Name */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Name
             </th>
+            {/* File Type */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Type
             </th>
+            {/* File Size */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Size
             </th>
+            {/* Project dropdown */}
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Project
+            </th>
+            {/* Tags */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Tags
             </th>
+            {/* Edit */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Edit
             </th>
+            {/* Remove */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Action
+              Remove
             </th>
           </tr>
         </thead>
@@ -111,9 +196,12 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
           {files.map((fileMeta, index) => {
             const rawFile = fileMeta.file;
             const displayName = rawFile.name;
+
+            // detect if image or video
             const isImage = rawFile.type.startsWith("image/");
             const isVideo = rawFile.type.startsWith("video/");
 
+            // create object URL for preview
             let previewUrlObj: string | null = null;
             try {
               previewUrlObj = URL.createObjectURL(rawFile);
@@ -122,22 +210,33 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
             }
 
             return (
-              <tr key={index} className="hover:bg-gray-50 cursor-pointer">
+              <tr
+                key={index}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleSelectRow(index)}
+              >
                 {/* Checkbox */}
                 <td className="px-6 py-4 text-center">
                   <input
                     type="checkbox"
                     checked={selectedIndices.includes(index)}
-                    onChange={() => handleSelectRow(index)}
+                    onChange={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectRow(index);
+                    }}
                   />
                 </td>
 
-                {/* Preview */}
+                {/* Preview cell */}
                 <td className="px-6 py-4">
                   {isImage && previewUrlObj && (
                     <div
                       className="h-20 w-20 relative"
-                      onClick={() => openPreview(previewUrlObj, rawFile.type)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPreview(previewUrlObj!, rawFile.type);
+                      }}
                     >
                       <img
                         src={previewUrlObj}
@@ -149,7 +248,10 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                   {isVideo && previewUrlObj && (
                     <div
                       className="h-20 w-20 relative"
-                      onClick={() => openPreview(previewUrlObj, rawFile.type)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPreview(previewUrlObj!, rawFile.type);
+                      }}
                     >
                       <video
                         src={previewUrlObj}
@@ -159,7 +261,7 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                   )}
                 </td>
 
-                {/* File Name */}
+                {/* File name */}
                 <td className="px-6 py-4">{displayName}</td>
 
                 {/* File Type */}
@@ -167,6 +269,23 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
 
                 {/* File Size */}
                 <td className="px-6 py-4">{fileMeta.fileSize}</td>
+
+                {/* Project dropdown */}
+                <td className="px-6 py-4">
+                  <select
+                    className="border border-gray-300 rounded p-1"
+                    value={fileMeta.project || ""}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => handleProjectChange(index, e.target.value)}
+                  >
+                    <option value="">Select project...</option>
+                    {projects.map((p) => (
+                      <option key={p.projectID} value={p.projectID.toString()}>
+                        {p.projectName}
+                      </option>
+                    ))}
+                  </select>
+                </td>
 
                 {/* Tags */}
                 <td className="px-6 py-4">
@@ -178,9 +297,9 @@ export default function FileTable({ files, removeFile }: FileTableProps) {
                       >
                         {tag}
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveTag(fileMeta, tagIndex);
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            handleRemoveTag(index, tagIndex);
                           }}
                           className="ml-1 text-red-500 hover:text-red-700"
                         >

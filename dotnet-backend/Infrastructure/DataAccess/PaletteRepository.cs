@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Core.Dtos;
 using Core.Interfaces;
 using System.Reflection.Metadata;
+using Infrastructure.Exceptions;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {

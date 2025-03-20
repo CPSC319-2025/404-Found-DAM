@@ -15,6 +15,15 @@ export default function EditMetadataPage() {
   const fileIndex = files.findIndex((f) => f.file.name === fileName);
   const fileData = files[fileIndex];
 
+  // Always call hooks at the top level, even if fileData is undefined.
+  const [description, setDescription] = useState(
+    fileData ? fileData.description || "" : ""
+  );
+  const [location, setLocation] = useState(
+    fileData ? fileData.location || "" : ""
+  );
+  const [tags, setTags] = useState(fileData ? fileData.tags.join(", ") : "");
+
   if (!fileData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -22,11 +31,6 @@ export default function EditMetadataPage() {
       </div>
     );
   }
-
-  // Local state for editing
-  const [description, setDescription] = useState(fileData.description || "");
-  const [location, setLocation] = useState(fileData.location || "");
-  const [tags, setTags] = useState(fileData.tags.join(", ") || "");
 
   function handleSave() {
     // Update context with new metadata
