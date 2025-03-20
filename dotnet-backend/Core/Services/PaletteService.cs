@@ -29,27 +29,37 @@ namespace Core.Services
 
         public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
         {
-            var uploadTasks = files.Select(async file => 
+            // Create a list of tasks with explicit return type
+            var uploadTasks = new List<Task<object>>();
+            
+            foreach (var file in files)
             {
-                var res = await ProcessUploadAsync(file, request);
-                if (!res.IsNullOrEmpty()) {
-                    return new {
-                        BlobID = res, 
-                        Success = true, 
-                        FileName = file.FileName, 
-                        Size = file.Length
-                    };
-                }
-                else {
-                    return new { 
-                        BlobID = -1,
-                        Success = false, 
-                        FileName = file.FileName, 
-                        Size = file.Length
-                    };
-                }
-            }).ToList();
+                // Use Task.Run with explicit Function<Task<object>> signature
+                uploadTasks.Add(Task.Run<object>(async () => 
+                {
+                    var res = await ProcessUploadAsync(file, request);
+                    if (!string.IsNullOrEmpty(res))
+                    {
+                        return new {
+                            BlobID = res, 
+                            Success = true, 
+                            FileName = file.FileName, 
+                            Size = file.Length
+                        };
+                    }
+                    else 
+                    {
+                        return new { 
+                            BlobID = -1,
+                            Success = false, 
+                            FileName = file.FileName, 
+                            Size = file.Length
+                        };
+                    }
+                }));
+            }
 
+            // Wait for all tasks to complete and return results
             return await Task.WhenAll(uploadTasks);
         }
 
