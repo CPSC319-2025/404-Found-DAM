@@ -20,7 +20,12 @@ export default function EditImagePage() {
   const [rotation, setRotation] = useState(0);
   const [resize, setResize] = useState(1); // Resize Factor
   const [flip, setFlip] = useState({ horizontal: false, vertical: false });
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   useEffect(() => {
     if (fileData) {
@@ -29,7 +34,10 @@ export default function EditImagePage() {
     }
   }, [fileData]);
 
-  const onCropComplete = (croppedArea: any, croppedPixels: { x: number; y: number; width: number; height: number }) => {
+  const onCropComplete = (
+    croppedArea: any,
+    croppedPixels: { x: number; y: number; width: number; height: number }
+  ) => {
     setCroppedAreaPixels(croppedPixels);
   };
 
@@ -45,7 +53,7 @@ export default function EditImagePage() {
 
       if (!croppedAreaPixels) return;
 
-      let { x, y, width, height } = croppedAreaPixels;
+      const { x, y, width, height } = croppedAreaPixels;
 
       // Apply Resize in the Saving Process
       const resizedWidth = Math.round(width * resize);
@@ -67,11 +75,23 @@ export default function EditImagePage() {
       ctx.translate(-resizedWidth / 2, -resizedHeight / 2);
 
       // Ensure the resized dimensions are used in `ctx.drawImage()`
-      ctx.drawImage(image, x, y, width, height, 0, 0, resizedWidth, resizedHeight);
+      ctx.drawImage(
+        image,
+        x,
+        y,
+        width,
+        height,
+        0,
+        0,
+        resizedWidth,
+        resizedHeight
+      );
 
       canvas.toBlob((blob) => {
         if (blob) {
-          const editedFile = new File([blob], fileData.file.name, { type: blob.type });
+          const editedFile = new File([blob], fileData.file.name, {
+            type: blob.type,
+          });
 
           // Update FileContext with resized image
           setFiles((prevFiles) =>
@@ -111,7 +131,7 @@ export default function EditImagePage() {
           <Cropper
             image={imageSource}
             crop={crop}
-            zoom={zoom * resize}  // Resize applied to the Cropper in real-time
+            zoom={zoom * resize} // Resize applied to the Cropper in real-time
             rotation={rotation}
             onCropChange={setCrop}
             onZoomChange={setZoom}

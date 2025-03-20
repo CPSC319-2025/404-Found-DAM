@@ -1,34 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProjectCard from "./components/ProjectCard";
-import Search from "./components/Search";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { FormData } from "@/app/components/GenericForm";
+import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
+import { User, Project } from "@/app/types";
 
-// const projects = [
-//   { id: "1", name: "Project One" },
-//   { id: "2", name: "Project Two" },
-//   { id: "3", name: "Project Three" },
-//   { id: "4", name: "Project Four" },
-//   { id: "5", name: "Project Five" },
-// ];
-
-interface FullProjectInfo {
+interface ProjectCardProps {
   projectID: number;
-  projectName: string;
-  location: string;
-  description: string;
-  creationTime: string; // ISO
-  active: boolean;
-  archivedAt: string | null;
-  assetCount: number;
-  regularUserNames: string[];
-  adminNames: string[];
-}
-
-interface Project {
-  id: string;
   name: string;
   creationTime: string;
   assetCount: number;
@@ -37,7 +18,7 @@ interface Project {
 
 interface GetAllProjectsResponse {
   projectCount: number;
-  fullProjectInfos: FullProjectInfo[];
+  fullProjectInfos: Project[];
 }
 
 const newProjectFormFields = [
@@ -97,58 +78,41 @@ const newProjectFormFields = [
 
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState<Project[]>([]);
+  const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
+
+  const [query, setQuery] = useState<string>("");
+
   const { user } = useUser();
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch projects (Status: ${response.status} - ${response.statusText})`
-          );
-        }
-        const data = (await response.json()) as GetAllProjectsResponse;
+  const fetchProjects = async () => {
+    try {
+      const response = await fetchWithAuth("projects");
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch projects (Status: ${response.status} - ${response.statusText})`
+        );
+      }
+      const data = (await response.json()) as GetAllProjectsResponse;
 
-        // Diagnostic logging: inspect API response structure
-        console.log("[Diagnostics] Response from", url, ":", data);
-
-        const projectsFromBackend = data.fullProjectInfos.map(
-          (project: FullProjectInfo) => ({
-            id: project.projectID.toString(),
+      return data.fullProjectInfos.map(
+        (project: Project) =>
+          ({
+            projectID: project.projectID,
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
-            userNames: project.regularUserNames.concat(project.adminNames),
-          })
-        );
-
-        console.log("[Diagnostics] Parsed projects:", projectsFromBackend);
-
-        setProjectList(projectsFromBackend);
-      } catch (error) {
-        console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
-        console.error(
-          "[Diagnostics] Error fetching projects from",
-          url,
-          ":",
-          error
-        );
-      }
-    };
-
-    fetchProjects();
-  }, []);
+            userNames: project.admins
+              .concat(project.regularUsers)
+              .map((user: User) => user.name),
+          }) as ProjectCardProps
+      );
+    } catch (error) {
+      console.error("[Diagnostics] Error fetching projects: ", error);
+      return [];
+    }
+  };
 
   const handleAddProject = async (formData: FormData) => {
-    console.log("projectName ", formData.name);
-    console.log("location ", formData.location);
-    console.log("description ", formData.description);
-    console.log("tags ", formData.tags);
-    console.log("admins ", formData.admins);
-    console.log("users ", formData.users);
     const payload = [
       {
         defaultMetadata: {
@@ -167,16 +131,13 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetchWithAuth("projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to create project.");
@@ -189,26 +150,58 @@ export default function ProjectsPage() {
         throw new Error("No project returned from the API.");
       }
 
-      setProjectList([
-        ...projectList,
-        {
-          id: createdProject.createdProjectID.toString(),
-          name: formData.name as string,
-          creationTime: new Date().toISOString(),
-          assetCount: 0,
-          userNames: [],
-        },
-      ]);
       setNewProjectModalOpen(false);
+      toast.success("Created new project successfully.");
+
+      return await fetchProjects();
     } catch (error) {
-      console.log("Error creating project:", error);
+      console.error("Error creating project:", error);
+      toast.error((error as Error).message);
     }
   };
+
+  const doSearch = async () => {
+    const projects = await fetchProjects();
+    if (!query.trim()) {
+      setProjectList(projects);
+      return;
+    }
+
+    const response = await fetchWithAuth(
+      `/search?query=${encodeURIComponent(query)}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to do search");
+    }
+
+    const data = await response.json();
+
+    console.log(data);
+
+    const filteredProjects = projects.filter((p: ProjectCardProps) =>
+      data.projects.some(
+        (project: Project) => project.projectID === p.projectID
+      )
+    );
+
+    setProjectList(filteredProjects);
+  };
+
+  useEffect(() => {
+    fetchProjects().then((data) => setProjectList(data));
+  }, []);
 
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-        <Search />
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
+          onChange={(e) => setQuery(e.target.value)}
+          onBlur={doSearch}
+        />
         {user?.superadmin && (
           <button
             onClick={() => setNewProjectModalOpen(true)}
@@ -221,9 +214,9 @@ export default function ProjectsPage() {
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
         {projectList.map((project) => (
-          <div key={project.id} className="w-full h-full">
+          <div key={project.projectID} className="w-full h-full">
             <ProjectCard
-              id={project.id}
+              id={String(project.projectID)}
               name={project.name}
               creationTime={project.creationTime}
               assetCount={project.assetCount}
@@ -242,6 +235,8 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
+
+      <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
     </div>
   );
 }

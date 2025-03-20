@@ -290,6 +290,9 @@ namespace Infrastructure.DataAccess
                     }
 
 
+                    // number of total assets
+                    int totalAssetCount = await query.CountAsync();
+
                     // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
                    
                     int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
