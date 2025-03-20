@@ -36,12 +36,6 @@ const pages: Page[] = [
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
   },
-  {
-    path: "profile",
-    title: "Profile",
-    mobileTitle: "Profile",
-    icon: <UserIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
-  },
   ...(isSuperAdmin
     ? [
       {
