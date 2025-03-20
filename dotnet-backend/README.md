@@ -60,7 +60,15 @@ FLOW:
 - Service returns to Controller
 - Controller returns to frontend.
 
-Server is in a blackbox
+EXAMPLE FLOW:
+- Frontend calls an endpoint (eg. ActivityLogController)
+- Controller calls Service (eg. ActivityLogService)
+- Service calls DataAccess/Repository (if necessary) (eg. ActivityLogRepository)
+- DataAccess/Repository returns to Service
+- Service returns to Controller
+- Controller returns to frontend
+
+Server is in a blackbox. You don't want people to know what's in your server, except through accessing the APIs
 
 To create/modify an object that will go into the database: Core/Entities/DataModel.cs
 
