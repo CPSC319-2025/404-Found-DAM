@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       # Set your Azure Web App and Resource Group names here
       AZURE_WEBAPP_NAME: webappBackend

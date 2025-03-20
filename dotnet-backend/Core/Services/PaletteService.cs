@@ -2,6 +2,7 @@ using Core.Interfaces;
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
+using Infrastructure.Exceptions;
 
 
 namespace Core.Services
@@ -9,16 +10,19 @@ namespace Core.Services
     public class PaletteService : IPaletteService
     {
         private readonly IPaletteRepository _paletteRepository;
-        
-        public PaletteService(IPaletteRepository paletteRepository)
+        private readonly IImageService _imageService;
+   
+        public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
         {
             _paletteRepository = paletteRepository;
+            _imageService = imageService;
         }
 
         public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
         {
+            Console.WriteLine("ProcessUploadAsync");
             try {
-                return await _paletteRepository.UploadAssets(file, request);
+                return await _paletteRepository.UploadAssets(file, request, _imageService);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");
@@ -77,5 +81,27 @@ namespace Core.Services
             return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
 
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)        {
+            try 
+            {
+                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
+                SubmitAssetsRes result = new SubmitAssetsRes      
+                {
+                    projectID = projectID,
+                    successfulSubmissions = successfulSubmissions,
+                    failedSubmissions = failedSubmissions,
+                    submittedAt = DateTime.UtcNow
+                };
+                 return result; 
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
