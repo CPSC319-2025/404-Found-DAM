@@ -119,12 +119,14 @@ export default function PalettePage() {
   }
 
   async function fetchPaletteAssets() {
+
+    setFiles([]);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     // const FormData = require("form-data");
     const formData = new FormData();
     formData.append("UserId", "1"); // Fixed requirement: UserId=1
 
-    const response = await fetch("http://localhost:5155/palette/assets", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets`, {
       method: "GET",
       headers: {
         Authorization: "Bearer MY_TOKEN",
@@ -283,7 +285,7 @@ export default function PalettePage() {
       formData.append("files", compressedFile);
 
       // 3.3 Send the request
-      const response = await fetch("http://localhost:5155/palette/upload", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`, {
         method: "POST",
         headers: {
           Authorization: "Bearer MY_TOKEN",
@@ -319,7 +321,7 @@ export default function PalettePage() {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const res = await fetch("http://localhost:5155/projects");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`);
         if (!res.ok) {
           console.error("Failed to fetch project logs:", res.status);
           return;
@@ -363,7 +365,7 @@ export default function PalettePage() {
       }
 
       //Make the DELETE request with form data
-      fetch("http://localhost:5155/palette/asset", {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset`, {
         method: "DELETE",
         body: formData,
         // No need to set 'Content-Type'; fetch does it automatically for FormData
@@ -487,7 +489,7 @@ export default function PalettePage() {
 
       try {
         const response = await fetch(
-          `http://localhost:5155/palette/${projectId}/submit-assets`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/${projectId}/submit-assets`,
           {
             method: "PATCH",
             headers: {
