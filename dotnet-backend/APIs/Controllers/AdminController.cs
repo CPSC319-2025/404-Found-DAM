@@ -1,11 +1,12 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
 using Infrastructure.Exceptions;
+
+using Core.Services;
 using Core.Entities;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System;
 using Microsoft.AspNetCore.Http;
-
 
 // Use Task<T> or Task for async operations
 
@@ -24,6 +25,7 @@ namespace APIs.Controllers
             app.MapPatch("/projects/{projectID}/accounts/{userID}/role", ModifyRole).WithName("ModifyRole").WithOpenApi();
             app.MapPost("/projects/{projectID}/metadata/fields", AddMetaDataFieldsToProject).WithName("AddMetaDataFieldsToProject").WithOpenApi();
             app.MapPost("/projects", CreateProjects).WithName("CreateProjects").WithOpenApi();
+            app.MapGet("/users", GetAllUsers).WithName("GetUsers").WithOpenApi();
             app.MapPost("/projects/{projectID}/add-users", AddUsersToProject).WithName("AddUsersToProject").WithOpenApi();
             app.MapPatch("/projects/{projectID}/remove-users", DeleteUsersFromProject).WithName("DeleteUsersFromProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
@@ -64,29 +66,33 @@ namespace APIs.Controllers
 
         /*
             ImportProject Assumes:
+                - The imported excel file extension is .xlsx
                 - Project, assets, and users do NOT exist in DB, so the IDs are omitted.
                     - Also assume asset has no custom metadata fields and values.
                 - Relation between user and assets are not preserved in the import file.
+            BlobID in the file of "import project example" is asset's local file path
         */
         private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
             try 
             {
-                // TODO: Check the requester is a super amdin in the DB 
-                string importTempPath = Path.GetTempFileName();
-                if (file.Length > 0) 
-                {
-                    using (var stream = new FileStream(importTempPath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                        ImportProjectRes result = await adminService.ImportProject(stream);
-                        return Results.Ok(result);
-                    }
-                }
-                else 
+                if (file == null || file.Length == 0)
                 {
                     return Results.BadRequest("Empty file");
                 }
+                else
+                {                
+                    // TODO: Check the requester is a super amdin in the DB 
+                    using var memoryStream = new MemoryStream();   
+                    await file.CopyToAsync(memoryStream);
+                    memoryStream.Seek(0, SeekOrigin.Begin); // Reset the memory stream's position.
+                    ImportProjectRes result = await adminService.ImportProject(memoryStream);
+                    return Results.Ok(result);
+                }
+            }
+            catch (InvalidDataException ex)
+            {
+                return Results.BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -260,5 +266,23 @@ namespace APIs.Controllers
         {
             return Results.NotFound("stub"); // Stub
         }
+
+        private static async Task<IResult> GetAllUsers(IAdminService adminService) 
+        {
+            try
+            {
+                //TODO: replace MOCKUSERID with authenticated userID
+                int userID = MOCKEDUSERID;
+                GetAllUsersRes result = await adminService.GetAllUsers(userID);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex) {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception) {
+                return Results.StatusCode(500);
+            }
+        }
+        
     }
 }

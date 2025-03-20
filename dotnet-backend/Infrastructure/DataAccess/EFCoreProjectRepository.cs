@@ -19,11 +19,11 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<(List<int>, List<int>)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<(List<int>, List<int>)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            List<int> successfulSubmissions = new List<int>();
+            List<int> successfulAssociations = new List<int>();
 
             // check project exist & if submitter is a member
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
@@ -33,29 +33,26 @@ namespace Infrastructure.DataAccess
                 if (isSubmitterMember) 
                 {
                     // Retrieve assets using blobIDs
-                    var assetsToBeSubmitted = await _context.Assets
-                        .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID == projectID)
+                    var assetsToBeAssociated = await _context.Assets
+                        .Where(a => blobIDs.Contains(a.BlobID))
                         .ToListAsync();
                     
-                    if (assetsToBeSubmitted == null || assetsToBeSubmitted.Count == 0) 
+                    if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0) 
                     {
-                        // No assets to be submitted, return empty successfulSubmissions, and blobIDs = failedSubmissions
-                        return (successfulSubmissions, blobIDs);
+                        // No assets to be associated, return empty successfulAssociations, and blobIDs = failedAssociations
+                        return (successfulAssociations, blobIDs);
                     }
                     else 
                     {
-                        // process assets, if in project & done, add to successfulSubmissions
-                        foreach (Asset a in assetsToBeSubmitted) 
+                        // Assign projectID t0 each asset and add to successfulAssociations
+                        foreach (Asset a in assetsToBeAssociated)
                         {
-                            if (blobIDs.Contains(a.BlobID))
-                            {
-                                a.assetState = Asset.AssetStateType.SubmittedToProject;
-                                a.LastUpdated = DateTime.UtcNow;
-                                successfulSubmissions.Add(a.BlobID);
-                            } 
+                            a.ProjectID = projectID;
+                            a.LastUpdated = DateTime.UtcNow;
+                            successfulAssociations.Add(a.BlobID);
                         }
                         await _context.SaveChangesAsync();
-                        return (successfulSubmissions, blobIDs.Except(successfulSubmissions).ToList());
+                        return (successfulAssociations, blobIDs.Except(successfulAssociations).ToList());
                     }
                 }
                 else 
@@ -69,11 +66,12 @@ namespace Infrastructure.DataAccess
             }            
         }
 
-        public async Task<bool> ArchiveProjectsInDb(List<int> projectIDs)
+        public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
          {
-            // Create an empty list for storing unfound projectIDs
+            // Create empty lists and dictionaries for storing process results
             List<int> unfoundProjectIDs = new List<int>();
-    
+            Dictionary<int, DateTime> NewArchivedProjects = new Dictionary<int, DateTime>();
+            Dictionary<int, DateTime> ProjectsArchivedAlready = new Dictionary<int, DateTime>();
             try 
             {            
                 // Set each project Active to false for archiving
@@ -91,57 +89,39 @@ namespace Infrastructure.DataAccess
                 {
                     var project = projects.FirstOrDefault(p => p.ProjectID == projectID);
 
-                    if (project == null) 
+                    if (project == null)    // Projects not found
                     {
                         unfoundProjectIDs.Add(projectID);   
                     }
-                    else 
+                    else if (!project.Active)   // Porjects already archived
+                    {
+                        if (project.ArchivedAt != null) 
+                        {
+                            ProjectsArchivedAlready[project.ProjectID] = project.ArchivedAt.Value;
+                        }
+                    }
+                    else    // Projects to be archived
                     {
                         project.Active = false;
                         project.ArchivedAt = DateTime.UtcNow;
-
-                        // TODO: Set each asset's Active to false?
-                        
-                        // Console.WriteLine("Remove regular users from this archived project");
-                        // Remove regular users from this archived project
-                        List<ProjectMembership> projectMemberships = project.ProjectMemberships.ToList();
-                        foreach (var pm in projectMemberships)
-                        {
-                            if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
-                            {
-                                _context.ProjectMemberships.Remove(pm);
-                            }
-                        }
+                        NewArchivedProjects[project.ProjectID] = project.ArchivedAt.Value;
                     }
                 }
                 
                 // Console.WriteLine("Save the change");
                 // Save the change
                 await _context.SaveChangesAsync();
-
-                if (unfoundProjectIDs.Count != 0) 
-                {
-                    string unfoundProjects = string.Join(",", unfoundProjectIDs.Select(id => id.ToString()));
-                    throw new PartialSuccessException($"Partial success. Unfound and not archived: {unfoundProjects}");
-                }
-                else 
-                {
-                    return true;
-                }
-            }
-            catch (PartialSuccessException)
-            {
-                throw;
+                return (unfoundProjectIDs, NewArchivedProjects, ProjectsArchivedAlready);
             }
             catch (Exception)
             {
-                return false;
+                throw;
             }
         }
 
         public async Task<List<Log>> GetArchivedProjectLogsInDb()
         {
-            //TODO
+            //TODO: only allow admin to access
             return null;
         }
 
@@ -248,7 +228,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<List<Asset>> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -260,7 +240,7 @@ namespace Infrastructure.DataAccess
             {
                 // Retrieve matched Assets and their tags
                 IQueryable<Asset> query = _context.Assets
-                    .Where(a => a.ProjectID == req.projectID)
+                    .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
                     .Include(a => a.AssetTags)
                         .ThenInclude(at => at.Tag);
                                      
@@ -278,14 +258,21 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
                     }
 
-                    if (!string.IsNullOrEmpty(req.postedBy)) 
+                    if (req.postedBy.HasValue && req.postedBy.Value > 0)
                     {
-                        query = query.Where(a => a.User != null && a.User.Name.ToLower() == req.postedBy.ToLower());
+                        query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
                     }
 
-                    // TODO: Dateposted attribute not in datamodel
+                    if (req.tagID.HasValue && req.tagID.Value > 0) 
+                    {
+                        query = query.Where(a => a.AssetTags.Any(at => at.TagID == req.tagID.Value));
+                    }
+
 
                     // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                   
+                    int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
+                    
                     List<Asset> assets = await query
                     .OrderBy(a => a.FileName)
                     .Skip((req.pageNumber - 1) * req.assetsPerPage)
@@ -293,7 +280,7 @@ namespace Infrastructure.DataAccess
                     .Include(a => a.User)
                     .ToListAsync();
 
-                    return assets;
+                    return (assets,totalFilteredAssetCount);
                 }
             }
             else 
