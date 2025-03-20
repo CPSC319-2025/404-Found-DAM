@@ -38,11 +38,11 @@ export default function UploadPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`,
         {
-          method: "GET",
+          method: "POST",
           headers: {
             Authorization: "Bearer MY_TOKEN",
           },
-          // body: formData,
+          body: formData,
         }
       );
 
