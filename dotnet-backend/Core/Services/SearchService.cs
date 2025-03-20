@@ -30,7 +30,7 @@ namespace Core.Services
                     name = p.Name,
                     description = p.Description,
                     location = p.Location,
-                    archived = !p.Active,
+                    active = p.Active,
                     archivedAt = null, //TODO: implement later
                     admins = null, // dont need this
                     regularUsers = null, // dont need this

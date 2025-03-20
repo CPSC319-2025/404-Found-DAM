@@ -21,7 +21,7 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}", GetProject).WithName("GetProject").WithOpenApi();
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
-            app.MapPatch("/projects/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
+            app.MapPatch("/projects/{projectID}/associate-assets", AssociateAssetsWithProject).WithName("AssociateAssetsWithProject").WithOpenApi();
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
@@ -32,7 +32,7 @@ namespace APIs.Controllers
             int projectID, 
             int? postedBy,
             int? tagID,
-            string? datePosted,
+
             IProjectService projectService,
             string assetType = DefaultAssetType,
             int pageNumber = DefaultPageNumber, 
@@ -57,8 +57,7 @@ namespace APIs.Controllers
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
                     postedBy = postedBy,
-                    tagID = tagID,
-                    datePosted = datePosted
+                    tagID = tagID
                 };
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
@@ -156,13 +155,13 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IProjectService projectService)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsReq req, IProjectService projectService)
         {
             try 
             {
                 // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
                 int submitterID = MOCKEDUSERID; 
-                SubmitAssetsRes result = await projectService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex)

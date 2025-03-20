@@ -79,6 +79,7 @@ const newProjectFormFields = [
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
+    
   const [query, setQuery] = useState<string>("");
 
   const { user } = useUser();
@@ -103,6 +104,7 @@ export default function ProjectsPage() {
             userNames: project.admins.concat(project.regularUsers).map((user: User) => user.name),
           }) as ProjectCardProps
       );
+
     } catch (error) {
       console.error("[Diagnostics] Error fetching projects: ", error);
       return [];
@@ -149,6 +151,7 @@ export default function ProjectsPage() {
 
       setNewProjectModalOpen(false);
       toast.success("Created new project successfully.");
+
       return await fetchProjects();
     } catch (error) {
       console.error("Error creating project:", error);
@@ -176,6 +179,7 @@ export default function ProjectsPage() {
     console.log(data);
 
     const filteredProjects = projects.filter((p: ProjectCardProps) =>
+
       data.projects.some(
         (project: Project) => project.projectID === p.projectID
       )

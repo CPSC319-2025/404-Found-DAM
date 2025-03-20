@@ -6,7 +6,7 @@ namespace Core.Dtos
         public string name { get; set; }
         public string description { get; set; }
         public string location { get; set; }
-        public bool archived { get; set; }
+        public bool active { get; set; }
         public DateTime? archivedAt { get; set; }
         public List<UserCustomInfo> admins { get; set; } 
         public List<UserCustomInfo> regularUsers { get; set; } 

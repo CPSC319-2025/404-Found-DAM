@@ -50,17 +50,16 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<int> blobIDs, int submitterID)
         {
             try 
             {
-                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _repository.SubmitAssetstoDb(projectID, blobIDs, submitterID);
-                SubmitAssetsRes result = new SubmitAssetsRes
+                (List<int> successfulAssociations, List<int> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
+                AssociateAssetsRes result = new AssociateAssetsRes
                 {
                     projectID = projectID,
-                    successfulSubmissions = successfulSubmissions,
-                    failedSubmissions = failedSubmissions,
-                    submittedAt = DateTime.UtcNow
+                    success = successfulAssociations,
+                    fail = failedAssociations,
                 };
                 return result;
             }
@@ -82,20 +81,38 @@ namespace Core.Services
             } else {
                 try 
                 {
-                    bool isSuccessul = await _repository.ArchiveProjectsInDb(projectIDs);
-                    if (isSuccessul)
+                    List<ArchivedProject> projectsNewlyArchived = new List<ArchivedProject>();
+                    List<ArchivedProject> projectsAlreadyArchived = new List<ArchivedProject>();
+
+                    (List<int> unfoundProjectIDs, Dictionary<int, DateTime> NewArchivedProjects, Dictionary<int, DateTime> ProjectsArchivedAlready) 
+                        = await _repository.ArchiveProjectsInDb(projectIDs);
+
+                    if (NewArchivedProjects != null)
                     {
-                        ArchiveProjectsRes result = new ArchiveProjectsRes{archiveTimestamp = DateTime.UtcNow};
-                        return result;
+                        foreach (KeyValuePair<int, DateTime> pair in NewArchivedProjects)
+                        {
+                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
+                            projectsNewlyArchived.Add(ap);
+                        }
                     }
-                    else 
+
+                    if (ProjectsArchivedAlready != null)
                     {
-                        throw new Exception("Failed to archive projects in database.");
-                    }
-                }
-                catch (PartialSuccessException) 
-                {
-                    throw;
+                        foreach (KeyValuePair<int, DateTime> pair in ProjectsArchivedAlready)
+                        {
+                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
+                            projectsAlreadyArchived.Add(ap);
+                        }
+                    } 
+
+                    ArchiveProjectsRes res = new ArchiveProjectsRes
+                    { 
+                        projectsNewlyArchived = projectsNewlyArchived, 
+                        projectsAlreadyArchived = projectsAlreadyArchived, 
+                        unfoundProjectIDs = unfoundProjectIDs 
+                    };
+
+                    return res;
                 }
                 catch (Exception) 
                 {
@@ -184,7 +201,7 @@ namespace Core.Services
                     name = project.Name,
                     description = project.Description,
                     location = project.Location,
-                    archived = project.Active,
+                    active = project.Active,
                     archivedAt = project.ArchivedAt,
                     admins = adminList,
                     regularUsers = regularUserList,
@@ -276,7 +293,7 @@ namespace Core.Services
                         fullProjectInfo.description = p.Description;
                         fullProjectInfo.creationTime = p.CreationTime;
                         fullProjectInfo.active = p.Active;
-                        fullProjectInfo.archivedAt = p.Active ? p.ArchivedAt : null;
+                        fullProjectInfo.archivedAt = p.Active ? null : p.ArchivedAt;
                         fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
                         fullProjectInfo.admins = adminSet;
                         fullProjectInfo.regularUsers = regularSet;
@@ -300,13 +317,12 @@ namespace Core.Services
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
-            //TODO
+            //TODO: May need to retrive actual assets from Blob to return together.
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
-                var (retrievedAssets, totalAssetsReturned) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
-
-                int totalPages = (int)Math.Ceiling((double)totalAssetsReturned / req.assetsPerPage);
+                (List<Asset> retrievedAssets, int totalFilteredAssetCount) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
+                int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
 
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination
                 {
@@ -330,6 +346,23 @@ namespace Core.Services
                         tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
                     }).ToList();
 
+                        paginatedProjectAsset.date = a.LastUpdated;
+                        paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
+                        paginatedProjectAsset.tags = a.AssetTags.Select(t => t.Tag.Name).ToList();
+
+                        if (a.AssetMetadata != null)
+                        {
+                            foreach (AssetMetadata am in a.AssetMetadata)
+                            {
+                                if (am.MetadataField != null)
+                                {
+                                    // for 
+                                }
+                            }
+                        }
+                        paginatedProjectAssets.Add(paginatedProjectAsset);
+                    }
+                }
                 GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
 
                 return result;

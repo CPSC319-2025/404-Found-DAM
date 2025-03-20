@@ -10,9 +10,10 @@ namespace Core.Interfaces
         Task<ModifyRoleRes> ModifyRole(int projectID, int userID, string normalizedRoleString);
         Task<List<AddMetadataRes>> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req);
         Task<List<CreateProjectsRes>> CreateProjects(List<CreateProjectsReq> req, int userID);
+        Task<GetAllUsersRes> GetAllUsers(int userID);
         Task<AddUsersToProjectRes> AddUsersToProject(int reqeusterID, int projectID, AddUsersToProjectReq req);
         Task<DeleteUsersFromProjectRes> DeleteUsersFromProject(int reqeusterID, int projectID, DeleteUsersFromProjectReq req);
         Task<(string, byte[])> ExportProject(int projectID, int requesterID);
-        Task<ImportProjectRes> ImportProject(FileStream stream);
+        Task<ImportProjectRes> ImportProject(Stream stream);
     }
 }
