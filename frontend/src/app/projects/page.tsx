@@ -1,26 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { FormData } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
+import { User, Project } from "@/app/types";
 
-interface FullProjectInfo {
-  projectID: number;
-  projectName: string;
-  location: string;
-  description: string;
-  creationTime: string; // ISO
-  active: boolean;
-  archivedAt: string | null;
-  assetCount: number;
-  regularUserNames: string[];
-  adminNames: string[];
-}
-
-interface Project {
+interface ProjectCardProps {
   projectID: number;
   name: string;
   creationTime: string;
@@ -30,7 +18,7 @@ interface Project {
 
 interface GetAllProjectsResponse {
   projectCount: number;
-  fullProjectInfos: FullProjectInfo[];
+  fullProjectInfos: Project[];
 }
 
 const newProjectFormFields = [
@@ -90,7 +78,8 @@ const newProjectFormFields = [
 
 export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState<Project[]>([]);
+  const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
+
   const [query, setQuery] = useState<string>("");
 
   const { user } = useUser();
@@ -105,18 +94,18 @@ export default function ProjectsPage() {
       }
       const data = (await response.json()) as GetAllProjectsResponse;
 
-      const projectsFromBackend = data.fullProjectInfos.map(
-        (project: FullProjectInfo) =>
+      return data.fullProjectInfos.map(
+        (project: Project) =>
           ({
             projectID: project.projectID,
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
-            userNames: project.adminNames.concat(project.regularUserNames),
-          }) as Project
+            userNames: project.admins
+              .concat(project.regularUsers)
+              .map((user: User) => user.name),
+          }) as ProjectCardProps
       );
-
-      return projectsFromBackend;
     } catch (error) {
       console.error("[Diagnostics] Error fetching projects: ", error);
       return [];
@@ -163,8 +152,8 @@ export default function ProjectsPage() {
 
       setNewProjectModalOpen(false);
       toast.success("Created new project successfully.");
-      const projects = await fetchProjects();
-      setProjectList(projects);
+
+      return await fetchProjects();
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
@@ -190,7 +179,7 @@ export default function ProjectsPage() {
 
     console.log(data);
 
-    const filteredProjects = projects.filter((p: Project) =>
+    const filteredProjects = projects.filter((p: ProjectCardProps) =>
       data.projects.some(
         (project: Project) => project.projectID === p.projectID
       )
