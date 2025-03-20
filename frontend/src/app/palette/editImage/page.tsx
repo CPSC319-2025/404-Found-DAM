@@ -18,7 +18,7 @@ export default function EditImagePage() {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [resize, setResize] = useState(1); // ✅ Resize Factor
+  const [resize, setResize] = useState(1); // Resize Factor
   const [flip, setFlip] = useState({ horizontal: false, vertical: false });
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
@@ -47,7 +47,7 @@ export default function EditImagePage() {
 
       let { x, y, width, height } = croppedAreaPixels;
 
-      // ✅ Apply Resize in the Saving Process
+      // Apply Resize in the Saving Process
       const resizedWidth = Math.round(width * resize);
       const resizedHeight = Math.round(height * resize);
 
@@ -66,14 +66,14 @@ export default function EditImagePage() {
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.translate(-resizedWidth / 2, -resizedHeight / 2);
 
-      // ✅ Ensure the resized dimensions are used in `ctx.drawImage()`
+      // Ensure the resized dimensions are used in `ctx.drawImage()`
       ctx.drawImage(image, x, y, width, height, 0, 0, resizedWidth, resizedHeight);
 
       canvas.toBlob((blob) => {
         if (blob) {
           const editedFile = new File([blob], fileData.file.name, { type: blob.type });
 
-          // ✅ Update FileContext with resized image
+          // Update FileContext with resized image
           setFiles((prevFiles) =>
             prevFiles.map((file, index) =>
               index === fileIndex ? { ...file, file: editedFile } : file
@@ -88,7 +88,7 @@ export default function EditImagePage() {
           });
 
           alert("Image saved successfully! Returning to palette...");
-          router.push("/palette"); // ✅ Return to palette
+          router.push("/palette"); //  Return to palette
         }
       });
     };
@@ -111,7 +111,7 @@ export default function EditImagePage() {
           <Cropper
             image={imageSource}
             crop={crop}
-            zoom={zoom * resize}  // ✅ Resize applied to the Cropper in real-time
+            zoom={zoom * resize}  // Resize applied to the Cropper in real-time
             rotation={rotation}
             onCropChange={setCrop}
             onZoomChange={setZoom}
@@ -126,7 +126,7 @@ export default function EditImagePage() {
         <p className="text-gray-600">No image selected yet!</p>
       )}
 
-      {/* ✅ Resize Slider (Now Works in Real-Time) */}
+      {/* Resize Slider (Now Works in Real-Time) */}
       <div className="flex flex-col items-center gap-2 mt-4">
         <label className="text-gray-700 font-medium">Resize Image:</label>
         <input
