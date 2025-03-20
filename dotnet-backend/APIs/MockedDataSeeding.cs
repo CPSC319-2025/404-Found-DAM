@@ -16,30 +16,27 @@ namespace MockedData
     {
         public static async Task Seed(IServiceScope scope) 
         {
-            string filePath;
-            string jsonString;
             var _contextFactory = scope.ServiceProvider.GetService<IDbContextFactory<DAMDbContext>>();
 
             // Add users
-            // filePath = @"..\Core\MockedSeed\mockedUsers.json";
-            // jsonString = File.ReadAllText(filePath);
-            // List<User>? users = JsonSerializer.Deserialize<List<User>>(jsonString);
+            string mockedUsersfilePath = Path.Combine("..", "Core", "MockedSeed", "mockedUsers.json");
+            string mockedUsersPathJsonString = File.ReadAllText(mockedUsersfilePath);
+            List<User>? users = JsonSerializer.Deserialize<List<User>>(mockedUsersPathJsonString);
 
-            // if (users != null && _contextFactory != null) 
-            // {
-            //     using DAMDbContext _context = _contextFactory.CreateDbContext();
-            //     await _context.Users.AddRangeAsync(users);
-            //     await _context.SaveChangesAsync();
-            // }
+            if (users != null && _contextFactory != null) 
+            {
+                using DAMDbContext _context = _contextFactory.CreateDbContext();
+                await _context.Users.AddRangeAsync(users);
+                await _context.SaveChangesAsync();
+            }
 
             // Add projects (no users yet!)
             var adminService = scope.ServiceProvider.GetService<IAdminService>();
             if (adminService != null) 
             {
-                // for mac its / for windows its \
-                filePath = @"../Core/MockedSeed/mockedProjects.json";
-                jsonString = File.ReadAllText(filePath);
-                List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(jsonString);
+                string mockedProjectsfilePath = Path.Combine("..", "Core", "MockedSeed", "mockedProjects.json");
+                string mockedProjectsPathJsonString = File.ReadAllText(mockedProjectsfilePath);
+                List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(mockedProjectsPathJsonString);
                 if (req != null) {
                     // TODO: replace mocked userID with authenticated userID
                     int userID = 1;
