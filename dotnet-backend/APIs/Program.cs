@@ -45,6 +45,13 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
+} else {
+    builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
+}
+
 
 
 var app = builder.Build();
@@ -88,14 +95,12 @@ if (app.Environment.IsDevelopment())
     // Configure the HTTP request pipeline.
     app.UseSwagger();
     app.UseSwaggerUI();
-    builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
     await using (var serviceScope = app.Services.CreateAsyncScope())
     await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
     {
         await context.Database.EnsureCreatedAsync();
     }
 } else {
-    builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
     try
     {
         using (var scope = app.Services.CreateScope())
