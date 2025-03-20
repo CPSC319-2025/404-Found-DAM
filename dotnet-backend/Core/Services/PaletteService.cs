@@ -2,6 +2,7 @@ using Core.Interfaces;
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
+using Infrastructure.Exceptions;
 
 
 namespace Core.Services
@@ -77,5 +78,27 @@ namespace Core.Services
             return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
 
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)        {
+            try 
+            {
+                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
+                SubmitAssetsRes result = new SubmitAssetsRes      
+                {
+                    projectID = projectID,
+                    successfulSubmissions = successfulSubmissions,
+                    failedSubmissions = failedSubmissions,
+                    submittedAt = DateTime.UtcNow
+                };
+                 return result; 
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

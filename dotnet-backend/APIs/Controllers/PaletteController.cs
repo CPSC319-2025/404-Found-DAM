@@ -1,10 +1,12 @@
 using Core.Interfaces;
 using Core.Dtos;
+using Infrastructure.Exceptions;
 
 namespace APIs.Controllers
 {
     public static class PaletteController
     {
+        private const int MOCKEDUSERID = 1;
 
         // PUT /palette/assets/{assetId} edit asset in the pallete
         // DELETE /projects/assign-assets  delete an asset from palette
@@ -12,7 +14,7 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) => 
+        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
         {
             return await GetPaletteAssets(request, paletteService);
         })
@@ -60,12 +62,14 @@ namespace APIs.Controllers
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
+        app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
+
         }
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
-
-            int userId = int.Parse(request.Form["UserId"].ToString());
+            // Console.WriteLine("Request received. Form data: " + string.Join(", ", request.Form.Keys));
+            int userId = MOCKEDUSERID;
 
             if (string.IsNullOrEmpty(userId.ToString()))
             {
@@ -83,7 +87,7 @@ namespace APIs.Controllers
             // If no files were found
             if (files == null || !files.Any())
             {
-                return Results.NotFound("No files found for this user.");
+                return Results.Ok(new { assets = Array.Empty<object>() }); 
             }
             
             // If there's only one file, return it directly
@@ -195,6 +199,29 @@ namespace APIs.Controllers
                 return Results.NotFound("Failed to delete asset");
             }
         }
+
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService)
+         {
+             // May need to add varification to check if client data is bad.
+             try 
+             {
+                 // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
+                 int submitterID = MOCKEDUSERID; 
+                 Console.WriteLine(req.blobIDs);
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                 return Results.Ok(result);
+             }
+
+             catch (DataNotFoundException ex)
+             {
+                 return Results.NotFound(ex.Message);
+             }
+             catch (Exception ex)
+             {
+                 Console.WriteLine($"An error occurred: {ex.Message}");
+                 return Results.StatusCode(500);
+             }
+         }
         
     }
 }

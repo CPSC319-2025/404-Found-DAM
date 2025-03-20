@@ -3,6 +3,7 @@
 
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Core.Interfaces
 {
@@ -15,6 +16,6 @@ namespace Core.Interfaces
         Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
         Task<List<string>> GetProjectTagsAsync(int projectId);
         Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId);
-
+        Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID);    
     }
 }
