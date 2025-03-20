@@ -345,24 +345,7 @@ namespace Core.Services
                         filesizeInKB = a.FileSizeInKB,
                         tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
                     }).ToList();
-
-                        paginatedProjectAsset.date = a.LastUpdated;
-                        paginatedProjectAsset.filesizeInKB = a.FileSizeInKB;
-                        paginatedProjectAsset.tags = a.AssetTags.Select(t => t.Tag.Name).ToList();
-
-                        if (a.AssetMetadata != null)
-                        {
-                            foreach (AssetMetadata am in a.AssetMetadata)
-                            {
-                                if (am.MetadataField != null)
-                                {
-                                    // for 
-                                }
-                            }
-                        }
-                        paginatedProjectAssets.Add(paginatedProjectAsset);
-                    }
-                }
+                
                 GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
 
                 return result;
