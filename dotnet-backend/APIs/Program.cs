@@ -42,7 +42,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
-if (builder.Environment.IsDevelopment())
+// remove ! for azure testing
+if (!builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 } else {
