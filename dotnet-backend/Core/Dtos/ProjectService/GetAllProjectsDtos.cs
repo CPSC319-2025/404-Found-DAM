@@ -4,7 +4,6 @@ namespace Core.Dtos
     {
         public int projectCount { get; set; }
         public List<FullProjectInfo> fullProjectInfos { get; set; }
-        
     }
 
     public class FullProjectInfo
@@ -15,9 +14,15 @@ namespace Core.Dtos
         public string description { get; set; }
         public DateTime creationTime { get; set; }
         public bool active { get; set; }
-        public DateTime? archivedAt { get; set; } 
-        public int assetCount { get; set; } 
-        public HashSet<string> adminNames { get; set; } 
-        public HashSet<string> regularUserNames { get; set; }         
+        public DateTime? archivedAt { get; set; }
+        public int assetCount { get; set; }
+        public HashSet<UserCustomInfo> admins { get; set; }
+        public HashSet<UserCustomInfo> regularUsers { get; set; }
+
+        public FullProjectInfo()
+        {
+            admins = new HashSet<UserCustomInfo>();
+            regularUsers = new HashSet<UserCustomInfo>();
+        }
     }
 }
