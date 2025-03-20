@@ -29,7 +29,7 @@ export default function UploadPage() {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       // const FormData = require("form-data");
       const formData = new FormData();
-      formData.append("userId", "001"); // or dynamic
+      formData.append("userId", "1"); // or dynamic
       formData.append("name", "My Upload Batch");
       formData.append("type", "image");
       formData.append("files", compressedFile);

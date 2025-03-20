@@ -53,7 +53,7 @@ export default function PalettePage() {
 
   function getFilenameFromContentDisposition(disposition: string): string {
     // Example disposition:
-    // 'attachment; filename=11.zst; filename*=UTF-8\'\'11.zst'
+    // 'attachment; filename=11.Screenshot 2025-03-18 200722.png.zst; filename*=UTF-8\'\'11.Screenshot 2025-03-18 200722.png.zst'
 
     // Split on semicolons
     const parts = disposition.split(";");
@@ -63,7 +63,7 @@ export default function PalettePage() {
 
       // Look for filename=
       if (trimmed.toLowerCase().startsWith("filename=")) {
-        // e.g. filename=11.zst
+        // e.g. filename=11.Screenshot 2025-03-18 200722.png.zst
         const val = trimmed
           .substring("filename=".length)
           .trim()
@@ -73,7 +73,7 @@ export default function PalettePage() {
 
       // Look for filename*= (UTF-8)
       if (trimmed.toLowerCase().startsWith("filename*=")) {
-        // e.g. filename*=UTF-8''11.zst
+        // e.g. filename*=UTF-8''11.Screenshot 2025-03-18 200722.png.zst
         const val = trimmed
           .substring("filename*=".length)
           .trim()
@@ -89,6 +89,35 @@ export default function PalettePage() {
     // Fallback if we don't find anything
     return "defaultFilename.zst";
   }
+
+  // Function to extract the original filename from the server format (BlobID.OriginalFilename.zst)
+  function extractOriginalFilename(filename: string): string {
+    // Format: BlobID.OriginalFilename.zst
+    const parts = filename.split('.');
+    if (parts.length < 3) {
+      return filename; // Return as is if not in expected format
+    }
+    
+    // Remove the first part (BlobID) and the last part (.zst)
+    parts.shift(); // Remove BlobID
+    parts.pop(); // Remove .zst extension
+    
+    // Join the remaining parts to handle filenames with dots
+    return parts.join('.');
+  }
+
+  // Function to extract BlobID from the server format (BlobID.OriginalFilename.zst)
+  function extractBlobId(filename: string): number | undefined {
+    const parts = filename.split('.');
+    if (parts.length < 2) {
+      return undefined;
+    }
+    
+    const blobIdStr = parts[0];
+    const blobId = parseInt(blobIdStr, 10);
+    return isNaN(blobId) ? undefined : blobId;
+  }
+
   async function fetchPaletteAssets() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     // const FormData = require("form-data");
@@ -100,6 +129,7 @@ export default function PalettePage() {
       headers: {
         Authorization: "Bearer MY_TOKEN",
       },
+      // body: formData,
     });
 
     if (!response.ok) {
@@ -136,10 +166,14 @@ export default function PalettePage() {
         filename = getFilenameFromContentDisposition(contentDisposition);
       }
 
+      // Extract the original filename and blobId from the server format
+      const originalFilename = extractOriginalFilename(filename);
+      const blobId = extractBlobId(filename);
+      
       const file = new File(
         [decompressed],
-        filename, // ensure that filename is defined in your context
-        { type: getMimeTypeFromFileName(filename) }
+        originalFilename, // Use the original filename without BlobID and .zst
+        { type: getMimeTypeFromFileName(originalFilename) }
       );
 
       const fileSize = (file.size / 1024).toFixed(2) + " KB";
@@ -149,6 +183,7 @@ export default function PalettePage() {
         description: "",
         location: "",
         tags: [],
+        blobId // Store the blobId extracted from the filename
       };
 
       if (file.type.startsWith("image/")) {
@@ -183,10 +218,14 @@ export default function PalettePage() {
           const fileData = await zip.files[filename].async("uint8array");
           const decompressedData = await decompressZstd(fileData);
 
+          // Extract the original filename and blobId from the server format
+          const originalFilename = extractOriginalFilename(filename);
+          const blobId = extractBlobId(filename);
+          
           const file = new File(
             [decompressedData],
-            filename, // ensure that filename is defined in your context
-            { type: getMimeTypeFromFileName(filename) }
+            originalFilename, // Use the original filename without BlobID and .zst
+            { type: getMimeTypeFromFileName(originalFilename) }
           );
 
           const fileSize = (file.size / 1024).toFixed(2) + " KB";
@@ -196,6 +235,7 @@ export default function PalettePage() {
             description: "",
             location: "",
             tags: [],
+            blobId // Store the blobId extracted from the filename
           };
 
           if (file.type.startsWith("image/")) {
@@ -322,7 +362,7 @@ export default function PalettePage() {
         // Continue with deletion from UI even if we can't delete from server
       }
 
-      // Make the DELETE request with form data
+      //Make the DELETE request with form data
       fetch("http://localhost:5155/palette/asset", {
         method: "DELETE",
         body: formData,
@@ -439,7 +479,7 @@ export default function PalettePage() {
 
       try {
         const response = await fetch(
-          `http://localhost:5155/projects/${projectId}/submit-assets`,
+          `http://localhost:5155/palette/${projectId}/submit-assets`,
           {
             method: "PATCH",
             headers: {

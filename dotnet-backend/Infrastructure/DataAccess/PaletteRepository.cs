@@ -105,7 +105,7 @@ namespace Infrastructure.DataAccess {
                 var asset = new Asset
                 {
                     FileName = finalName,
-                    MimeType = file.ContentType,
+                    MimeType = finalExtension,
                     ProjectID = null,
                     UserID = request.UserId,
                     assetState = Asset.AssetStateType.UploadedToPalette
@@ -117,7 +117,7 @@ namespace Infrastructure.DataAccess {
                 int num = await _context.SaveChangesAsync();
                 // TODOO USE BLOB FOR PROD
                 // Console.WriteLine($"FileType before compression: {finalExtension}");
-                await File.WriteAllBytesAsync(storageDirectory + "/" + asset.BlobID + ".zst", compressedData);
+                await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst"), compressedData);
                 return asset.BlobID;
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
@@ -144,7 +144,7 @@ namespace Infrastructure.DataAccess {
                 await _context.Assets.Where(a => a.BlobID == int.Parse(request.Name)).ExecuteDeleteAsync();
                 
                 // Delete the corresponding file
-                string filePath = Path.Combine(storageDirectory, asset.BlobID + ".zst");
+                string filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
                 if (File.Exists(filePath))
                 {
                     // TODOO USE BLOB FOR PROD
@@ -174,18 +174,17 @@ namespace Infrastructure.DataAccess {
 
                 // Get all Assets for the user
                 var assetIds = await _context.Assets
-                    .Where(ass => ass.UserID == userId)
-                    .Select(ass => ass.BlobID)
+                    .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                     .ToListAsync();
 
                 // Create tasks for parallel file reading
-                var readTasks = assetIds.Select(async assetId => {
-                    var filePath = Path.Combine(storageDirectory, $"{assetId}.zst");
+                var readTasks = assetIds.Select(async asset => {
+                    var filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
+                    // Console.WriteLine(filePath);
                     // TODOO USE BLOB FOR PROD
                     var bytes = await File.ReadAllBytesAsync(filePath);
 
-                    string fileName = $"{assetId}.zst";
-
+                    string fileName = $"{asset.BlobID}.{asset.FileName}.zst";
                     // Convert byte array to IFormFile
                     var stream = new MemoryStream(bytes);
                     var formFile = new FormFile(
