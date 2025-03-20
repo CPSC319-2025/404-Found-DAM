@@ -1,5 +1,6 @@
 using Core.Interfaces;
 using Core.Dtos;
+using Infrastructure.Exceptions;
 
 namespace APIs.Controllers
 {
@@ -60,6 +61,8 @@ namespace APIs.Controllers
  
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
+
+        app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
 
         }
 
@@ -196,6 +199,28 @@ namespace APIs.Controllers
                 return Results.NotFound("Failed to delete asset");
             }
         }
+
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService)
+         {
+             // May need to add varification to check if client data is bad.
+             try 
+             {
+                 // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
+                 int submitterID = MOCKEDUSERID; 
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                 return Results.Ok(result);
+             }
+
+             catch (DataNotFoundException ex)
+             {
+                 return Results.NotFound(ex.Message);
+             }
+             catch (Exception ex)
+             {
+                 Console.WriteLine($"An error occurred: {ex.Message}");
+                 return Results.StatusCode(500);
+             }
+         }
         
     }
 }
