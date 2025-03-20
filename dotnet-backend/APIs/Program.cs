@@ -4,6 +4,12 @@ using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
 using MockedData;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +62,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    string jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is not configured.");
     var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
     options.TokenValidationParameters = new TokenValidationParameters
     {
