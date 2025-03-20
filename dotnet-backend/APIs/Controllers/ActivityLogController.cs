@@ -80,7 +80,6 @@ namespace APIs.Controllers
                 .Select(group => new
                 {
                     item_id = group.Key.AssetID.ToString(),
-                    item_type = "image", // Assuming all logs relate to images
                     audit_log = group.Select(log => new
                     {
                         change_id = log.ChangeID,
