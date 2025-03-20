@@ -36,13 +36,13 @@ export default function UploadPage() {
 
       // Send the request
       const response = await fetch(
-        "https://dennis.free.beeceptor.com/palette/upload1",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`,
         {
-          method: "POST",
+          method: "GET",
           headers: {
             Authorization: "Bearer MY_TOKEN",
           },
-          body: formData,
+          // body: formData,
         }
       );
 
