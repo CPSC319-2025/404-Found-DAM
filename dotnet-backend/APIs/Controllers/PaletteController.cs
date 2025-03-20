@@ -137,6 +137,7 @@ namespace APIs.Controllers
         // TODO: Bring back ITestService projectService
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
+            Console.WriteLine("UploadAssets");
             // Check if the request has form data
             if (!request.HasFormContentType || request.Form.Files.Count == 0)
             {

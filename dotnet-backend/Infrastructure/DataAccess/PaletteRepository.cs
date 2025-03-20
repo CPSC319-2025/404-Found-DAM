@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Core.Dtos;
 using System.Reflection.Metadata;
 using Infrastructure.Exceptions;
+using Core.Services.Utils;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
@@ -72,7 +73,7 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request)
+        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request, IImageService _imageService)
         {
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
@@ -85,7 +86,24 @@ namespace Infrastructure.DataAccess {
                 {
                     await file.CopyToAsync(ms);
                     compressedData = ms.ToArray();
+
+                    // Decompress for converting to lossy webp
+                    // TODO: guard to only convert images.
+                    byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
+                    byte[] webpBuffer = _imageService.toWebpNetVips(decompressedBuffer);
+
+                    // Compress the returned buffer
+                    compressedData = FileCompressionHelper.Compress(webpBuffer);
                 }
+
+                // using (var ms = new MemoryStream())
+                // {
+                //     Console.WriteLine("toWebP");
+                //     await file.CopyToAsync(ms);
+                //     var webpBuffer = _imageService.toWebpNetVips(ms);
+                //     // compressedData = ms.ToArray();
+                //     compressedData = webpBuffer;
+                // }
                 
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
@@ -93,6 +111,8 @@ namespace Infrastructure.DataAccess {
                 {
                     Directory.CreateDirectory(storageDirectory);
                 }
+
+                // TODO: Change the file extension to webp
 
                 string finalName = file.FileName;
                 string suffix = ".zst";

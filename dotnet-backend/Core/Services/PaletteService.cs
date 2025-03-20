@@ -10,16 +10,19 @@ namespace Core.Services
     public class PaletteService : IPaletteService
     {
         private readonly IPaletteRepository _paletteRepository;
-        
-        public PaletteService(IPaletteRepository paletteRepository)
+        private readonly IImageService _imageService;
+   
+        public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
         {
             _paletteRepository = paletteRepository;
+            _imageService = imageService;
         }
 
         public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
         {
+            Console.WriteLine("ProcessUploadAsync");
             try {
-                return await _paletteRepository.UploadAssets(file, request);
+                return await _paletteRepository.UploadAssets(file, request, _imageService);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");

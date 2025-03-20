@@ -15,13 +15,28 @@ namespace Core.Services
             // image = image.Rot90();
         }
 
-        public void toWebpNetVips()
+        // Consider making toWebpNetVips async
+        public byte[] toWebpNetVips(byte[] decompressedBuffer)
         {
-            var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
-            Console.WriteLine("converting...");
-            image.Webpsave("SamplePNGImage_20mbmb.webp", null, false); // Webpsave(string filenameToSaveTo, int qFactor, bool lossless)
-            Console.WriteLine("done...");
+            // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
+            
+            Console.WriteLine("getting image...");
+
+            using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+            {
+                Console.WriteLine("prep webpLossyStream...");
+
+                MemoryStream webpLossyStream = new MemoryStream();
+                
+                Console.WriteLine("converting...");
+
+                image.WebpsaveStream(webpLossyStream, null, false); // Webpsave(srream StreamToSaveTo., int qFactor, bool lossless)
+                Console.WriteLine("done...");
+                webpLossyStream.Position = 0; // Reset position
+                return webpLossyStream.ToArray();
+            } 
         }
+
         
         public void toWebpImageSharp()
         {
