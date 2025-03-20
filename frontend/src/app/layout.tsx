@@ -1,8 +1,7 @@
-// src/app/layout.tsx
 "use client";
 
 import localFont from "next/font/local";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "./globals.css";
 import Navbar from "@/app/components/Navbar";
 import Login from "@/app/components/Login";
@@ -10,6 +9,10 @@ import { FileProvider } from "@/app/context/FileContext";
 import { UserProvider } from "@/app/context/UserContext";
 import { getUserFromToken, User } from "@/app/utils/api/auth";
 import React from "react";
+import { ToastContainer } from "react-toastify";
+import { useUser } from "@/app/context/UserContext";
+import { logout } from "@/app/utils/api/auth";
+import { CogIcon } from "@heroicons/react/24/solid";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,6 +32,34 @@ export default function RootLayout({
 }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    setDropdownOpen(false); // Close the dropdown after logout
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -79,12 +110,35 @@ export default function RootLayout({
       >
         <UserProvider value={{ user, setUser }}>
           <FileProvider>
-            <div className="flex min-h-screen flex-col sm:flex-row">
+            <div className="flex min-h-screen flex-col sm:flex-row relative">
               <Navbar />
-              <main className="p-4 flex-1 mt-20 sm:mt-0 md:sm-64">
+              <div className="fixed bottom-4 right-4 block" ref={dropdownRef}>
+                <div className="relative">
+                  <button
+                    ref={buttonRef}
+                    onClick={() => setDropdownOpen(!isDropdownOpen)}
+                    className="bg-gray-300 p-2 rounded-full hover:bg-gray-300"
+                  >
+                    <CogIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
+                  </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32 z-60">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left p-2 text-red-600 hover:bg-gray-100"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <main className="p-4 flex-1 mt-16 sm:mt-0 md:sm-64">
                 {children}
               </main>
             </div>
+            <ToastContainer autoClose={5000} position="top-center" />
           </FileProvider>
         </UserProvider>
       </body>

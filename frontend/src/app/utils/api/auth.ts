@@ -78,10 +78,19 @@ export async function getUserFromToken() {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, secret);
-    return payload as unknown as User;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < currentTime) {
+      console.warn("Token has expired, removing...");
+      logout();
+      return null;
+    }
+
+    return payload as User;
   } catch (error) {
     console.error("Invalid token:", error);
+    logout();
     return null;
   }
 }
