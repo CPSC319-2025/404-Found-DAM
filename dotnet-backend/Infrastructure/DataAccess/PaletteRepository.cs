@@ -88,12 +88,12 @@ namespace Infrastructure.DataAccess {
                     compressedData = ms.ToArray();
 
                     // Decompress for converting to lossy webp
-                    // TODO: guard to only convert images.
+                    // TODO: guard to only convert images, and skip those that are already in webp
                     byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
-                    byte[] webpBuffer = _imageService.toWebpNetVips(decompressedBuffer);
+                    byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuffer, false);
 
                     // Compress the returned buffer
-                    compressedData = FileCompressionHelper.Compress(webpBuffer);
+                    compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
                 }
 
                 // using (var ms = new MemoryStream())

@@ -16,7 +16,7 @@ namespace Core.Services
         }
 
         // Consider making toWebpNetVips async
-        public byte[] toWebpNetVips(byte[] decompressedBuffer)
+        public byte[] toWebpNetVips(byte[] decompressedBuffer, bool lossless)
         {
             // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
             
@@ -30,10 +30,9 @@ namespace Core.Services
                 
                 Console.WriteLine("converting...");
 
-                image.WebpsaveStream(webpLossyStream, null, false); // Webpsave(srream StreamToSaveTo., int qFactor, bool lossless)
+                byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
                 Console.WriteLine("done...");
-                webpLossyStream.Position = 0; // Reset position
-                return webpLossyStream.ToArray();
+                return webpLossyBuffer;
             } 
         }
 

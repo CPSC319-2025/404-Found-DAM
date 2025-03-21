@@ -39,7 +39,6 @@ namespace Core.Services.Utils
             projectDataTable.Columns.Add("Active", typeof(bool));
             projectDataTable.Columns.Add("Archived At (UTC)", typeof(string));
             projectDataTable.Columns.Add("Tags", typeof(string));
-            // Add custom metadata fields if needed
 
             string archivedTime = project.ArchivedAt == null ? "N/A" : project.ArchivedAt.Value.ToString();
             string projectTagNameStr = ""; 
@@ -70,6 +69,8 @@ namespace Core.Services.Utils
                 projectTagNameStr
             );
 
+            // TODO: Create an OrderedDictionary and make the project's matadatafields as keys with null values
+
             // Add Columns for asset details
             var assetDataTable = new DataTable();
             assetDataTable.Columns.Add("Blob ID", typeof(int));
@@ -78,7 +79,7 @@ namespace Core.Services.Utils
             assetDataTable.Columns.Add("File Size (KB)", typeof(double));
             assetDataTable.Columns.Add("Last Updated (UTC)", typeof(string));
             assetDataTable.Columns.Add("Tags", typeof(string));
-            // TODO: Add custom metadata fields if needed
+            // TODO: insert project's matadatafields using that OrderedDictionary
 
             // Insert asset details
             for (int i = 0; i < assets.Count; i++)
@@ -98,6 +99,8 @@ namespace Core.Services.Utils
                     }
                 }
 
+                // TODO: retrieve the asset's metadata values, match them with the OrderedDictionary's keys and insert the values
+
                 assetDataTable.Rows.Add
                 (
                     a.BlobID,
@@ -106,6 +109,8 @@ namespace Core.Services.Utils
                     a.FileSizeInKB,
                     a.LastUpdated.ToString(),
                     assetTagNameStr
+
+                    // TODO: Add all values in the OrderedDictionary
                 );
             } 
   
