@@ -265,11 +265,11 @@ namespace Core.Services
         {
             try 
             {
-                List<MetadataField> addedMetadataFields = await _adminRepository.AddMetaDataFieldsToProjectInDb(projectID, req);
+                List<ProjectMetadataField> addedMetadataFields = await _adminRepository.AddMetaDataFieldsToProjectInDb(projectID, req);
 
                 List<AddMetadataRes> result = new List<AddMetadataRes>();
 
-                foreach (MetadataField mf in addedMetadataFields)
+                foreach (ProjectMetadataField mf in addedMetadataFields)
                 {
                     AddMetadataRes res = new AddMetadataRes
                     {
