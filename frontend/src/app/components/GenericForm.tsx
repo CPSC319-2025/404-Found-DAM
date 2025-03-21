@@ -10,9 +10,11 @@ export interface CustomMetadataField {
   enabled: boolean;
 }
 
-type FieldValue = string | number | boolean | string[] | CustomMetadataField[];
+type FieldValue = string | number | boolean | string[] | number[] | CustomMetadataField[];
 
-interface Field {
+export type ChangeType = "select" | "deselect";
+
+export interface Field {
   name: string;
   label: string;
   type: string;
@@ -22,7 +24,8 @@ interface Field {
   isMultiSelect?: boolean;
   isCustomMetadata?: boolean; // hardcoding this type for now. Cant really think of reason to make more generic
   required?: boolean;
-  options?: { name: string; id: string }[]; // TODO: this may need to change depending on database!
+  options?: { name: string; id: number | string }[]; // TODO: this may need to change depending on database!
+  onChange?: (value: any, field: string, changeType: ChangeType) => void;
 }
 
 export type FormData = Record<string, FieldValue>;
@@ -223,7 +226,7 @@ export default function GenericForm({
     }
   };
 
-  const handleSelect = (selectedList: any[], name: string) => {
+  const handleSelect = (selectedList: any[], selectedItem: any, name: string) => {
     setFormData((prevData) => ({
       ...prevData,
       [name]: selectedList.map((item) => item.id),
@@ -240,9 +243,14 @@ export default function GenericForm({
     if (!hasEdited) {
       setHasEdited(() => true);
     }
+
+    const formField = fields.find((field) => field.name === name);
+    if (formField && formField.onChange) {
+      formField.onChange(selectedItem, name, "select");
+    }
   };
 
-  const handleRemove = (selectedList: any[], name: string) => {
+  const handleRemove = (selectedList: any[], selectedItem: any, name: string) => {
     setFormData((prevData) => ({
       ...prevData,
       [name]: selectedList.map((item) => item.id),
@@ -250,6 +258,11 @@ export default function GenericForm({
 
     if (!hasEdited) {
       setHasEdited(() => true);
+    }
+
+    const formField = fields.find((field) => field.name === name);
+    if (formField && formField.onChange) {
+      formField.onChange(selectedItem, name, "deselect");
     }
   };
 
@@ -299,13 +312,13 @@ export default function GenericForm({
                 <Multiselect
                   options={field.options || []}
                   selectedValues={field.options?.filter((option) =>
-                    (formData[field.name] as string[]).includes(option.id)
+                    (formData[field.name] as (string | number)[]).map(String).includes(String(option.id))
                   )}
-                  onSelect={(selectedList) =>
-                    handleSelect(selectedList, field.name)
+                  onSelect={(selectedList, selectedItem) =>
+                    handleSelect(selectedList, selectedItem, field.name)
                   }
-                  onRemove={(selectedList) =>
-                    handleRemove(selectedList, field.name)
+                  onRemove={(selectedList, selectedItem) =>
+                    handleRemove(selectedList, selectedItem, field.name)
                   }
                   displayValue="name"
                   className="custom-multiselect w-full p-2 border rounded"
