@@ -50,8 +50,8 @@ namespace Core.Services
                     }
                     else 
                     {
-                        return new { 
-                            BlobID = -1,
+                        return new {
+                            BlobID = "",
                             Success = false, 
                             FileName = file.FileName, 
                             Size = file.Length
@@ -83,16 +83,16 @@ namespace Core.Services
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
 
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId) {
+        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId) {
             var projectTags = await _paletteRepository.GetProjectTagsAsync(projectId);
             if (!projectTags.Any()) return false;
             return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)        {
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {
             try 
             {
-                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
+                (List<string> successfulSubmissions, List<string> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
                 SubmitAssetsRes result = new SubmitAssetsRes      
                 {
                     projectID = projectID,
