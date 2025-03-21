@@ -43,6 +43,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
 // remove ! for azure testing
+// Pay attention do not contact blob unless you are the 
+// only developer working on the this task. 
+// Otherwise debugging will be a nightmare
 if (!builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();

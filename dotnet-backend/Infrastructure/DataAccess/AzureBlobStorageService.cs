@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Core.Interfaces;
 using Core.Dtos;
+using Core.Entities;
 
 namespace Infrastructure.DataAccess
 {
@@ -16,7 +17,7 @@ namespace Infrastructure.DataAccess
             _connectionString = configuration.GetConnectionString("AzureBlobStorage");
         }
         
-        public async Task<string> UploadAsync(IFormFile file, string containerName, UploadAssetsReq request)
+        public async Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData)
         {
             try {
                 // Validate parameters
@@ -31,7 +32,7 @@ namespace Infrastructure.DataAccess
                 await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
                 
                 // Generate a unique blob name
-                string fileName = file.FileName;
+                string fileName = assetMetaData.FileName;
                 string uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
                 
                 // Get blob client and upload file
@@ -42,12 +43,12 @@ namespace Infrastructure.DataAccess
                 {
                     HttpHeaders = new BlobHttpHeaders
                     {
-                        ContentType = file.ContentType
+                        ContentType = assetMetaData.MimeType
                     }
                 };
                 
                 // Upload file
-                using (var stream = file.OpenReadStream())
+                using (var stream = new MemoryStream(file))
                 {
                     await blobClient.UploadAsync(stream, blobOptions);
                 }
@@ -61,13 +62,13 @@ namespace Infrastructure.DataAccess
             
         }
         
-        public async Task<bool> DeleteAsync(string blobId, string containerName)
+        public async Task<bool> DeleteAsync(Asset asset, string containerName)
         {
             try {
                 // Create blob client and container
                 var blobServiceClient = new BlobServiceClient(_connectionString);
                 var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-                var blobClient = containerClient.GetBlobClient(blobId);
+                var blobClient = containerClient.GetBlobClient(asset.BlobID);
                 
                 // Delete the blob
                 return await blobClient.DeleteIfExistsAsync();
@@ -77,8 +78,10 @@ namespace Infrastructure.DataAccess
             }
         }
         
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, int userId)
+        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
         {
+
+            // TODO may use assets later on for better performance
             try {
                 var blobServiceClient = new BlobServiceClient(_connectionString);
                 var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
