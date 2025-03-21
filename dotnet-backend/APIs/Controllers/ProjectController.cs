@@ -25,6 +25,11 @@ namespace APIs.Controllers
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+
+            // Update project details endpoint
+            app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();
+
+
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
@@ -174,5 +179,27 @@ namespace APIs.Controllers
                 return Results.StatusCode(500);
             }
         }
+
+        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService)
+        {
+            try
+            {
+                var result = await projectService.UpdateProject(projectID, req);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+        
     }
 }

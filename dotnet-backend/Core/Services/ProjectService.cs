@@ -193,8 +193,6 @@ namespace Core.Services
                     })
                     .ToList();
 
-                // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
-
                 GetProjectRes result = new GetProjectRes
                 {
                     projectID = project.ProjectID,
@@ -358,6 +356,12 @@ namespace Core.Services
             {
                 throw;
             }
+        }
+
+
+        public async Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req)
+        {
+            return await _repository.UpdateProjectInDb(projectID, req);
         }
     }
 }

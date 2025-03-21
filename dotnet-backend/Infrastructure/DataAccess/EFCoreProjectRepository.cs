@@ -291,5 +291,207 @@ namespace Infrastructure.DataAccess
                 throw new DataNotFoundException("Requester not a member of the project.");
             }
         }
+
+        public async Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req) {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+
+            var project = await _context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.ProjectTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMetadataFields)
+                    .ThenInclude(pm => pm.MetadataField)
+                .FirstOrDefaultAsync(p => p.ProjectID == projectID);
+            
+            if (project == null) {
+                throw new DataNotFoundException($"Project with ID {projectID} not found.");
+            }
+
+            if (!string.IsNullOrEmpty(req.Location)) {
+                project.Location = req.Location;
+            }
+
+            if (req.Memberships != null) {
+                var currentMemberships = project.ProjectMemberships.ToList();
+                var reqUserIds = req.Memberships.Select(m => m.UserID).ToHashSet();
+
+                foreach (var membership in currentMemberships) {
+                    if (!reqUserIds.Contains(membership.UserID)) {
+                        _context.ProjectMemberships.Remove(membership);
+                    }
+                }
+
+                foreach (var membershipDto in req.Memberships) {
+                    var existingMembership = await _context.ProjectMemberships.FirstOrDefaultAsync(m => m.ProjectID == projectID && m.UserID == membershipDto.UserID);
+                    
+                    if (existingMembership != null) {
+                        if (!string.Equals(existingMembership!.UserRole.ToString(), membershipDto.Role, StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (Enum.TryParse<ProjectMembership.UserRoleType>(membershipDto.Role, true, out var Role))
+                            {
+                                existingMembership.UserRole = Role;
+                            }
+                        }
+                    }
+                    else {
+                        if (Enum.TryParse<ProjectMembership.UserRoleType>(membershipDto.Role, true, out var role))
+                        {
+                            var user = await _context.Users.FindAsync(membershipDto.UserID);
+                            if (user == null) {
+                                  throw new DataNotFoundException($"User with ID {membershipDto.UserID} not found.");
+                            }
+                            var newMembership = new ProjectMembership {
+                                ProjectID = projectID,
+                                UserID = membershipDto.UserID,
+                                UserRole = role,
+                                Project = project,
+                                User = user
+                            };
+                            _context.ProjectMemberships.Add(newMembership);
+                        }
+                    }
+                }
+            }
+
+
+            // handle project tag updates
+
+            if (req.Tags != null) {
+                var currentProjectTags = project.ProjectTags.ToList();
+                var reqTagIds = req.Tags.Where(t => t.TagID.HasValue).Select(t => t.TagID.Value).ToHashSet();
+
+                // Remove the tags that aren't included in the req
+                foreach (var projectTag in currentProjectTags)
+                {
+                    if (!reqTagIds.Contains(projectTag.TagID))
+                    {
+                        _context.ProjectTags.Remove(projectTag);
+                    }
+                }
+
+                // process the tags in the request
+                foreach (var tagDto in req.Tags)
+                {
+                    if (tagDto.TagID.HasValue)
+                    {
+                        // If not already associated, add the tag.
+                        if (!currentProjectTags.Any(pt => pt.TagID == tagDto.TagID.Value))
+                        {
+                            var existingTag = await _context.Tags.FindAsync(tagDto.TagID.Value);
+                            // If the tag is not found, you might create it or throw an exception.
+                            if (existingTag == null)
+                            {
+                                existingTag = new Core.Entities.Tag { TagID = tagDto.TagID.Value, Name = tagDto.Name };
+                                _context.Tags.Add(existingTag);
+                                await _context.SaveChangesAsync();
+                            }
+
+                            var newAssociation = new ProjectTag
+                            {
+                                ProjectID = projectID,
+                                TagID = existingTag.TagID,
+                                Project = project,
+                                Tag = existingTag
+                            };
+                            _context.ProjectTags.Add(newAssociation);
+                        }
+                    }
+                    else
+                    {
+                        // For new tags (without TagID), check by name.
+                        var existingTag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagDto.Name);
+                        if (existingTag == null)
+                        {
+                            existingTag = new Core.Entities.Tag { Name = tagDto.Name };
+                            _context.Tags.Add(existingTag);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        if (!currentProjectTags.Any(pt => pt.TagID == existingTag.TagID))
+                        {
+                            var newAssociation = new ProjectTag
+                            {
+                                ProjectID = projectID,
+                                TagID = existingTag.TagID,
+                                Project = project,
+                                Tag = existingTag
+                            };
+                            _context.ProjectTags.Add(newAssociation);
+                        }
+                    }
+                }
+            }
+
+            if (req.CustomMetadata != null) {
+                var currentMetadata = project.ProjectMetadataFields.ToList();
+                var reqMetadataIds = req.CustomMetadata.Where(cm => cm.FieldID.HasValue)
+                                                       .Select(cm => cm.FieldID.Value)
+                                                       .ToHashSet();
+                
+                // metadata entries that are not in the request but in the project metadata 
+                foreach (var pm in currentMetadata) {
+
+                    if (!reqMetadataIds.Contains(pm.MetadataField.FieldID))
+                    {
+                        _context.ProjectMetadataFields.Remove(pm);
+                    }
+
+                }
+
+                foreach (var cm in req.CustomMetadata) {
+
+                    if (cm.FieldID.HasValue) {
+
+                        // update existing metadata
+                        var existingPm = currentMetadata.FirstOrDefault(pm => pm.MetadataField.FieldID == cm.FieldID.Value);
+                        if (existingPm != null)
+                        {
+                            existingPm.FieldValue = cm.FieldValue;
+                            existingPm.IsEnabled = cm.IsEnabled;
+                            existingPm.MetadataField.FieldName = cm.FieldName;
+                            if (Enum.TryParse<MetadataField.FieldDataType>(cm.FieldType, true, out var fieldType))
+                            {
+                                existingPm.MetadataField.FieldType = fieldType;
+                            }
+                        }
+                    } else {
+                         if (Enum.TryParse<MetadataField.FieldDataType>(cm.FieldType, true, out var fieldType)) {
+                            
+                            var newField = new MetadataField {
+                                FieldName = cm.FieldName,
+                                FieldType = fieldType
+                            };
+
+                            _context.MetadataFields.Add(newField);
+
+                            await _context.SaveChangesAsync();
+
+                            var newProjectMetadata = new ProjectMetadataField
+                            {
+                                ProjectID = projectID,
+                                FieldID = newField.FieldID,
+                                FieldValue = cm.FieldValue,
+                                IsEnabled = cm.IsEnabled,
+                                Project = project,
+                                MetadataField = newField
+                            };
+
+                            _context.ProjectMetadataFields.Add(newProjectMetadata);
+                         }
+                    }
+                }
+
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new UpdateProjectRes
+            {
+                Success = true,
+                Message = "Project updated successfully."
+            };
+
+        }
+        
     }
 }
