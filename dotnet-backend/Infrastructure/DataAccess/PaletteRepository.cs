@@ -32,7 +32,7 @@ namespace Infrastructure.DataAccess {
             return projectTags ?? new List<string>();
         }
 
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, List<string> tags) {
+        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags) {
             using var _context = _contextFactory.CreateDbContext();
 
             var assets = await _context.Assets
@@ -85,8 +85,8 @@ namespace Infrastructure.DataAccess {
             return await _blobStorageService.DownloadAsync("palette-assets", userId);
         }
 
-        public async Task<(List<int>, List<int>)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID)        {
-            List<int> successfulSubmissions = new List<int>();
+        public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {
+            List<string> successfulSubmissions = new List<string>();
  
              // check project exist & if submitter is a member
              using DAMDbContext _context = _contextFactory.CreateDbContext();
