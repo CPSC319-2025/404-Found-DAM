@@ -19,11 +19,11 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<(List<int>, List<int>)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<(List<string>, List<string>)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            List<int> successfulAssociations = new List<int>();
+            List<string> successfulAssociations = new List<string>();
 
             // check project exist & if submitter is a member
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);

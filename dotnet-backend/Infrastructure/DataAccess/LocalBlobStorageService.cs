@@ -57,7 +57,7 @@ namespace Infrastructure.DataAccess
                 int num = await _context.SaveChangesAsync();
                 await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst"), compressedData);
                 // todo remove ToString();
-                return asset.BlobID.ToString();
+                return asset.BlobID;
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return null;

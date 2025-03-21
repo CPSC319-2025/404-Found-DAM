@@ -6,7 +6,7 @@ namespace Core.Interfaces
     public interface IProjectRepository
     {
         // Suffixing InDb to differentiate from service operations.  
-        Task<(List<int> successfulAssociations, List<int> failedAssociation)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID);
+        Task<(List<string> successfulAssociations, List<string> failedAssociation)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID);
         Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs);
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<Project> GetProjectInDb(int projectID);
