@@ -46,6 +46,7 @@ builder.Services.AddScoped<IImageService, ImageService>();
 // Pay attention do not contact blob unless you are the 
 // only developer working on the this task. 
 // Otherwise debugging will be a nightmare
+// post on the backend channel if you are going to use this
 if (!builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
