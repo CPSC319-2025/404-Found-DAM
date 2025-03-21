@@ -56,23 +56,13 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: false,
-    // options: [
-    //   { id: "1", name: "alice (alice@example.com)" },
-    //   { id: "2", name: "bob (bob@example.com)" },
-    //   { id: "3", name: "charlie (charlie@example.com)" },
-    // ],
+    required: false
   },
   {
     name: "users",
     label: "Users",
     type: "select",
-    isMultiSelect: true,
-    // options: [
-    //   { id: "1", name: "alice (alice@example.com)" },
-    //   { id: "2", name: "bob (bob@example.com)" },
-    //   { id: "3", name: "charlie (charlie@example.com)" },
-    // ],
+    isMultiSelect: true
   },
 ];
 
