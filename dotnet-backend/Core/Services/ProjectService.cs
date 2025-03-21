@@ -203,7 +203,14 @@ namespace Core.Services
                     archivedAt = project.ArchivedAt,
                     admins = adminList,
                     regularUsers = regularUserList,
-                    tags = tags
+                    tags = tags,
+                    metadataFields = project.ProjectMetadataFields.Select(field => new ProjectMetadataCustomInfo
+                    {
+                        FieldName = field.FieldName,
+                        FieldID = field.FieldID,
+                        IsEnabled = field.IsEnabled,
+                        FieldType = Enum.GetName(typeof(ProjectMetadataField.FieldDataType), field.FieldType)
+                    }).ToList()
                 };
 
                 return result;

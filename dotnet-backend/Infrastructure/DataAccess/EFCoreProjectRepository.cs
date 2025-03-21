@@ -135,6 +135,7 @@ namespace Infrastructure.DataAccess
                     .ThenInclude(pt => pt.Tag)
                 .Include(p => p.ProjectMemberships) // Include ProjectMemberships
                     .ThenInclude(pm => pm.User) // Include User
+                .Include(p => p.ProjectMetadataFields)
                 .AsSplitQuery() // Use split queries instead of a single query when loading multiple collections
                 .FirstOrDefaultAsync(p => p.ProjectID == projectID);
 
