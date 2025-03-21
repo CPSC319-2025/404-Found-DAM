@@ -69,6 +69,35 @@ const newProjectFormFields: FormFieldType[] = [
 export default function ProjectsPage() {
   const { user } = useUser();
 
+  const [formFields, setFormFields] = useState<FormFieldType[]>(newProjectFormFields);
+
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
+  const [adminOptions, setAdminOptions] = useState<User[]>([]);
+
+  const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
+    if (fieldName === "admins") {
+      if (changeType === "select") {
+        setRegularUserOptions((prev) =>
+          prev.filter((user) => user.userID !== changeItem.id)
+        );
+      } else {
+        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        setRegularUserOptions((prev) => [...prev, userToAddBack!]);
+      }
+    } else {
+      if (changeType === "select") {
+        setAdminOptions((prev) =>
+          prev.filter((admin) => admin.userID !== changeItem.id)
+        );
+      } else {
+        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        setAdminOptions((prev) => [...prev, userToAddBack!]);
+      }
+    }
+  }
+
   const [query, setQuery] = useState<string>("");
 
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
