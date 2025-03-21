@@ -133,7 +133,7 @@ export default function FileTable({
       return updated;
     });
     
-    // Delete all tags from the backend if there are any
+    // Call the API to delete all tags from the backend if there are any
     if (fileMeta.tags.length > 0 && fileMeta.blobId) {
       try {
         console.log(fileMeta.tags);
@@ -221,6 +221,7 @@ export default function FileTable({
       console.error("Error associating asset with project:", err);
     }
 
+    // Call the API to get asset details from the blobId
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${fileMeta.blobId}/details`
