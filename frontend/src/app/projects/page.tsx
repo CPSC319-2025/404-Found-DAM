@@ -67,6 +67,10 @@ const newProjectFormFields: FormFieldType[] = [
 ];
 
 export default function ProjectsPage() {
+  const { user } = useUser();
+
+  const [query, setQuery] = useState<string>("");
+
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
 
@@ -98,10 +102,6 @@ export default function ProjectsPage() {
       }
     }
   }
-
-  const [query, setQuery] = useState<string>("");
-
-  const { user } = useUser();
 
   const fetchProjects = async () => {
     try {

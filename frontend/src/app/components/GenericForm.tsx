@@ -385,9 +385,9 @@ export default function GenericForm({
                           }
                           className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
                         >
-                          <option value="text">Text</option>
-                          <option value="number">Number</option>
-                          <option value="boolean">Yes / No</option>
+                          <option value="String">Text</option>
+                          <option value="Number">Number</option>
+                          <option value="Boolean">Yes / No</option>
                         </select>
 
                         <div className="flex items-center ml-2 sm:ml-2 space-x-3">
@@ -439,7 +439,7 @@ export default function GenericForm({
                     + Add Entry
                   </button>
                 </div>
-              ) : field.type === "number" ? (
+              ) : field.type.toLowerCase() === "number" ? (
                 <input
                   id={field.name}
                   name={field.name}
@@ -449,7 +449,7 @@ export default function GenericForm({
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
                 />
-              ) : field.type === "boolean" ? (
+              ) : field.type.toLowerCase() === "boolean" ? (
                 <select
                   id={field.name}
                   name={field.name}
