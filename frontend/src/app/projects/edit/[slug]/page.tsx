@@ -16,8 +16,8 @@ const isNewMetadataField = (id: string) => id.startsWith("new_");
 export default function ProjectPage({ params }: ProjectPageProps) {
   const [formData, setFormData] = useState<FormData>({
     location: "Vancouver, BC",
-    admins: ["2"],
-    users: ["0", "1"],
+    admins: [2],
+    users: [0, 1],
     tags: ["tag1", "tag2"],
     metadata: [
       { id: "0", name: "Photo Taker", type: "string", enabled: true },
