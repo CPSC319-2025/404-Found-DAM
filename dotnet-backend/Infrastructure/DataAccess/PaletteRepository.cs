@@ -282,7 +282,8 @@ namespace Infrastructure.DataAccess {
                 {
                     ProjectId = asset.Project.ProjectID,
                     Name = asset.Project.Name,
-                    Description = asset.Project.Description
+                    Description = asset.Project.Description,
+                    Location = asset.Project.Location
                 } : null,
                 Tags = asset.AssetTags?.Select(at => at.Tag.Name).ToList() ?? new List<string>()
             };

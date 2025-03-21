@@ -156,10 +156,10 @@ export default function EditMetadataPage() {
             <label className="block text-gray-700 mb-1">Description:</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none bg-gray-100"
               placeholder="Enter description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              readOnly
             />
           </div>
 
@@ -167,10 +167,10 @@ export default function EditMetadataPage() {
             <label className="block text-gray-700 mb-1">Location:</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none bg-gray-100"
               placeholder="Where was this created?"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              readOnly
             />
           </div>
 

@@ -119,7 +119,7 @@ export default function PalettePage() {
   }
 
   // Fetch project and tags for a blob
-  async function fetchBlobDetails(blobId: number): Promise<{project?: any, tags?: string[]}> {
+  async function fetchBlobDetails(blobId: number): Promise<{project?: any, tags?: string[], description?: string, location?: string}> {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
       if (!response.ok) {
@@ -127,9 +127,19 @@ export default function PalettePage() {
         return {};
       }
       const data = await response.json();
+      
+      const projectId = data.project?.projectId.toString();
+      
+      // Check for different possible property name casings from the backend
+      // The C# backend might use "location" or "Location" depending on serialization settings
+      let description = data.project?.description || data.project?.Description;
+      let location = data.project?.location || data.project?.Location;
+      
       return {
-        project: data.project ? data.project.projectId.toString() : undefined,
-        tags: data.tags || []
+        project: projectId,
+        tags: data.tags || [],
+        description: description || "",
+        location: location || ""
       };
     } catch (error) {
       console.error(`Error fetching details for blob ${blobId}:`, error);
@@ -215,6 +225,8 @@ export default function PalettePage() {
         }
         if (details.tags && details.tags.length > 0) {
           fileMeta.tags = details.tags;
+          fileMeta.description = details.description || "";
+          fileMeta.location = details.location || "";
         }
       }
 
@@ -278,6 +290,8 @@ export default function PalettePage() {
             }
             if (details.tags && details.tags.length > 0) {
               fileMeta.tags = details.tags;
+              fileMeta.description = details.description || "";
+              fileMeta.location = details.location || "";
             }
           }
 

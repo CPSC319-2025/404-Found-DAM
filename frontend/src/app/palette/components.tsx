@@ -23,8 +23,6 @@ type FileTableProps = {
   // Row selection from parent
   selectedIndices: number[];
   setSelectedIndices: React.Dispatch<React.SetStateAction<number[]>>;
-
-  // The newly fetched logs from Beeceptor
   projects: Project[];
 };
 
@@ -237,6 +235,8 @@ export default function FileTable({
             updated[index] = {
               ...updated[index],
               tags: data.tags,
+              description: projects.find(p => p.projectID.toString() === newProjectID)?.description || "",
+              location: projects.find(p => p.projectID.toString() === newProjectID)?.location || "",
             };
             return updated;
           });
