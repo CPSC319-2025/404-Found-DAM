@@ -2,72 +2,36 @@ using Microsoft.AspNetCore.Http;
 using Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Core.Entities;
-using Core.Dtos;
 
 namespace Infrastructure.DataAccess
 {
     public class LocalBlobStorageService : IBlobStorageService
     {
-        private readonly IDbContextFactory<DAMDbContext> _contextFactory;
-        public LocalBlobStorageService(IDbContextFactory<DAMDbContext> contextFactory)
+        public async Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData)
         {
-            _contextFactory = contextFactory;
-        }
-        
-        public async Task<string> UploadAsync(IFormFile file, string containerName, UploadAssetsReq request)
-        {
-            using var _context = _contextFactory.CreateDbContext();
-            if (file == null || file.Length == 0)
-                throw new ArgumentException("File is empty");
-
-            // Read the IFormFile into a byte array
-            byte[] compressedData;
             try {
-                using (var ms = new MemoryStream())
-                {
-                    await file.CopyToAsync(ms);
-                    compressedData = ms.ToArray();
-                }
-                
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
                 if (!Directory.Exists(storageDirectory))
                 {
                     Directory.CreateDirectory(storageDirectory);
                 }
-                string finalName = file.FileName;
-                string suffix = ".zst";
-                if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                {
-                    finalName = finalName.Substring(0, finalName.Length - suffix.Length);
-                }
-                string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
-
                 // Create an Asset instance with the file path
-                var asset = new Asset
-                {
-                    FileName = finalName,
-                    MimeType = finalExtension,
-                    ProjectID = null,
-                    UserID = request.UserId,
-                    assetState = Asset.AssetStateType.UploadedToPalette
-                };
+                // Generate a unique blob name
+                string fileName = assetMetaData.FileName;
+                string uniqueBlobName = $"{Guid.NewGuid()}-{fileName}";
+                
+                // TODO keeping this for Dennnis to review
+                await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}.zst"), file);
 
-                // Add the asset to the database context and save changes
-                await _context.Assets.AddAsync(asset);
-                int num = await _context.SaveChangesAsync();
-                await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst"), compressedData);
-                // todo remove ToString();
-                return asset.BlobID;
+                return uniqueBlobName;
             } catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return null;
             }
         }
         
-        public async Task<bool> DeleteAsync(string blobId, string containerName)
+        public async Task<bool> DeleteAsync(Asset asset, string containerName)
         {
-            using var _context = _contextFactory.CreateDbContext();
-
             try {
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
@@ -75,13 +39,6 @@ namespace Infrastructure.DataAccess
                 {
                     Directory.CreateDirectory(storageDirectory);
                 }
-
-                // Get the asset to retrieve filename before deletion
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == blobId);
-
-                // Delete the asset from the database
-                await _context.Assets.Where(a => a.FileName == blobId).ExecuteDeleteAsync();
-                
                 // Delete the corresponding file
                 string filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
                 if (File.Exists(filePath))
@@ -98,9 +55,8 @@ namespace Infrastructure.DataAccess
             return true;
         }
         
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, int userId)
+        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
         {
-            using var _context = _contextFactory.CreateDbContext();
 
             try {
                 var compressedFiles = new List<IFormFile>();
@@ -110,14 +66,9 @@ namespace Infrastructure.DataAccess
                 if (!Directory.Exists(storageDirectory)) {
                     Directory.CreateDirectory(storageDirectory);
                 }
-                
-                // Get all Assets for the user
-                var assetIds = await _context.Assets
-                    .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
-                    .ToListAsync();
                     
                 // Create tasks for parallel file reading
-                var readTasks = assetIds.Select(async asset => {
+                var readTasks = assets.Select(async asset => {
                 var filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
                     var bytes = await File.ReadAllBytesAsync(filePath);
                     
