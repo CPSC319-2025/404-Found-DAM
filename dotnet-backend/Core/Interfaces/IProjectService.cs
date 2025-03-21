@@ -11,5 +11,6 @@ namespace Core.Interfaces
         Task<GetProjectRes> GetProject(int projectID);
         Task<GetAllProjectsRes> GetAllProjects(int requesterID); 
         Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int reqeusterID);
+        Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req);
     }
 }

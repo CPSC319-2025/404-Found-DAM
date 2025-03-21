@@ -13,7 +13,6 @@ namespace Infrastructure.DataAccess {
         public DbSet<Log> Logs { get; set; }
         public DbSet<ProjectMembership> ProjectMemberships { get; set; }
         // public DbSet<Palette> Palettes { get; set; }
-        public DbSet<MetadataField> MetadataFields { get; set; }
         public DbSet<ProjectMetadataField> ProjectMetadataFields { get; set; }
         public DbSet<AssetMetadata> AssetMetadata { get; set; }
         public DbSet<Tag> Tags { get; set; }
@@ -27,11 +26,16 @@ namespace Infrastructure.DataAccess {
                 .HasKey(pm => new { pm.ProjectID, pm.UserID });
 
             modelBuilder.Entity<ProjectMetadataField>()
-                .HasKey(pm => new { pm.ProjectID, pm.FieldID });
+                .HasKey(pm => pm.FieldID);
+
+            modelBuilder.Entity<ProjectMetadataField>()
+                .HasOne(pm => pm.Project)
+                .WithMany(p => p.ProjectMetadataFields)
+                .HasForeignKey(pm => pm.ProjectID);
 
             modelBuilder.Entity<AssetMetadata>()
                 .HasKey(am => new { am.BlobID, am.FieldID });
-            
+
             modelBuilder.Entity<ProjectTag>()
                 .HasKey(pt => new { pt.ProjectID, pt.TagID });
 
