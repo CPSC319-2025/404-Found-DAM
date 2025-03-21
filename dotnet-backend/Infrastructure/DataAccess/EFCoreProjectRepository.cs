@@ -350,6 +350,7 @@ namespace Infrastructure.DataAccess
                             if (assetTag != null)
                                 _context.AssetTags.Remove(assetTag);
                         }
+                        _context.Tags.Remove(pt.Tag);
                     }
                 }
 
@@ -396,9 +397,12 @@ namespace Infrastructure.DataAccess
                     // Check if the metadata already exists (update if found).
                     var existing = currentMetadata.FirstOrDefault(pm => pm.FieldName.ToLower() == cm.FieldName.ToLower());
                     if (existing != null) {
-                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType fieldType)) {
+                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType newFieldType)) {
+                            if (existing.FieldType != newFieldType && existing.AssetMetadata.Any()) {
+                                throw new InvalidOperationException("Cannot change the metadatafield type because it is currently in use by one or more assets.");
+                            }
                             existing.IsEnabled = cm.IsEnabled;
-                            existing.FieldType = fieldType;
+                            existing.FieldType = newFieldType;
                         }
                     } else {
                         // Add new metadata field.
