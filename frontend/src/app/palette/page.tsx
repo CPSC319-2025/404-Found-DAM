@@ -118,6 +118,25 @@ export default function PalettePage() {
     return isNaN(blobId) ? undefined : blobId;
   }
 
+  // Fetch project and tags for a blob
+  async function fetchBlobDetails(blobId: number): Promise<{project?: any, tags?: string[]}> {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
+      if (!response.ok) {
+        console.error(`Failed to fetch details for blob ${blobId}: ${response.status}`);
+        return {};
+      }
+      const data = await response.json();
+      return {
+        project: data.project ? data.project.projectId.toString() : undefined,
+        tags: data.tags || []
+      };
+    } catch (error) {
+      console.error(`Error fetching details for blob ${blobId}:`, error);
+      return {};
+    }
+  }
+
   async function fetchPaletteAssets() {
 
     setFiles([]);
@@ -188,6 +207,17 @@ export default function PalettePage() {
         blobId // Store the blobId extracted from the filename
       };
 
+      // Fetch project and tags information if we have a blobId
+      if (blobId) {
+        const details = await fetchBlobDetails(blobId);
+        if (details.project) {
+          fileMeta.project = details.project;
+        }
+        if (details.tags && details.tags.length > 0) {
+          fileMeta.tags = details.tags;
+        }
+      }
+
       if (file.type.startsWith("image/")) {
         const img = new Image();
         img.onload = () => {
@@ -239,6 +269,17 @@ export default function PalettePage() {
             tags: [],
             blobId // Store the blobId extracted from the filename
           };
+
+          // Fetch project and tags information if we have a blobId
+          if (blobId) {
+            const details = await fetchBlobDetails(blobId);
+            if (details.project) {
+              fileMeta.project = details.project;
+            }
+            if (details.tags && details.tags.length > 0) {
+              fileMeta.tags = details.tags;
+            }
+          }
 
           if (file.type.startsWith("image/")) {
             const img = new Image();

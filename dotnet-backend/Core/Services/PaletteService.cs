@@ -100,5 +100,22 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(int blobId)
+        {
+            try
+            {
+                return await _paletteRepository.GetBlobProjectAndTagsAsync(blobId);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

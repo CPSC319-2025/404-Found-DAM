@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -22,7 +22,89 @@ export default function EditMetadataPage() {
   const [location, setLocation] = useState(
     fileData ? fileData.location || "" : ""
   );
-  const [tags, setTags] = useState(fileData ? fileData.tags.join(", ") : "");
+  // Change to array of tags instead of comma-separated string
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    fileData ? fileData.tags : []
+  );
+  const [projectTags, setProjectTags] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch project tags and blob details when component mounts
+  useEffect(() => {
+    if (fileData) {
+      if (fileData.project) {
+        fetchProjectTags(fileData.project);
+      }
+      
+      // If we have a blobId, fetch its details directly
+      if (fileData.blobId) {
+        fetchBlobDetails(fileData.blobId);
+      }
+    }
+  }, [fileData]);
+
+  async function fetchBlobDetails(blobId: number) {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch blob details: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update local state with the fetched data
+      if (data.tags && Array.isArray(data.tags)) {
+        setSelectedTags(data.tags);
+      }
+      
+      // If we have project data but no project was selected yet, select it
+      if (data.project && !fileData.project) {
+        // Update in context
+        updateMetadata(fileIndex, {
+          project: data.project.projectId.toString()
+        });
+        
+        // Also fetch tags for this project
+        fetchProjectTags(data.project.projectId.toString());
+      }
+    } catch (error) {
+      console.error("Error fetching blob details:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function fetchProjectTags(projectId: string) {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch project data: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Extract tags from project data
+      if (data.tags && Array.isArray(data.tags)) {
+        setProjectTags(data.tags.map((tag: { name: string; tagID: number }) => tag.name));
+      }
+    } catch (error) {
+      console.error("Error fetching project tags:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleTagSelection(tagName: string) {
+    // Add the tag if it's not already included
+    if (!selectedTags.includes(tagName)) {
+      setSelectedTags([...selectedTags, tagName]);
+    }
+  }
+
+  function handleTagRemoval(tagToRemove: string) {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  }
 
   if (!fileData) {
     return (
@@ -37,7 +119,7 @@ export default function EditMetadataPage() {
     updateMetadata(fileIndex, {
       description,
       location,
-      tags: tags.split(",").map((t) => t.trim()),
+      tags: selectedTags,
     });
 
     // Navigate back to palette page
@@ -93,17 +175,56 @@ export default function EditMetadataPage() {
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1">
-              Tags (comma-separated):
-            </label>
-            <input
-              type="text"
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-              placeholder="e.g. big, lion, fly"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-            />
+            <label className="block text-gray-700 mb-1">Selected Tags:</label>
+            <div className="min-h-[38px] w-full border border-gray-300 rounded-lg p-2 flex flex-wrap gap-2">
+              {selectedTags.length > 0 ? (
+                selectedTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => handleTagRemoval(tag)}
+                      className="ml-1 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-400 text-xs self-center">No tags selected</span>
+              )}
+            </div>
           </div>
+
+          {fileData.project && (
+            <div>
+              <label className="block text-gray-700 mb-1">Project Tags:</label>
+              {isLoading ? (
+                <p className="text-sm text-gray-500">Loading project tags...</p>
+              ) : projectTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {projectTags.map((tag, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleTagSelection(tag)}
+                      className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                        selectedTags.includes(tag)
+                          ? "bg-blue-100 text-blue-800 cursor-default"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                      }`}
+                      disabled={selectedTags.includes(tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No project tags available</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-4">
             <p className="text-gray-700 font-medium">File Size:</p>

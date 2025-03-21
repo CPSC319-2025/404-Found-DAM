@@ -56,16 +56,63 @@ export default function FileTable({
   }
 
   function handleRemoveTag(fileIndex: number, tagIndex: number) {
+    const fileMeta = files[fileIndex];
+    const tagToRemove = fileMeta.tags[tagIndex];
+    
+    if (!fileMeta.blobId) {
+      console.warn("File missing blobId:", fileMeta.file.name);
+      return;
+    }
+
+    // Update UI first for responsiveness
     setFiles((prev) => {
       const updated = [...prev];
-
       updated[fileIndex] = {
         ...updated[fileIndex],
         tags: updated[fileIndex].tags.filter((_, i) => i !== tagIndex),
       };
-
       return updated;
     });
+
+    // Call API to delete the tag
+    async function deleteTag() {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/${fileMeta.blobId}/tags`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              deleteTags: [tagToRemove]
+            })
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Failed to delete tag:", response.status);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Tag deleted successfully:", data);
+        
+        // Update tags from the response to ensure consistency
+        setFiles((prev) => {
+          const updated = [...prev];
+          updated[fileIndex] = {
+            ...updated[fileIndex],
+            tags: data.currentTags || [],
+          };
+          return updated;
+        });
+      } catch (err) {
+        console.error("Error deleting tag:", err);
+      }
+    }
+
+    deleteTag();
   }
 
   // ----- Project Dropdown -----
@@ -76,6 +123,38 @@ export default function FileTable({
     if (!fileMeta.blobId) {
       console.warn("File missing blobId:", fileMeta.file.name);
       return;
+    }
+
+    // Clear existing tags first
+    setFiles((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        tags: [] // Clear tags
+      };
+      return updated;
+    });
+    
+    // Delete all tags from the backend if there are any
+    if (fileMeta.tags.length > 0 && fileMeta.blobId) {
+      try {
+        console.log(fileMeta.tags);
+        const deleteTagsResponse = fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/${fileMeta.blobId}/tags`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              deleteTags: fileMeta.tags
+            })
+          }
+        );
+        console.log("Cleared all existing tags");
+      } catch (err) {
+        console.error("Error clearing tags:", err);
+      }
     }
     
     // Update the UI state first for responsiveness
@@ -88,10 +167,36 @@ export default function FileTable({
       return updated;
     });
     
+    // Get any existing tags from the blob
+    
+    
+    // Call API to update tags for the image
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/tags`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ImageIds: [fileMeta.blobId],
+            ProjectId: parseInt(newProjectID)
+          })
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update image tags:", response.status);
+      }
+    } catch (err) {
+      console.error("Error updating image tags:", err); 
+    }
+
     // Call the API to associate the asset with the project
     try {
       const response = await fetch(
-        `http://localhost:5155/projects/${newProjectID}/associate-assets`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${newProjectID}/associate-assets`,
         {
           method: "PATCH",
           headers: {
@@ -117,13 +222,44 @@ export default function FileTable({
     } catch (err) {
       console.error("Error associating asset with project:", err);
     }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${fileMeta.blobId}/details`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        // If the blob has tags, keep them
+        if (data.tags && data.tags.length > 0) {
+          setFiles((prev) => {
+            const updated = [...prev];
+            updated[index] = {
+              ...updated[index],
+              tags: data.tags,
+            };
+            return updated;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching blob details:", err);
+    }
   }
 
   // ----- Edit Metadata -----
-  function handleEditMetadata(rawFileName: string) {
+  function handleEditMetadata(index: number) {
+    const fileMeta = files[index];
+    
+    // Check if project is selected
+    if (!fileMeta.project) {
+      alert("Please select a project before editing metadata.");
+      return;
+    }
+    
     // Navigate to /palette/editmetadata?file=<filename>
     router.push(
-      `/palette/editmetadata?file=${encodeURIComponent(rawFileName)}`
+      `/palette/editmetadata?file=${encodeURIComponent(fileMeta.file.name)}`
     );
   }
 
@@ -317,7 +453,7 @@ export default function FileTable({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleEditMetadata(rawFile.name);
+                      handleEditMetadata(index);
                     }}
                     className="text-indigo-600 hover:text-indigo-900"
                   >

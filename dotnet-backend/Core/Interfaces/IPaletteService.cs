@@ -1,6 +1,3 @@
-
-
-
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -17,5 +14,6 @@ namespace Core.Interfaces
         Task<List<string>> GetProjectTagsAsync(int projectId);
         Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId);
         Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID);    
+        Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(int blobId);
     }
 }

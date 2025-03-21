@@ -257,5 +257,37 @@ namespace Infrastructure.DataAccess {
                  throw new DataNotFoundException($"Project ${projectID} not found");
              }           
         }
+
+        public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(int blobId)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+            
+            var asset = await _context.Assets
+                .Where(a => a.BlobID == blobId)
+                .Include(a => a.Project)
+                .Include(a => a.AssetTags)
+                .ThenInclude(at => at.Tag)
+                .FirstOrDefaultAsync();
+                
+            if (asset == null)
+            {
+                throw new DataNotFoundException($"Asset with BlobID {blobId} not found");
+            }
+            
+            var response = new GetBlobProjectAndTagsRes
+            {
+                BlobId = asset.BlobID,
+                FileName = asset.FileName,
+                Project = asset.Project != null ? new ProjectInfo
+                {
+                    ProjectId = asset.Project.ProjectID,
+                    Name = asset.Project.Name,
+                    Description = asset.Project.Description
+                } : null,
+                Tags = asset.AssetTags?.Select(at => at.Tag.Name).ToList() ?? new List<string>()
+            };
+            
+            return response;
+        }
     }
 }

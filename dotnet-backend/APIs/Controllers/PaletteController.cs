@@ -55,6 +55,26 @@ namespace APIs.Controllers
         .WithName("ModifyTags")
         .WithOpenApi();
 
+        // Get project and tags by blob id
+        app.MapGet("/palette/blob/{blobId}/details", async (int blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobProjectAndTagsAsync(blobId);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob details: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobProjectAndTags")
+        .WithOpenApi();
 
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
