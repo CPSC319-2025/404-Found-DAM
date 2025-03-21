@@ -204,7 +204,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           if (field.name === 'metadata') {
             field.value = project.metadataFields.map((metadata) => {
               return {
-                id: metadata.fieldID,
+                id: String(metadata.fieldID),
                 name: metadata.fieldName,
                 type: metadata.fieldType,
                 enabled: metadata.isEnabled
