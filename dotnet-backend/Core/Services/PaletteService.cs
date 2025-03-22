@@ -153,5 +153,35 @@ namespace Core.Services
             }
             return result;
         }
+
+        public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId)
+        {
+            try
+            {
+                return await _paletteRepository.GetBlobProjectAndTagsAsync(blobId);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId)
+        {
+            try
+            {
+                return await _paletteRepository.AssignTagToAssetAsync(blobId, tagId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

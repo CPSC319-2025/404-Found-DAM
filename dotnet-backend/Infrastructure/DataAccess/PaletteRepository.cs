@@ -177,17 +177,23 @@ namespace Infrastructure.DataAccess {
             {
                 Directory.CreateDirectory(storageDirectory);
             }
+            
             // Get the asset to retrieve filename before deletion
-            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
+            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == request.Name);
+            
+            // Check if asset exists
+            if (asset == null)
+            {
+                return false;
+            }
 
             // Delete the asset from the database
-            await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
-            _context.Assets.Remove(asset);
-            // TODO change to blob ID
+            await _context.Assets.Where(a => a.BlobID == request.Name).ExecuteDeleteAsync();
+            
+            // Delete from blob storage
             var res = await _blobStorageService.DeleteAsync(asset, "palette-assets");
             await _context.SaveChangesAsync();
             return res;
-
         }
 
         public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
@@ -263,6 +269,107 @@ namespace Infrastructure.DataAccess {
         {
             using var context = _contextFactory.CreateDbContext();
             return await context.AssetTags.AnyAsync(at => at.BlobID == blobId && at.TagID == tagId);
+        }
+
+        public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+            
+            var asset = await _context.Assets
+                .Where(a => a.BlobID == blobId)
+                .Include(a => a.Project)
+                .Include(a => a.AssetTags)
+                .ThenInclude(at => at.Tag)
+                .FirstOrDefaultAsync();
+                
+            if (asset == null)
+            {
+                throw new DataNotFoundException($"Asset with BlobID {blobId} not found");
+            }
+            
+            // Extract tags and tagIds together to ensure they're in the same order
+            var tagData = asset.AssetTags?.Select(at => new { Name = at.Tag.Name, Id = at.Tag.TagID }).ToList();
+            
+            var response = new GetBlobProjectAndTagsRes
+            {
+                BlobId = asset.BlobID,
+                FileName = asset.FileName,
+                Project = asset.Project != null ? new ProjectInfo
+                {
+                    ProjectId = asset.Project.ProjectID,
+                    Name = asset.Project.Name,
+                    Description = asset.Project.Description,
+                    Location = asset.Project.Location
+                } : null,
+                Tags = tagData?.Select(t => t.Name).ToList() ?? new List<string>(),
+                TagIds = tagData?.Select(t => t.Id).ToList() ?? new List<int>()
+            };
+            
+            return response;
+        }
+
+        public async Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            // Check if asset exists
+            var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == blobId);
+            if (asset == null)
+            {
+                return new AssignTagResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = $"Asset with BlobID {blobId} not found"
+                };
+            }
+            
+            // Check if tag exists
+            var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagID == tagId);
+            if (tag == null)
+            {
+                return new AssignTagResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = $"Tag with ID {tagId} not found"
+                };
+            }
+            
+            // Check if association already exists
+            bool associationExists = await AssetTagAssociationExistsAsync(blobId, tagId);
+            if (associationExists)
+            {
+                return new AssignTagResult
+                {
+                    Success = true,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = "Tag already assigned to asset"
+                };
+            }
+            
+            // Create new association
+            var assetTag = new AssetTag
+            {
+                BlobID = blobId,
+                Asset = asset,
+                TagID = tagId,
+                Tag = tag
+            };
+            
+            await context.AssetTags.AddAsync(assetTag);
+            await context.SaveChangesAsync();
+            
+            return new AssignTagResult
+            {
+                Success = true,
+                BlobId = blobId,
+                TagId = tagId,
+                Message = "Tag successfully assigned to asset"
+            };
         }
     }
 }

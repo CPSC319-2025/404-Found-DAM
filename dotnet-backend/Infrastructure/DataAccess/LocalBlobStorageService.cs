@@ -16,8 +16,8 @@ namespace Infrastructure.DataAccess
             }
             // Create an Asset instance with the file path
             // Generate a unique blob name
-            string fileName = assetMetaData.FileName;
-            string uniqueBlobName = $"{Guid.NewGuid()}-{fileName}";
+            // string fileName = assetMetaData.FileName;
+            string uniqueBlobName = $"{Guid.NewGuid()}";
             
             // TODO keeping this for Dennnis to review
             await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}.zst"), file);

@@ -55,6 +55,26 @@ namespace APIs.Controllers
         .WithName("ModifyTags")
         .WithOpenApi();
 
+        // Get project and tags by blob id
+        app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobProjectAndTagsAsync(blobId); //also returns tag id in the same order a s tag
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob details: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobProjectAndTags")
+        .WithOpenApi();
 
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
@@ -67,6 +87,31 @@ namespace APIs.Controllers
          app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
                .WithName("RemoveTagsFromAssets")
                .WithOpenApi();
+
+        // Add single tag to asset
+        app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                AssignTagResult result = await paletteService.AssignTagToAssetAsync(request.BlobId, request.TagId);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignTagToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignTagToAsset")
+        .WithOpenApi();
 
         }
 

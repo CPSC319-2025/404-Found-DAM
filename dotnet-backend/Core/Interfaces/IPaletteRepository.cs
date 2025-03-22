@@ -16,5 +16,7 @@ namespace Core.Interfaces  {
 
         Task<bool> AssetTagAssociationExistsAsync(string blobId, int tagId);
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);
+        Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
+        Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
     }
 }
