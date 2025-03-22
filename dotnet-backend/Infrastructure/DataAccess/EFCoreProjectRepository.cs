@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,6 @@ using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
-using ZstdSharp.Unsafe;
 
 namespace Infrastructure.DataAccess
 {
@@ -21,11 +20,11 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<(List<int>, List<int>)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<(List<string>, List<string>)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            List<int> successfulAssociations = new List<int>();
+            List<string> successfulAssociations = new List<string>();
 
             // Get the project to be associated with & check if submitter is a member
             var projectToBeAssociated = await _context.Projects

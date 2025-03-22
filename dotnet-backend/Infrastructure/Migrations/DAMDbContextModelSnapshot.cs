@@ -24,11 +24,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Asset", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BlobID"));
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -64,8 +61,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.AssetMetadata", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .HasColumnType("int");
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("FieldID")
                         .HasColumnType("int");
@@ -83,8 +80,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.AssetTag", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .HasColumnType("int");
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("TagID")
                         .HasColumnType("int");

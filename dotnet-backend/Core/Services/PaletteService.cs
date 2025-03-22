@@ -2,6 +2,7 @@ using Core.Interfaces;
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
+using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
 using Core.Entities;
 
@@ -31,46 +32,49 @@ namespace Core.Services
             }
         }
 
-        public async Task<List<UploadAssetsRes>> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
+        public async Task<UploadAssetsRes[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
-            var uploadTasks = files.Select(async file => 
+            // Create a list of tasks with explicit return type
+            var uploadTasks = new List<Task<UploadAssetsRes>>();
+            
+            foreach (var file in files)
             {
-                Asset asset = await ProcessUploadAsync(file, request, convertToWebp);
-                if (asset != null) 
+                // Use Task.Run with explicit Function<Task<object>> signature
+                uploadTasks.Add(Task.Run<UploadAssetsRes>(async () => 
                 {
-                    UploadAssetsRes res = new UploadAssetsRes
+                    Asset asset = await ProcessUploadAsync(file, request, convertToWebp);
+                    if (asset != null) 
                     {
-                        BlobID = asset.BlobID, 
-                        Success = true, 
-                        FileName = asset.FileName, 
-                        SizeInKB = asset.FileSizeInKB
-                    };
-                    return res;
-                }
-                else 
-                {
-                    UploadAssetsRes res = new UploadAssetsRes
+                        UploadAssetsRes res = new UploadAssetsRes
+                        {
+                            BlobID = asset.BlobID, 
+                            Success = true, 
+                            FileName = asset.FileName, 
+                            SizeInKB = asset.FileSizeInKB
+                        };
+                        return res;
+                    }
+                    else 
                     {
-                        Success = false, 
-                        FileName = file.FileName, 
-                        SizeInKB = file.Length / 1024.0
-                    };
-                    return res;
-                }
-            }).ToList();
+                        UploadAssetsRes res = new UploadAssetsRes
+                        {
+                            Success = false, 
+                            FileName = file.FileName, 
+                            SizeInKB = file.Length / 1024.0
+                        };
+                        return res;
+                    }
 
+                }));
+            }
+
+            // Wait for all tasks to complete and return results
             return await Task.WhenAll(uploadTasks);
         }
 
         public async Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request)
         {
-            try {
-                return await _paletteRepository.DeleteAsset(request);
-            }
-            catch (Exception ex) {
-                Console.WriteLine($"Error deleting assets: {ex.Message}");
-                return false;
-            }
+            return await _paletteRepository.DeleteAsset(request);
         }
 
         public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
@@ -81,16 +85,16 @@ namespace Core.Services
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
 
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<int> imageIds, int projectId) {
+        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId) {
             var projectTags = await _paletteRepository.GetProjectTagsAsync(projectId);
             if (!projectTags.Any()) return false;
             return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<int> blobIDs, int submitterID)        {
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {
             try 
             {
-                (List<int> successfulSubmissions, List<int> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
+                (List<string> successfulSubmissions, List<string> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
                 SubmitAssetsRes result = new SubmitAssetsRes      
                 {
                     projectID = projectID,
