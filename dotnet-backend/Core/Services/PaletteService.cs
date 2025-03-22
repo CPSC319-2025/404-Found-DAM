@@ -20,15 +20,14 @@ namespace Core.Services
             _imageService = imageService;
         }
 
-        public async Task<Asset> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
+        public async Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
         {
-            Console.WriteLine("ProcessUploadAsync");
             try {
                 return await _paletteRepository.UploadAssets(file, request, convertToWebp, _imageService);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");
-                throw;
+                return null;
             }
         }
 
@@ -42,7 +41,7 @@ namespace Core.Services
                 // Use Task.Run with explicit Function<Task<object>> signature
                 uploadTasks.Add(Task.Run<UploadAssetsRes>(async () => 
                 {
-                    Asset asset = await ProcessUploadAsync(file, request, convertToWebp);
+                    var asset = await ProcessUploadAsync(file, request, convertToWebp);
                     if (asset != null) 
                     {
                         UploadAssetsRes res = new UploadAssetsRes
@@ -64,7 +63,6 @@ namespace Core.Services
                         };
                         return res;
                     }
-
                 }));
             }
 

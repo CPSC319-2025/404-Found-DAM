@@ -3,7 +3,7 @@ using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
-using Core.Interfaces;
+// using Core.Interfaces;
 using System.Reflection.Metadata;
 using Infrastructure.Exceptions;
 using Core.Services.Utils;
@@ -136,13 +136,6 @@ namespace Infrastructure.DataAccess {
                         await file.CopyToAsync(ms);
                         compressedData = ms.ToArray();
                     }
-                }
-
-                // Create storage directory if it doesn't exist
-                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-                if (!Directory.Exists(storageDirectory))
-                {
-                    Directory.CreateDirectory(storageDirectory);
                 }
 
                 // string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
