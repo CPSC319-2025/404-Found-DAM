@@ -30,13 +30,13 @@ export default function UploadPage() {
       // const FormData = require("form-data");
       const formData = new FormData();
       formData.append("userId", "1"); // or dynamic
-      formData.append("name", "My Upload Batch");
-      formData.append("type", fileMeta.file.type); // Use the actual file type
+      formData.append("name", fileMeta.file.name);
+      formData.append("mimeType", fileMeta.file.type); // Use the actual file type
       formData.append("files", compressedFile);
 
       // Send the request
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`,
         {
           method: "POST",
           headers: {
