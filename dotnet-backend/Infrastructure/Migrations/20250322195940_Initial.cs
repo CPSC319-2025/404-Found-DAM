@@ -6,25 +6,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMgration : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "MetadataFields",
-                columns: table => new
-                {
-                    FieldID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FieldName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FieldType = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MetadataFields", x => x.FieldID);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Projects",
                 columns: table => new
@@ -77,20 +63,16 @@ namespace Infrastructure.Migrations
                 name: "ProjectMetadataFields",
                 columns: table => new
                 {
+                    FieldID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     ProjectID = table.Column<int>(type: "int", nullable: false),
-                    FieldID = table.Column<int>(type: "int", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    FieldValue = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    FieldName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FieldType = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProjectMetadataFields", x => new { x.ProjectID, x.FieldID });
-                    table.ForeignKey(
-                        name: "FK_ProjectMetadataFields_MetadataFields_FieldID",
-                        column: x => x.FieldID,
-                        principalTable: "MetadataFields",
-                        principalColumn: "FieldID",
-                        onDelete: ReferentialAction.Cascade);
+                    table.PrimaryKey("PK_ProjectMetadataFields", x => x.FieldID);
                     table.ForeignKey(
                         name: "FK_ProjectMetadataFields_Projects_ProjectID",
                         column: x => x.ProjectID,
@@ -215,9 +197,9 @@ namespace Infrastructure.Migrations
                         principalColumn: "BlobID",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AssetMetadata_MetadataFields_FieldID",
+                        name: "FK_AssetMetadata_ProjectMetadataFields_FieldID",
                         column: x => x.FieldID,
-                        principalTable: "MetadataFields",
+                        principalTable: "ProjectMetadataFields",
                         principalColumn: "FieldID",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -287,9 +269,9 @@ namespace Infrastructure.Migrations
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProjectMetadataFields_FieldID",
+                name: "IX_ProjectMetadataFields_ProjectID",
                 table: "ProjectMetadataFields",
-                column: "FieldID");
+                column: "ProjectID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Projects_Name",
@@ -328,16 +310,13 @@ namespace Infrastructure.Migrations
                 name: "ProjectMemberships");
 
             migrationBuilder.DropTable(
-                name: "ProjectMetadataFields");
-
-            migrationBuilder.DropTable(
                 name: "ProjectTags");
 
             migrationBuilder.DropTable(
-                name: "Assets");
+                name: "ProjectMetadataFields");
 
             migrationBuilder.DropTable(
-                name: "MetadataFields");
+                name: "Assets");
 
             migrationBuilder.DropTable(
                 name: "Tags");
