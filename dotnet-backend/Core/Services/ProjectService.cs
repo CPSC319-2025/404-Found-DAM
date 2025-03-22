@@ -1,4 +1,4 @@
-﻿/*
+/*
 This file uses the ClosedXML library, which is licensed under the MIT License.
 ------------------------------------------------------------------------------
 
@@ -50,11 +50,11 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<string> blobIDs, int submitterID)
         {
             try 
             {
-                (List<int> successfulAssociations, List<int> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
+                (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
                 AssociateAssetsRes result = new AssociateAssetsRes
                 {
                     projectID = projectID,

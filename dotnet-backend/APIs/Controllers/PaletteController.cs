@@ -69,135 +69,162 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
             // Console.WriteLine("Request received. Form data: " + string.Join(", ", request.Form.Keys));
-            int userId = MOCKEDUSERID;
+            try {
+                int userId = MOCKEDUSERID;
 
-            if (string.IsNullOrEmpty(userId.ToString()))
-            {
-                return Results.BadRequest("UserId is required");
-            }
-
-            // Create your DTO
-            var uploadRequest = new GetPaletteAssetsReq
-            {
-                UserId = userId
-            };
-
-            // Create a task for each file
-            var files = await paletteService.GetAssets(uploadRequest);
-            // If no files were found
-            if (files == null || !files.Any())
-            {
-                return Results.Ok(new { assets = Array.Empty<object>() }); 
-            }
-            
-            // If there's only one file, return it directly
-            if (files.Count == 1)
-            {
-                var file = files[0];
-                using (var memoryStream = new MemoryStream())
+                if (string.IsNullOrEmpty(userId.ToString()))
                 {
-                    await file.CopyToAsync(memoryStream);
-                    return Results.File(
-                        fileContents: memoryStream.ToArray(),
-                        contentType: "application/zstd",  // Use appropriate MIME type for zstd
-                        fileDownloadName: file.FileName
-                    );
+                    return Results.BadRequest("UserId is required");
                 }
-            }
-            
-            // If multiple files, create a zip archive containing the already-compressed .zst files
-            using (var memoryStream = new MemoryStream())
-            {
-                using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+
+                // Create your DTO
+                var uploadRequest = new GetPaletteAssetsReq
                 {
-                    foreach (var file in files)
+                    UserId = userId
+                };
+
+                // Create a task for each file
+                var files = await paletteService.GetAssets(uploadRequest);
+                // If no files were found
+                if (files == null || !files.Any())
+                {
+                    return Results.Ok(new { assets = Array.Empty<object>() }); 
+                }
+                
+                // If there's only one file, return it directly
+                if (files.Count == 1)
+                {
+                    var file = files[0];
+                    using (var memoryStream = new MemoryStream())
                     {
-                        // Create a zip entry with the original filename
-                        var zipEntry = archive.CreateEntry(file.FileName, System.IO.Compression.CompressionLevel.NoCompression); // Use NoCompression since files are already compressed
-                        
-                        // Write the .zst file content to the zip entry
-                        using (var entryStream = zipEntry.Open())
-                        using (var fileStream = file.OpenReadStream())
-                        {
-                            await fileStream.CopyToAsync(entryStream);
-                        }
+                        await file.CopyToAsync(memoryStream);
+                        return Results.File(
+                            fileContents: memoryStream.ToArray(),
+                            contentType: "application/zstd",  // Use appropriate MIME type for zstd
+                            fileDownloadName: file.FileName
+                        );
                     }
                 }
                 
-                memoryStream.Position = 0;
-                return Results.File(
-                    fileContents: memoryStream.ToArray(),
-                    contentType: "application/zip",
-                    fileDownloadName: $"zst-files-{DateTime.Now:yyyyMMddHHmmss}.zip"
+                // If multiple files, create a zip archive containing the already-compressed .zst files
+                using (var memoryStream = new MemoryStream())
+                {
+                    using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+                    {
+                        foreach (var file in files)
+                        {
+                            // Create a zip entry with the original filename
+                            var zipEntry = archive.CreateEntry(file.FileName, System.IO.Compression.CompressionLevel.NoCompression); // Use NoCompression since files are already compressed
+                            
+                            // Write the .zst file content to the zip entry
+                            using (var entryStream = zipEntry.Open())
+                            using (var fileStream = file.OpenReadStream())
+                            {
+                                await fileStream.CopyToAsync(entryStream);
+                            }
+                        }
+                    }
+                    
+                    memoryStream.Position = 0;
+                    return Results.File(
+                        fileContents: memoryStream.ToArray(),
+                        contentType: "application/zip",
+                        fileDownloadName: $"zst-files-{DateTime.Now:yyyyMMddHHmmss}.zip"
+                    );
+                }
+            } catch (Exception ex) {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
                 );
             }
+            
         }
 
 
         // TODO: Bring back ITestService projectService
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
-            // Check if the request has form data
-            if (!request.HasFormContentType || request.Form.Files.Count == 0)
-            {
-                return Results.BadRequest("No files uploaded");
+            try {
+                // Check if the request has form data
+                if (!request.HasFormContentType || request.Form.Files.Count == 0)
+                {
+                    return Results.BadRequest("No files uploaded");
+                }
+
+                // Get the form fields that match your DTO
+                string name = request.Form["Name"].ToString();
+                string type = request.Form["Type"].ToString();
+                int userId = int.Parse(request.Form["UserId"].ToString());
+
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+                {
+                    return Results.BadRequest("Name and Type are required");
+                }
+
+                // Create your DTO
+                var uploadRequest = new UploadAssetsReq
+                {
+                    Name = name,
+                    Type = type,
+                    UserId = userId
+                };
+
+                // Create a task for each file
+                var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest);
+            
+                // Return combined results
+                return Results.Ok(results);
+            } catch (Exception ex) {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
             }
-
-            // Get the form fields that match your DTO
-            string name = request.Form["Name"].ToString();
-            string type = request.Form["Type"].ToString();
-            int userId = int.Parse(request.Form["UserId"].ToString());
-
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
-            {
-                return Results.BadRequest("Name and Type are required");
-            }
-
-            // Create your DTO
-            var uploadRequest = new UploadAssetsReq
-            {
-                Name = name,
-                Type = type,
-                UserId = userId
-            };
-
-            // Create a task for each file
-            var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest);
-        
-            // Return combined results
-            return Results.Ok(results);
+            
         }
 
         private static async Task<IResult> DeletePaletteAsset(HttpRequest request, IPaletteService paletteService)
         {
+            try {
+                // Get the form fields that match your DTO
+                string name = request.Form["Name"].ToString();
+                int userId = int.Parse(request.Form["UserId"].ToString());
 
-            // Get the form fields that match your DTO
-            string name = request.Form["Name"].ToString();
-            int userId = int.Parse(request.Form["UserId"].ToString());
+                if (string.IsNullOrEmpty(name))
+                {
+                    return Results.BadRequest("Name and Type are required");
+                }
 
-            if (string.IsNullOrEmpty(name))
-            {
-                return Results.BadRequest("Name and Type are required");
-            }
+                // Create your DTO
+                var deleteRequest = new DeletePaletteAssetReq
+                {
+                    Name = name,
+                    UserId = userId
+                };
 
-            // Create your DTO
-            var deleteRequest = new DeletePaletteAssetReq
-            {
-                Name = name,
-                UserId = userId
-            };
+                // Create a task for each file
+                var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
-            // Create a task for each file
-            var result = await paletteService.DeleteAssetAsync(deleteRequest);
-
-            if (result) {
                 return Results.Ok(new {
                     fileName = deleteRequest.Name,
                 });
-            } else {
-                Console.WriteLine($"Failed to delete asset {deleteRequest.Name}.");
-                return Results.NotFound("Failed to delete asset");
+            } catch (Exception ex) {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
             }
+            
         }
 
         private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService)
