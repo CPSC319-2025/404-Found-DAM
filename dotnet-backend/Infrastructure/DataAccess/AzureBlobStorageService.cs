@@ -70,8 +70,6 @@ namespace Infrastructure.DataAccess
         
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
         {
-
-            // TODO may use assets later on for better performance
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
@@ -84,11 +82,11 @@ namespace Infrastructure.DataAccess
             List<IFormFile> formFiles = new List<IFormFile>();
             
             // Get all blobs in the container
-            await foreach (var blobItem in containerClient.GetBlobsAsync())
+            foreach (var asset in assets)
             {
                 
                 // Get a client for this specific blob
-                var blobClient = containerClient.GetBlobClient(blobItem.Name);
+                var blobClient = containerClient.GetBlobClient(asset.BlobID);
                 
                 // Download the blob
                 var response = await blobClient.DownloadAsync();
@@ -107,7 +105,7 @@ namespace Infrastructure.DataAccess
                     baseStreamOffset: 0,
                     length: memoryStream.Length,
                     name: "file", // Form field name
-                    fileName: Path.GetFileName(blobItem.Name)
+                    fileName: Path.GetFileName(asset.BlobID)
                 );
                 
                 // Set content type if needed
