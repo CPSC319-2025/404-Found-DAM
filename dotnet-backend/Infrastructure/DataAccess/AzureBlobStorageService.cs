@@ -76,15 +76,15 @@ namespace Infrastructure.DataAccess
             // Make sure container exists
             if (!await containerClient.ExistsAsync())
             {
-                return new List<IFormFile>();
+                throw new FileNotFoundException($"Container {containerName} not found");
             }
             
+            // Initialize the list of form files
             List<IFormFile> formFiles = new List<IFormFile>();
             
-            // Get all blobs in the container
-            foreach (var asset in assets)
+            // Create a list of tasks for parallel execution
+            var downloadTasks = assets.Select(async asset =>
             {
-                
                 // Get a client for this specific blob
                 var blobClient = containerClient.GetBlobClient(asset.BlobID);
                 
@@ -95,10 +95,7 @@ namespace Infrastructure.DataAccess
                 var memoryStream = new MemoryStream();
                 await response.Value.Content.CopyToAsync(memoryStream);
                 memoryStream.Position = 0; // Reset position for reading
-                
-                // Get content type
-                var properties = await blobClient.GetPropertiesAsync();
-                
+
                 // Create a FormFile from the memory stream
                 var formFile = new FormFile(
                     baseStream: memoryStream,
@@ -111,9 +108,16 @@ namespace Infrastructure.DataAccess
                 // Set content type if needed
                 // formFile.ContentType = properties.Value.ContentType;
                 
-                formFiles.Add(formFile);
-            }
-        
+                return formFile;
+            }).ToList();
+            
+            // Wait for all downloads to complete
+            var results = await Task.WhenAll(downloadTasks);
+            
+            // Add all results to the existing formFiles list
+            formFiles.AddRange(results);
+            
+            // Return the list of form files
             return formFiles;
         }
         
