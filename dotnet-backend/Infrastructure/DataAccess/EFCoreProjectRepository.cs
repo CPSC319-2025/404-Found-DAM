@@ -442,6 +442,17 @@ namespace Infrastructure.DataAccess
             };
             
         }
+
+        public async Task<List<Project>> GetProjectsForUserInDb(int userId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.ProjectTags).ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMetadataFields)
+                .Where(p => p.ProjectMemberships.Any(pm => pm.UserID == userId))
+                .ToListAsync();
+        }
         
     }
 }
