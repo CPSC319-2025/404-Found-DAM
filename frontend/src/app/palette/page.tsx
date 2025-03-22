@@ -107,19 +107,18 @@ export default function PalettePage() {
   }
 
   // Function to extract BlobID from the server format (BlobID.OriginalFilename.zst)
-  function extractBlobId(filename: string): number | undefined {
+  function extractBlobId(filename: string): string | undefined {
     const parts = filename.split('.');
     if (parts.length < 2) {
       return undefined;
     }
     
     const blobIdStr = parts[0];
-    const blobId = parseInt(blobIdStr, 10);
-    return isNaN(blobId) ? undefined : blobId;
+    return blobIdStr;
   }
 
   // Fetch project and tags for a blob
-  async function fetchBlobDetails(blobId: number): Promise<{project?: any, tags?: string[], description?: string, location?: string}> {
+  async function fetchBlobDetails(blobId: string): Promise<{project?: any, tags?: string[], tagIds?: number[], description?: string, location?: string}> {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
       if (!response.ok) {
@@ -134,10 +133,11 @@ export default function PalettePage() {
       // The C# backend might use "location" or "Location" depending on serialization settings
       let description = data.project?.description || data.project?.Description;
       let location = data.project?.location || data.project?.Location;
-      
+      // console.log(data.tagIds);
       return {
         project: projectId,
         tags: data.tags || [],
+        tagIds: data.tagIds || [],
         description: description || "",
         location: location || ""
       };
@@ -214,6 +214,7 @@ export default function PalettePage() {
         description: "",
         location: "",
         tags: [],
+        tagIds: [],
         blobId // Store the blobId extracted from the filename
       };
 
@@ -225,6 +226,7 @@ export default function PalettePage() {
         }
         if (details.tags && details.tags.length > 0) {
           fileMeta.tags = details.tags;
+          fileMeta.tagIds = details.tagIds || [];
           fileMeta.description = details.description || "";
           fileMeta.location = details.location || "";
         }
@@ -279,6 +281,7 @@ export default function PalettePage() {
             description: "",
             location: "",
             tags: [],
+            tagIds: [],
             blobId // Store the blobId extracted from the filename
           };
 
@@ -290,6 +293,7 @@ export default function PalettePage() {
             }
             if (details.tags && details.tags.length > 0) {
               fileMeta.tags = details.tags;
+              fileMeta.tagIds = details.tagIds || [];
               fileMeta.description = details.description || "";
               fileMeta.location = details.location || "";
             }
@@ -320,6 +324,8 @@ export default function PalettePage() {
           }
         })
       );
+    } else if (contentType == "application/json; charset=utf-8") {
+      console.log("no file in palette");
     } else {
       console.error("Unexpected content type:", contentType);
     }
@@ -336,7 +342,7 @@ export default function PalettePage() {
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
       formData.append("name", "My Upload Batch");
-      formData.append("type", "image");
+      formData.append("type", fileMeta.file.type); // Use the file's actual MIME type dynamically
       formData.append("files", compressedFile);
 
       // 3.3 Send the request
@@ -363,7 +369,7 @@ export default function PalettePage() {
         // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId: detail.blobID } : f
+            f === fileMeta ? { ...f, blobId: detail.blobID.toString() } : f
           )
         );
       }
@@ -372,7 +378,7 @@ export default function PalettePage() {
     }
   }
 
-  // 1. Fetch the project logs from Beeceptor once on mount
+  // 1. Fetch the project logs  once on mount
   useEffect(() => {
     async function fetchProjects() {
       try {
@@ -455,6 +461,7 @@ export default function PalettePage() {
           description: "",
           location: "",
           tags: [],
+          tagIds: [],
         };
 
         if (file.type.startsWith("image/")) {
@@ -514,7 +521,7 @@ export default function PalettePage() {
     }
 
     // 1) Group selected files by their project
-    const projectMap: Record<string, number[]> = {};
+    const projectMap: Record<string, string[]> = {};
     //   projectMap[projectID] => [blobIDs]
 
     selectedIndices.forEach((fileIndex) => {

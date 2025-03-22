@@ -179,7 +179,7 @@ export default function FileTable({
           },
           body: JSON.stringify({
             ImageIds: [fileMeta.blobId],
-            ProjectId: parseInt(newProjectID)
+            ProjectId: newProjectID
           })
         }
       );
@@ -230,12 +230,14 @@ export default function FileTable({
       if (response.ok) {
         const data = await response.json();
         // If the blob has tags, keep them
+        // console.log(data.tagIds);
         if (data.tags && data.tags.length > 0) {
           setFiles((prev) => {
             const updated = [...prev];
             updated[index] = {
               ...updated[index],
               tags: data.tags,
+              tagIds: data.tagIds,
               description: projects.find(p => p.projectID.toString() === newProjectID)?.description || "",
               location: projects.find(p => p.projectID.toString() === newProjectID)?.location || "",
             };

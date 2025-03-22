@@ -43,7 +43,7 @@ export default function EditMetadataPage() {
     }
   }, [fileData]);
 
-  async function fetchBlobDetails(blobId: number) {
+  async function fetchBlobDetails(blobId: string) {
     setIsLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);

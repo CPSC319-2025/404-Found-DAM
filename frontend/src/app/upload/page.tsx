@@ -19,7 +19,7 @@ export default function UploadPage() {
     }
   }, [files, router]);
 
-  // 2a) Helper function: compress + upload to your Beeceptor endpoint
+  // 2a) Helper function: compress + upload 
   async function uploadFileZstd(fileMeta: FileMetadata) {
     try {
       // Compress file with Zstandard
@@ -31,20 +31,21 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append("userId", "1"); // or dynamic
       formData.append("name", "My Upload Batch");
-      formData.append("type", "image");
+      formData.append("type", fileMeta.file.type); // Use the actual file type
       formData.append("files", compressedFile);
 
       // Send the request
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`,
         {
-          method: "GET",
+          method: "POST",
           headers: {
             Authorization: "Bearer MY_TOKEN",
           },
-          // body: formData,
+          body: formData,
         }
       );
+      
 
       if (!response.ok) {
         throw new Error(`Upload failed with status ${response.status}`);
@@ -53,18 +54,15 @@ export default function UploadPage() {
       const result = await response.json();
       console.log("Upload result:", result);
 
-      // If success: store blobId in that file’s metadata
-      if (result?.Details?.length > 0) {
-        const detail = result.Details[0]; // or match by filename if needed
+      if (result?.length > 0) {
+        const detail = result[0]; // or find by filename if needed
 
+        console.log(detail.blobID);
+
+        // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
-            f === fileMeta
-              ? {
-                  ...f,
-                  blobId: detail.BlobID, // store the ID returned by the API
-                }
-              : f
+            f === fileMeta ? { ...f, blobId: detail.blobID.toString() } : f
           )
         );
       }
@@ -85,6 +83,7 @@ export default function UploadPage() {
           description: "",
           location: "",
           tags: [],
+          tagIds: [],
         };
 
         // For images, read width & height
@@ -134,8 +133,8 @@ export default function UploadPage() {
   });
 
   // 3) Manual button to go to /palette
-  function handleUpload() {
-    router.push("/palette");
+  async function handleUpload() {
+    router.push("/palette"); //after push to palette, the palette page will refresh
   }
 
   return (
