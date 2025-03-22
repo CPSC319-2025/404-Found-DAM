@@ -88,6 +88,31 @@ namespace APIs.Controllers
                .WithName("RemoveTagsFromAssets")
                .WithOpenApi();
 
+        // Add single tag to asset
+        app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                AssignTagResult result = await paletteService.AssignTagToAssetAsync(request.BlobId, request.TagId);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignTagToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignTagToAsset")
+        .WithOpenApi();
+
         }
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)

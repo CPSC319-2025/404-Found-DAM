@@ -245,5 +245,69 @@ namespace Infrastructure.DataAccess {
             
             return response;
         }
+
+        public async Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            // Check if asset exists
+            var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == blobId);
+            if (asset == null)
+            {
+                return new AssignTagResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = $"Asset with BlobID {blobId} not found"
+                };
+            }
+            
+            // Check if tag exists
+            var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagID == tagId);
+            if (tag == null)
+            {
+                return new AssignTagResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = $"Tag with ID {tagId} not found"
+                };
+            }
+            
+            // Check if association already exists
+            bool associationExists = await AssetTagAssociationExistsAsync(blobId, tagId);
+            if (associationExists)
+            {
+                return new AssignTagResult
+                {
+                    Success = true,
+                    BlobId = blobId,
+                    TagId = tagId,
+                    Message = "Tag already assigned to asset"
+                };
+            }
+            
+            // Create new association
+            var assetTag = new AssetTag
+            {
+                BlobID = blobId,
+                Asset = asset,
+                TagID = tagId,
+                Tag = tag
+            };
+            
+            await context.AssetTags.AddAsync(assetTag);
+            await context.SaveChangesAsync();
+            
+            return new AssignTagResult
+            {
+                Success = true,
+                BlobId = blobId,
+                TagId = tagId,
+                Message = "Tag successfully assigned to asset"
+            };
+        }
     }
 }

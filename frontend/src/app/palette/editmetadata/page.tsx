@@ -27,6 +27,7 @@ export default function EditMetadataPage() {
     fileData ? fileData.tags : []
   );
   const [projectTags, setProjectTags] = useState<string[]>([]);
+  const [projectTagMap, setProjectTagMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch project tags and blob details when component mounts
@@ -86,7 +87,17 @@ export default function EditMetadataPage() {
       
       // Extract tags from project data
       if (data.tags && Array.isArray(data.tags)) {
-        setProjectTags(data.tags.map((tag: { name: string; tagID: number }) => tag.name));
+        // Create a map of tag names to tag IDs for quick lookup
+        const tagMap: Record<string, number> = {};
+        const tagNames: string[] = [];
+        
+        data.tags.forEach((tag: { name: string; tagID: number }) => {
+          tagNames.push(tag.name);
+          tagMap[tag.name] = tag.tagID;
+        });
+        
+        setProjectTags(tagNames);
+        setProjectTagMap(tagMap);
       }
     } catch (error) {
       console.error("Error fetching project tags:", error);
@@ -95,11 +106,69 @@ export default function EditMetadataPage() {
     }
   }
 
-  function handleTagSelection(tagName: string) {
+  async function handleTagSelection(tagName: string) {
     // Add the tag if it's not already included
-    if (!selectedTags.includes(tagName)) {
-      setSelectedTags([...selectedTags, tagName]);
+    if (!selectedTags.includes(tagName) && fileData && fileData.blobId) {
+      setIsLoading(true);
+      
+      try {
+        // First, find the tag ID from the project tags
+        const tagId = findTagIdByName(tagName);
+        
+        if (!tagId) {
+          console.error(`Tag ID not found for tag: ${tagName}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Call API to assign the tag to the asset
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/tag`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            BlobId: fileData.blobId,
+            TagId: tagId
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to assign tag: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Tag assigned successfully:", data);
+        
+        // Update local state with the new tag
+        setSelectedTags([...selectedTags, tagName]);
+        
+        // Also update the file metadata in context
+        const updatedTags = [...fileData.tags, tagName];
+        const updatedTagIds = [...fileData.tagIds, tagId];
+        
+        updateMetadata(fileIndex, {
+          tags: updatedTags,
+          tagIds: updatedTagIds
+        });
+      } catch (error) {
+        console.error("Error assigning tag:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+  }
+  
+  // Helper function to find a tag ID by name
+  function findTagIdByName(tagName: string): number | null {
+    // First check if we already have this tag in our file's tag list
+    const existingTagIndex = fileData.tags.findIndex(tag => tag === tagName);
+    if (existingTagIndex !== -1) {
+      return fileData.tagIds[existingTagIndex];
+    }
+    
+    // Check in our project tag map
+    return projectTagMap[tagName] || null;
   }
 
   function handleTagRemoval(tagToRemove: string) {

@@ -158,5 +158,18 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId)
+        {
+            try
+            {
+                return await _paletteRepository.AssignTagToAssetAsync(blobId, tagId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
+                throw;
+            }
+        }
     }
 }
