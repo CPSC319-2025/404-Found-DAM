@@ -14,6 +14,7 @@ namespace Core.Services
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
    
+        // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
         public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
         {
             _paletteRepository = paletteRepository;
