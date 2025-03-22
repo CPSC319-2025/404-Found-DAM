@@ -257,5 +257,28 @@ namespace Infrastructure.DataAccess {
                  throw new DataNotFoundException($"Project ${projectID} not found");
              }           
         }
+
+        public async Task<bool> RemoveAssetTagFromDb(int blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            var assetTag = await context.AssetTags
+                .FirstOrDefaultAsync(at => at.BlobID == blobId && at.TagID == tagId);
+            if (assetTag == null)
+            {
+                return false;
+            }
+            context.AssetTags.Remove(assetTag);
+            return await context.SaveChangesAsync() > 0;
+        }
+        public async Task<Tag?> GetTagByNameAsync(string tagName)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+        }
+        public async Task<bool> AssetTagAssociationExistsAsync(int blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.AssetTags.AnyAsync(at => at.BlobID == blobId && at.TagID == tagId);
+        }
     }
 }

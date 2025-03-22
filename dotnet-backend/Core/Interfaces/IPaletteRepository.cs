@@ -14,6 +14,12 @@ namespace Core.Interfaces  {
 
         public Task<int> UploadAssets(IFormFile file, UploadAssetsReq request);
         public Task<List<IFormFile>> GetAssetsAsync(int userId);
-        Task<(List<int> successfulSubmissions, List<int> failedSubmissions)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID);    
+        Task<(List<int> successfulSubmissions, List<int> failedSubmissions)> SubmitAssetstoDb(int projectID, List<int> blobIDs, int submitterID); 
+        
+        Task<bool> RemoveAssetTagFromDb(int assetId, int tagId);
+        Task<Tag?> GetTagByNameAsync(string tagName);
+        Task<bool> AssetTagAssociationExistsAsync(int blobId, int tagId);
+
+        
     }
 }

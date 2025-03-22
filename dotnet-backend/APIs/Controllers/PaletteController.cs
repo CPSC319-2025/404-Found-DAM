@@ -64,6 +64,10 @@ namespace APIs.Controllers
 
         app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
 
+        
+        app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
+               .WithName("RemoveTagsFromAssets")
+               .WithOpenApi();
         }
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
@@ -222,6 +226,49 @@ namespace APIs.Controllers
                  return Results.StatusCode(500);
              }
          }
+
+        private static async Task<IResult> RemoveTagsFromAssets(RemoveTagsFromPaletteReq request, IPaletteService paletteService)
+        {
+            try
+            {
+                RemoveTagsResult result = await paletteService.RemoveTagsFromAssetsAsync(request.BlobIds, request.TagIds);
+                
+                if (result.RemovedAssociations.Count == 0 && result.NotFoundAssociations.Count > 0)
+                {
+                    return Results.BadRequest(new
+                    {
+                        message = "No associations were found for the specified BlobIds and TagIds. Nothing was removed.",
+                        notFoundAssociations = result.NotFoundAssociations
+                    });
+                }
+                else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)
+                {
+                    return Results.Ok(new
+                    {
+                        message = "Some associations were removed, but some were not found.",
+                        removedAssociations = result.RemovedAssociations,
+                        notFoundAssociations = result.NotFoundAssociations
+                    });
+                }
+                else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)
+                {
+                    return Results.Ok(new
+                    {
+                        message = "All specified associations were successfully removed.",
+                        removedAssociations = result.RemovedAssociations
+                    });
+                }
+                else
+                {
+                    return Results.BadRequest(new { message = "No associations were specified in the request." });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in RemoveTagsFromAssets: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        }
         
     }
 }
