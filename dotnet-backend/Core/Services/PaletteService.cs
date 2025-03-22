@@ -19,13 +19,7 @@ namespace Core.Services
 
         public async Task<string> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
         {
-            try {
-                return await _paletteRepository.UploadAssets(file, request);
-            }
-            catch (Exception ex) {
-                Console.WriteLine($"Error uploading assets: {ex.Message}");
-                return null;
-            }
+            return await _paletteRepository.UploadAssets(file, request);
         }
 
         public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
@@ -66,13 +60,7 @@ namespace Core.Services
 
         public async Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request)
         {
-            try {
-                return await _paletteRepository.DeleteAsset(request);
-            }
-            catch (Exception ex) {
-                Console.WriteLine($"Error deleting assets: {ex.Message}");
-                return false;
-            }
+            return await _paletteRepository.DeleteAsset(request);
         }
 
         public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {

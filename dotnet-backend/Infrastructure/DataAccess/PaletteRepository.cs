@@ -73,83 +73,68 @@ namespace Infrastructure.DataAccess {
         public async Task<string> UploadAssets(IFormFile file, UploadAssetsReq request)
         {
             byte[] compressedData;
-            try {
-                using (var ms = new MemoryStream())
-                {
-                    await file.CopyToAsync(ms);
-                    compressedData = ms.ToArray();
-                }
-                using var _context = _contextFactory.CreateDbContext();
-                if (file == null || file.Length == 0)
-                    throw new ArgumentException("File is empty");
-                string finalName = file.FileName;
-                string suffix = ".zst";
-                if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                {
-                    finalName = finalName.Substring(0, finalName.Length - suffix.Length);
-                }
-                string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
-                var asset = new Asset
-                    {
-                        BlobID = "temp",
-                        FileName = finalName,
-                        MimeType = finalExtension,
-                        ProjectID = null,
-                        UserID = request.UserId,
-                        assetState = Asset.AssetStateType.UploadedToPalette
-                    };
-                string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
-                asset.BlobID = blobId;
-                 // Add the asset to the database context and save changes
-                await _context.Assets.AddAsync(asset);
-                int num = await _context.SaveChangesAsync();
-                return blobId;
-            } catch (Exception ex) {
-                Console.WriteLine($"Error uploading asset: {ex.Message}");
-                return null;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms);
+                compressedData = ms.ToArray();
             }
+            using var _context = _contextFactory.CreateDbContext();
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty");
+            string finalName = file.FileName;
+            string suffix = ".zst";
+            if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                finalName = finalName.Substring(0, finalName.Length - suffix.Length);
+            }
+            string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
+            var asset = new Asset
+                {
+                    BlobID = "temp",
+                    FileName = finalName,
+                    MimeType = finalExtension,
+                    ProjectID = null,
+                    UserID = request.UserId,
+                    assetState = Asset.AssetStateType.UploadedToPalette
+                };
+            string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
+            asset.BlobID = blobId;
+                // Add the asset to the database context and save changes
+            await _context.Assets.AddAsync(asset);
+            int num = await _context.SaveChangesAsync();
+            return blobId;
         }
 
         public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
         {
             using var _context = _contextFactory.CreateDbContext();
 
-            try {
-                // Create storage directory if it doesn't exist
-                string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-                if (!Directory.Exists(storageDirectory))
-                {
-                    Directory.CreateDirectory(storageDirectory);
-                }
-                // Get the asset to retrieve filename before deletion
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
-
-                // Delete the asset from the database
-                await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
-                _context.Assets.Remove(asset);
-                // TODO change to blob ID
-                var res = await _blobStorageService.DeleteAsync(asset, "palette-assets");
-                await _context.SaveChangesAsync();
-                return res;
-            } catch (Exception ex) {
-                Console.WriteLine($"Error deleting asset: {ex.Message}");
-                return false;
+            // Create storage directory if it doesn't exist
+            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+            if (!Directory.Exists(storageDirectory))
+            {
+                Directory.CreateDirectory(storageDirectory);
             }
+            // Get the asset to retrieve filename before deletion
+            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.FileName == request.Name);
+
+            // Delete the asset from the database
+            await _context.Assets.Where(a => a.FileName == request.Name).ExecuteDeleteAsync();
+            _context.Assets.Remove(asset);
+            // TODO change to blob ID
+            var res = await _blobStorageService.DeleteAsync(asset, "palette-assets");
+            await _context.SaveChangesAsync();
+            return res;
 
         }
 
         public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
             using var _context = _contextFactory.CreateDbContext();
-            try {
-                // Get all Assets for the user
-                var assets = await _context.Assets
-                    .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
-                    .ToListAsync();
-                return await _blobStorageService.DownloadAsync("palette-assets", assets);
-            } catch (Exception ex) {
-                Console.WriteLine($"Error getting assets: {ex.Message}");
-                return null;
-            }
+            // Get all Assets for the user
+            var assets = await _context.Assets
+                .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
+                .ToListAsync();
+            return await _blobStorageService.DownloadAsync("palette-assets", assets);
         }
 
         public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {

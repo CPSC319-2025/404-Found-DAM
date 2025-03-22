@@ -19,120 +19,104 @@ namespace Infrastructure.DataAccess
         
         public async Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData)
         {
-            try {
-                // Validate parameters
-                if (file == null || file.Length == 0)
-                    throw new ArgumentException("File is empty or null", nameof(file));
-                    
-                // Create blob client and container
-                var blobServiceClient = new BlobServiceClient(_connectionString);
-                var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            // Validate parameters
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty or null", nameof(file));
                 
-                // Create container if it doesn't exist
-                await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
-                
-                // Generate a unique blob name
-                string fileName = assetMetaData.FileName;
-                string uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
-                
-                // Get blob client and upload file
-                var blobClient = containerClient.GetBlobClient(uniqueFileName);
-                
-                // Set content type metadata
-                var blobOptions = new BlobUploadOptions
+            // Create blob client and container
+            var blobServiceClient = new BlobServiceClient(_connectionString);
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            
+            // Create container if it doesn't exist
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            
+            // Generate a unique blob name
+            string fileName = assetMetaData.FileName;
+            string uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
+            
+            // Get blob client and upload file
+            var blobClient = containerClient.GetBlobClient(uniqueFileName);
+            
+            // Set content type metadata
+            var blobOptions = new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders
                 {
-                    HttpHeaders = new BlobHttpHeaders
-                    {
-                        ContentType = assetMetaData.MimeType
-                    }
-                };
-                
-                // Upload file
-                using (var stream = new MemoryStream(file))
-                {
-                    await blobClient.UploadAsync(stream, blobOptions);
+                    ContentType = assetMetaData.MimeType
                 }
-                
-                // Return blob ID (full path)
-                return blobClient.Name;
-            } catch (Exception ex) {
-                Console.WriteLine($"Error uploading blob: {ex.Message}");
-                return null;
+            };
+            
+            // Upload file
+            using (var stream = new MemoryStream(file))
+            {
+                await blobClient.UploadAsync(stream, blobOptions);
             }
+            
+            // Return blob ID (full path)
+            return blobClient.Name;
             
         }
         
         public async Task<bool> DeleteAsync(Asset asset, string containerName)
         {
-            try {
-                // Create blob client and container
-                var blobServiceClient = new BlobServiceClient(_connectionString);
-                var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-                var blobClient = containerClient.GetBlobClient(asset.BlobID);
-                
-                // Delete the blob
-                return await blobClient.DeleteIfExistsAsync();
-            } catch (Exception ex) {
-                Console.WriteLine($"Error deleting blob: {ex.Message}");
-                return false;
-            }
+            // Create blob client and container
+            var blobServiceClient = new BlobServiceClient(_connectionString);
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            var blobClient = containerClient.GetBlobClient(asset.BlobID);
+            
+            // Delete the blob
+            return await blobClient.DeleteIfExistsAsync();
         }
         
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
         {
 
             // TODO may use assets later on for better performance
-            try {
-                var blobServiceClient = new BlobServiceClient(_connectionString);
-                var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-                
-                // Make sure container exists
-                if (!await containerClient.ExistsAsync())
-                {
-                    return new List<IFormFile>();
-                }
-                
-                List<IFormFile> formFiles = new List<IFormFile>();
-                
-                // Get all blobs in the container
-                await foreach (var blobItem in containerClient.GetBlobsAsync())
-                {
-                    
-                    // Get a client for this specific blob
-                    var blobClient = containerClient.GetBlobClient(blobItem.Name);
-                    
-                    // Download the blob
-                    var response = await blobClient.DownloadAsync();
-                    
-                    // Create a memory stream to copy the blob content
-                    var memoryStream = new MemoryStream();
-                    await response.Value.Content.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0; // Reset position for reading
-                    
-                    // Get content type
-                    var properties = await blobClient.GetPropertiesAsync();
-                    
-                    // Create a FormFile from the memory stream
-                    var formFile = new FormFile(
-                        baseStream: memoryStream,
-                        baseStreamOffset: 0,
-                        length: memoryStream.Length,
-                        name: "file", // Form field name
-                        fileName: Path.GetFileName(blobItem.Name)
-                    );
-                    
-                    // Set content type if needed
-                    // formFile.ContentType = properties.Value.ContentType;
-                    
-                    formFiles.Add(formFile);
-                }
+            var blobServiceClient = new BlobServiceClient(_connectionString);
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
-                return formFiles;
-            } catch (Exception ex) {
-                Console.WriteLine($"Error downloading files: {ex.Message}");
+            // Make sure container exists
+            if (!await containerClient.ExistsAsync())
+            {
                 return new List<IFormFile>();
             }
             
+            List<IFormFile> formFiles = new List<IFormFile>();
+            
+            // Get all blobs in the container
+            await foreach (var blobItem in containerClient.GetBlobsAsync())
+            {
+                
+                // Get a client for this specific blob
+                var blobClient = containerClient.GetBlobClient(blobItem.Name);
+                
+                // Download the blob
+                var response = await blobClient.DownloadAsync();
+                
+                // Create a memory stream to copy the blob content
+                var memoryStream = new MemoryStream();
+                await response.Value.Content.CopyToAsync(memoryStream);
+                memoryStream.Position = 0; // Reset position for reading
+                
+                // Get content type
+                var properties = await blobClient.GetPropertiesAsync();
+                
+                // Create a FormFile from the memory stream
+                var formFile = new FormFile(
+                    baseStream: memoryStream,
+                    baseStreamOffset: 0,
+                    length: memoryStream.Length,
+                    name: "file", // Form field name
+                    fileName: Path.GetFileName(blobItem.Name)
+                );
+                
+                // Set content type if needed
+                // formFile.ContentType = properties.Value.ContentType;
+                
+                formFiles.Add(formFile);
+            }
+        
+            return formFiles;
         }
         
     }
