@@ -18,11 +18,11 @@ namespace Core.Services
             _imageService = imageService;
         }
 
-        public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
+        public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
         {
             Console.WriteLine("ProcessUploadAsync");
             try {
-                return await _paletteRepository.UploadAssets(file, request, _imageService);
+                return await _paletteRepository.UploadAssets(file, request, convertToWebp, _imageService);
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");
@@ -30,11 +30,11 @@ namespace Core.Services
             }
         }
 
-        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
+        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
             var uploadTasks = files.Select(async file => 
             {
-                var res = await ProcessUploadAsync(file, request);
+                var res = await ProcessUploadAsync(file, request, convertToWebp);
                 if (res != -1) {
                     return new {
                         BlobID = res, 

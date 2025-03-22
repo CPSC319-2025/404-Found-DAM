@@ -6,6 +6,7 @@ using Core.Dtos;
 using System.Reflection.Metadata;
 using Infrastructure.Exceptions;
 using Core.Services.Utils;
+using NetVips;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
@@ -73,7 +74,7 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request, IImageService _imageService)
+        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
@@ -81,30 +82,67 @@ namespace Infrastructure.DataAccess {
 
             // Read the IFormFile into a byte array
             byte[] compressedData;
-            try {
-                using (var ms = new MemoryStream())
+            bool isConvertedToWebP = false;
+
+            try 
+            {
+                // Process file name first in case of conversion
+                string fileNameWithoutZstExtension = file.FileName;
+                string suffix = ".zst";
+                if (fileNameWithoutZstExtension.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    await file.CopyToAsync(ms);
-                    compressedData = ms.ToArray();
-
-                    // Decompress for converting to lossy webp
-                    // TODO: guard to only convert images, and skip those that are already in webp
-                    byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
-                    byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuffer, false);
-
-                    // Compress the returned buffer
-                    compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
+                    fileNameWithoutZstExtension = fileNameWithoutZstExtension.Substring(0, fileNameWithoutZstExtension.Length - suffix.Length);
                 }
 
-                // using (var ms = new MemoryStream())
-                // {
-                //     Console.WriteLine("toWebP");
-                //     await file.CopyToAsync(ms);
-                //     var webpBuffer = _imageService.toWebpNetVips(ms);
-                //     // compressedData = ms.ToArray();
-                //     compressedData = webpBuffer;
-                // }
-                
+                // Check if Asset is an webp image and if conversion is required
+                if (request.AssetMimeType.StartsWith("image") && !request.AssetMimeType.EndsWith("webp") && convertToWebp)
+                {
+                    try 
+                    {
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedData = ms.ToArray();
+
+                            // Decompress for converting to lossy webp
+                            // TODO: guard to only convert images, and skip those that are already in webp
+                            byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
+                            byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuffer, false);
+
+                            // Compress the returned buffer
+                            compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
+                            isConvertedToWebP = true;
+
+                            // Change fileName extension and mimetype
+                            string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileNameWithoutZstExtension);
+                            fileNameWithoutZstExtension = fileNameNoExtension + ".webp";
+                            string[] mimeTypeParts = request.AssetMimeType.Split('/');
+                            if (mimeTypeParts.Length > 0) 
+                            {
+                                request.AssetMimeType = mimeTypeParts[0] + "/" + "webp";
+                            }
+                        }
+                    }
+                    catch (VipsException)
+                    {
+                        // TODO: Consider notifying users of failed conversion
+                        Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedData = ms.ToArray();
+                        }
+                    }
+                }
+                else // Asset is video, or webp image, or image to which user does not require webp conversion to be applied
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        await file.CopyToAsync(ms);
+                        compressedData = ms.ToArray();
+                    }
+                }
+
                 // Create storage directory if it doesn't exist
                 string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
                 if (!Directory.Exists(storageDirectory))
@@ -112,27 +150,22 @@ namespace Infrastructure.DataAccess {
                     Directory.CreateDirectory(storageDirectory);
                 }
 
-                // TODO: Change the file extension to webp
-
-                string finalName = file.FileName;
-                string suffix = ".zst";
-                if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                {
-                    finalName = finalName.Substring(0, finalName.Length - suffix.Length);
-                }
-                string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
-
+                // string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
+                // string mimeType = request.Type.ToLower() + "/" + finalExtension;
+               
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
-                    FileName = finalName,
-                    MimeType = finalExtension,
+                    FileName = fileNameWithoutZstExtension,
+                    MimeType = request.AssetMimeType,
                     ProjectID = null,
                     UserID = request.UserId,
-                    assetState = Asset.AssetStateType.UploadedToPalette
+                    FileSizeInKB = compressedData.Length / 1024.0,
+                    LastUpdated = DateTime.UtcNow,
+                    assetState = Asset.AssetStateType.UploadedToPalette,
                 };
 
-            // Add the asset to the database context and save changes
+                // Add the asset to the database context and save changes
             
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
@@ -140,7 +173,8 @@ namespace Infrastructure.DataAccess {
                 // Console.WriteLine($"FileType before compression: {finalExtension}");
                 await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst"), compressedData);
                 return asset.BlobID;
-            } catch (Exception ex) {
+            } 
+            catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 return -1;
             }

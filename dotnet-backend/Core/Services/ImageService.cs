@@ -21,19 +21,25 @@ namespace Core.Services
             // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
             
             Console.WriteLine("getting image...");
-
-            using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+            try
             {
-                Console.WriteLine("prep webpLossyStream...");
+                using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+                {
+                    Console.WriteLine("prep webpLossyStream...");
 
-                MemoryStream webpLossyStream = new MemoryStream();
-                
-                Console.WriteLine("converting...");
+                    MemoryStream webpLossyStream = new MemoryStream();
+                    
+                    Console.WriteLine("converting...");
 
-                byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
-                Console.WriteLine("done...");
-                return webpLossyBuffer;
-            } 
+                    byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
+                    Console.WriteLine("done...");
+                    return webpLossyBuffer;
+                } 
+            }
+            catch (VipsException)
+            {
+                throw;
+            }
         }
 
         

@@ -137,7 +137,6 @@ namespace APIs.Controllers
         // TODO: Bring back ITestService projectService
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
-            Console.WriteLine("UploadAssets");
             // Check if the request has form data
             if (!request.HasFormContentType || request.Form.Files.Count == 0)
             {
@@ -145,25 +144,51 @@ namespace APIs.Controllers
             }
 
             // Get the form fields that match your DTO
-            string name = request.Form["Name"].ToString();
-            string type = request.Form["Type"].ToString();
-            int userId = int.Parse(request.Form["UserId"].ToString());
+            string uploadTaskName = request.Form["name"].ToString();
+            string asasetMimeType = request.Form["mimeType"].ToString().ToLower();
+            int userId = int.Parse(request.Form["userId"].ToString());
+            string? toWebpParam = request.Query["toWebp"];
 
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+            bool convertToWebp = true; // set webp conversion default to true 
+
+
+            if (string.IsNullOrEmpty(uploadTaskName))
             {
-                return Results.BadRequest("Name and Type are required");
+                return Results.BadRequest("Name of batch upload is required");
+            }
+
+            if (string.IsNullOrEmpty(asasetMimeType))
+            {
+                return Results.BadRequest("mimeType is required");
+            }
+            else if (!asasetMimeType.Contains("/")) 
+            {
+                return Results.BadRequest("incorrect mimeType format");
+            }
+            
+            // Get convertToWebp's actual value if supplied by user
+            if (!string.IsNullOrEmpty(toWebpParam))
+            {
+                if (bool.TryParse(toWebpParam, out bool parsedToWebp))
+                {
+                    convertToWebp = parsedToWebp;
+                }
+                else 
+                {
+                    return Results.BadRequest("Invalid value for toWebp query param");
+                }
             }
 
             // Create your DTO
             var uploadRequest = new UploadAssetsReq
             {
-                Name = name,
-                Type = type,
+                UploadTaskName = uploadTaskName,
+                AssetMimeType = asasetMimeType,
                 UserId = userId
             };
 
             // Create a task for each file
-            var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest);
+            var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
         
             // Return combined results
             return Results.Ok(results);
