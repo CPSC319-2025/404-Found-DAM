@@ -107,19 +107,18 @@ export default function PalettePage() {
   }
 
   // Function to extract BlobID from the server format (BlobID.OriginalFilename.zst)
-  function extractBlobId(filename: string): number | undefined {
+  function extractBlobId(filename: string): string | undefined {
     const parts = filename.split('.');
     if (parts.length < 2) {
       return undefined;
     }
     
     const blobIdStr = parts[0];
-    const blobId = parseInt(blobIdStr, 10);
-    return isNaN(blobId) ? undefined : blobId;
+    return blobIdStr && blobIdStr.length > 0 ? blobIdStr : undefined;
   }
 
   // Fetch project and tags for a blob
-  async function fetchBlobDetails(blobId: number): Promise<{project?: any, tags?: string[], description?: string, location?: string}> {
+  async function fetchBlobDetails(blobId: string): Promise<{project?: any, tags?: string[], description?: string, location?: string}> {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
       if (!response.ok) {
@@ -336,7 +335,7 @@ export default function PalettePage() {
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
       formData.append("name", "My Upload Batch");
-      formData.append("type", "image");
+      formData.append("type", file.type);
       formData.append("files", compressedFile);
 
       // 3.3 Send the request
@@ -514,10 +513,10 @@ export default function PalettePage() {
     }
 
     // 1) Group selected files by their project
-    const projectMap: Record<string, number[]> = {};
+    const projectMap: Record<string, string[]> = {};
     //   projectMap[projectID] => [blobIDs]
 
-    selectedIndices.forEach((fileIndex) => {
+    for (let fileIndex of selectedIndices) {
       const fileMeta = files[fileIndex];
 
       // Make sure this file has both a blobId and a project ID
@@ -535,12 +534,11 @@ export default function PalettePage() {
         projectMap[projectId] = [];
       }
       projectMap[projectId].push(fileMeta.blobId);
-    });
+    }
 
     // 2) For each project, hit the PATCH endpoint with the array of blobIDs
     for (const projectId in projectMap) {
       const blobIDs = projectMap[projectId];
-
 
       try {
         const response = await fetch(
@@ -551,7 +549,7 @@ export default function PalettePage() {
               Authorization: "Bearer MY_TOKEN",
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": [123, 456] }
+            body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": ["123", "456"] }
           }
         );
 
@@ -559,8 +557,6 @@ export default function PalettePage() {
           console.error("Submit assets failed:", response.status);
           continue;
         }
-
-        
 
         const data = await response.json();
         console.log("Submission success:", data);

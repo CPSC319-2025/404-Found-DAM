@@ -53,7 +53,7 @@ export default function UploadPage() {
       const result = await response.json();
       console.log("Upload result:", result);
 
-      // If success: store blobId in that file’s metadata
+      // If success: store blobId in that file's metadata
       if (result?.Details?.length > 0) {
         const detail = result.Details[0]; // or match by filename if needed
 
@@ -62,7 +62,7 @@ export default function UploadPage() {
             f === fileMeta
               ? {
                   ...f,
-                  blobId: detail.BlobID, // store the ID returned by the API
+                  blobId: detail.BlobID.toString(), // convert the ID to string
                 }
               : f
           )

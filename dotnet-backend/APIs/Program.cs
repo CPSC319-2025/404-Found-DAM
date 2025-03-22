@@ -42,16 +42,24 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 
+// remove ! for azure testing
+// Pay attention do not contact blob unless you are the 
+// only developer working on the this task. 
+// Otherwise debugging will be a nightmare
+// post on the backend channel if you are going to use this
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
+} else {
+    builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
+}
+
 var app = builder.Build();
 
 // 3) Make sure to call app.UseCors(...) BEFORE mapping endpoints
 app.UseCors("AllowReactApp");
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
 
 // Optional: seed the database if the app is run with `--seed`
 if (args.Contains("--seed"))
@@ -85,6 +93,9 @@ app.MapUserEndpoints();
 // Create/migrate database
 if (app.Environment.IsDevelopment())
 {
+    // Configure the HTTP request pipeline.
+    app.UseSwagger();
+    app.UseSwaggerUI();
     await using var serviceScope = app.Services.CreateAsyncScope();
     await using var context = serviceScope.ServiceProvider
         .GetRequiredService<IDbContextFactory<DAMDbContext>>()

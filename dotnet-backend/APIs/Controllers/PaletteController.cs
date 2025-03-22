@@ -56,7 +56,7 @@ namespace APIs.Controllers
         .WithOpenApi();
 
         // Get project and tags by blob id
-        app.MapGet("/palette/blob/{blobId}/details", async (int blobId, IPaletteService paletteService) =>
+        app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
         {
             try
             {

@@ -7,7 +7,7 @@ namespace Core.Dtos
 
     public class GetBlobProjectAndTagsRes
     {
-        public int BlobId { get; set; }
+        public string BlobId { get; set; }
         public string FileName { get; set; }
         public ProjectInfo Project { get; set; }
         public List<string> Tags { get; set; }

@@ -20,7 +20,7 @@ export type FileMetadata = {
   height?: number; // For images/videos
   duration?: number; // For videos
   project?: string; // Each file can store its own project name
-  blobId?: number;
+  blobId?: string;
 };
 
 type FileContextType = {

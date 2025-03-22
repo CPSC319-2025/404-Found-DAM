@@ -46,7 +46,7 @@ namespace Core.Entities
     public class Asset
     {
         [Key]
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         
         public required string FileName { get; set; }
         
@@ -198,7 +198,7 @@ namespace Core.Entities
     // Junction table between Asset and MetadataField.
     public class AssetMetadata
     {
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         public int FieldID { get; set; }
         
         public required string FieldValue { get; set; }
@@ -229,7 +229,7 @@ namespace Core.Entities
     public class AssetTag
     {
         [Key]
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         [Key]
         public int TagID { get; set; }
         
