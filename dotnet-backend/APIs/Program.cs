@@ -44,7 +44,7 @@ builder.Services.AddScoped<IImageService, ImageService>();
 
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
-// only developer working on the this task. 
+// only developer working on this task. 
 // Otherwise debugging will be a nightmare
 // post on the backend channel if you are going to use this
 if (!builder.Environment.IsDevelopment())
