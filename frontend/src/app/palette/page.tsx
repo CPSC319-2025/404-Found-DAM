@@ -341,12 +341,12 @@ export default function PalettePage() {
       // const FormData = require("form-data");
       const formData = new FormData();
       formData.append("userId", "001"); // or dynamic
-      formData.append("name", "My Upload Batch");
-      formData.append("type", fileMeta.file.type); // Use the file's actual MIME type dynamically
+      formData.append("name", fileMeta.file.name);
+      formData.append("mimeType", fileMeta.file.type); // Use the file's actual MIME type dynamically
       formData.append("files", compressedFile);
 
       // 3.3 Send the request
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`, {
         method: "POST",
         headers: {
           Authorization: "Bearer MY_TOKEN",
