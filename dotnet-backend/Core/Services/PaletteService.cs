@@ -3,6 +3,7 @@ using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
 using Infrastructure.Exceptions;
+using Core.Entities;
 
 
 namespace Core.Services
@@ -18,7 +19,7 @@ namespace Core.Services
             _imageService = imageService;
         }
 
-        public async Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
+        public async Task<Asset> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
         {
             Console.WriteLine("ProcessUploadAsync");
             try {
@@ -26,30 +27,35 @@ namespace Core.Services
             }
             catch (Exception ex) {
                 Console.WriteLine($"Error uploading assets: {ex.Message}");
-                return -1;
+                throw;
             }
         }
 
-        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
+        public async Task<List<UploadAssetsRes>> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
             var uploadTasks = files.Select(async file => 
             {
-                var res = await ProcessUploadAsync(file, request, convertToWebp);
-                if (res != -1) {
-                    return new {
-                        BlobID = res, 
+                Asset asset = await ProcessUploadAsync(file, request, convertToWebp);
+                if (asset != null) 
+                {
+                    UploadAssetsRes res = new UploadAssetsRes
+                    {
+                        BlobID = asset.BlobID, 
                         Success = true, 
-                        FileName = file.FileName, 
-                        Size = file.Length
+                        FileName = asset.FileName, 
+                        SizeInKB = asset.FileSizeInKB
                     };
+                    return res;
                 }
-                else {
-                    return new { 
-                        BlobID = -1,
+                else 
+                {
+                    UploadAssetsRes res = new UploadAssetsRes
+                    {
                         Success = false, 
                         FileName = file.FileName, 
-                        Size = file.Length
+                        SizeInKB = file.Length / 1024.0
                     };
+                    return res;
                 }
             }).ToList();
 

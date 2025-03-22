@@ -74,7 +74,7 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<int> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
+        public async Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
@@ -82,7 +82,6 @@ namespace Infrastructure.DataAccess {
 
             // Read the IFormFile into a byte array
             byte[] compressedData;
-            bool isConvertedToWebP = false;
 
             try 
             {
@@ -111,7 +110,6 @@ namespace Infrastructure.DataAccess {
 
                             // Compress the returned buffer
                             compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
-                            isConvertedToWebP = true;
 
                             // Change fileName extension and mimetype
                             string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileNameWithoutZstExtension);
@@ -172,7 +170,7 @@ namespace Infrastructure.DataAccess {
                 // TODOO USE BLOB FOR PROD
                 // Console.WriteLine($"FileType before compression: {finalExtension}");
                 await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst"), compressedData);
-                return asset.BlobID;
+                return asset;
             } 
             catch (Exception ex) {
                 Console.WriteLine($"Error saving asset to database: {ex.Message}");

@@ -1,16 +1,14 @@
-
-
-
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Core.Entities;
 
 namespace Core.Interfaces
 {
     public interface IPaletteService
     {
-        Task<int> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp);
-        Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp);
+        Task<Asset> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp);
+        Task<List<UploadAssetsRes>> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp);
 
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);
         Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
