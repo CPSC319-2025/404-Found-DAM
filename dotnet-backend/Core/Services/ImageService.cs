@@ -18,22 +18,20 @@ namespace Core.Services
         // Consider making toWebpNetVips async
         public byte[] toWebpNetVips(byte[] decompressedBuffer, bool lossless)
         {
-            // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
-            
-            Console.WriteLine("getting image...");
-
-            using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+            // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");            
+            try
             {
-                Console.WriteLine("prep webpLossyStream...");
-
-                MemoryStream webpLossyStream = new MemoryStream();
-                
-                Console.WriteLine("converting...");
-
-                byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
-                Console.WriteLine("done...");
-                return webpLossyBuffer;
-            } 
+                using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+                {
+                    MemoryStream webpLossyStream = new MemoryStream();                    
+                    byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
+                    return webpLossyBuffer;
+                } 
+            }
+            catch (VipsException)
+            {
+                throw;
+            }
         }
 
         
