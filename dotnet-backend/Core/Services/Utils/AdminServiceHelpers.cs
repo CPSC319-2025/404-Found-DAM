@@ -73,7 +73,7 @@ namespace Core.Services.Utils
 
             // Add Columns for asset details
             var assetDataTable = new DataTable();
-            assetDataTable.Columns.Add("Blob ID", typeof(int));
+            assetDataTable.Columns.Add("Blob ID", typeof(string));
             assetDataTable.Columns.Add("File Name", typeof(string));
             assetDataTable.Columns.Add("Mime Type", typeof(string));
             assetDataTable.Columns.Add("File Size (KB)", typeof(double));

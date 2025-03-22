@@ -46,7 +46,7 @@ namespace Core.Entities
     public class Asset
     {
         [Key]
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         
         public required string FileName { get; set; }
         
@@ -169,14 +169,18 @@ namespace Core.Entities
     //     public virtual ICollection<MetadataField> MetadataFields { get; set; } = new List<MetadataField>();
     // }
 
-    public class MetadataField
+    // Junction table between Project and MetadataField.
+    public class ProjectMetadataField
     {
         [Key]
         public int FieldID { get; set; }
+    
+        public int ProjectID { get; set; }
+        
+        [ForeignKey("ProjectID")]
+        public required virtual Project Project { get; set; }
         
         public required string FieldName { get; set; }
-
-        // Add Enum to represent user roles
         public enum FieldDataType
         {
             Number,    // 0
@@ -186,38 +190,15 @@ namespace Core.Entities
         
         public required FieldDataType FieldType { get; set; }
         
-        // // Optionally, associate a field with a Palette.
-        // public int? PaletteID { get; set; }
-        
-        // // Why metadata has palette ??
-        // [ForeignKey("PaletteID")]
-        // public virtual Palette Palette { get; set; }
-        
-        public virtual ICollection<ProjectMetadataField> ProjectMetadataFields { get; set; } = new List<ProjectMetadataField>();
+        public bool IsEnabled { get; set; } = false;
+    
         public virtual ICollection<AssetMetadata> AssetMetadata { get; set; } = new List<AssetMetadata>();
-    }
-
-    // Junction table between Project and MetadataField.
-    public class ProjectMetadataField
-    {
-        public int ProjectID { get; set; }
-        public int FieldID { get; set; }
-
-        public bool IsEnabled { get; set; } = false; // Missing attribute, set Defualt to false
-        
-        public required string FieldValue { get; set; }
-        
-        [ForeignKey("ProjectID")]
-        public required virtual Project Project { get; set; }
-        
-        [ForeignKey("FieldID")]
-        public required virtual MetadataField MetadataField { get; set; }
     }
 
     // Junction table between Asset and MetadataField.
     public class AssetMetadata
     {
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         public int FieldID { get; set; }
         
         public required string FieldValue { get; set; }
@@ -226,7 +207,7 @@ namespace Core.Entities
         public required virtual Asset Asset { get; set; }
         
         [ForeignKey("FieldID")]
-        public required virtual MetadataField MetadataField { get; set; }
+        public required virtual ProjectMetadataField ProjectMetadataField { get; set; }
     }
 
     public class ProjectTag 
@@ -248,7 +229,7 @@ namespace Core.Entities
     public class AssetTag
     {
         [Key]
-        public int BlobID { get; set; }
+        public string BlobID { get; set; }
         [Key]
         public int TagID { get; set; }
         
