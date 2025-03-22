@@ -153,6 +153,12 @@ namespace Infrastructure.DataAccess {
                     LastUpdated = DateTime.UtcNow,
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
+
+                if (compressedData.Length / 1024.0 > 2000)
+                {
+                    throw new Exception();
+                }
+
                 string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
                 asset.BlobID = blobId;
                     // Add the asset to the database context and save changes

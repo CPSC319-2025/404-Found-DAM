@@ -31,42 +31,42 @@ namespace Core.Services
             }
         }
 
-        public async Task<UploadAssetsRes[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
+        public async Task<ProcessedAsset[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
             // Create a list of tasks with explicit return type
-            var uploadTasks = new List<Task<UploadAssetsRes>>();
+            var uploadTasks = new List<Task<ProcessedAsset>>();
             
             foreach (var file in files)
             {
                 // Use Task.Run with explicit Function<Task<object>> signature
-                uploadTasks.Add(Task.Run<UploadAssetsRes>(async () => 
+                uploadTasks.Add(Task.Run<ProcessedAsset>(async () => 
                 {
                     var asset = await ProcessUploadAsync(file, request, convertToWebp);
                     if (asset != null) 
                     {
-                        UploadAssetsRes res = new UploadAssetsRes
+                        ProcessedAsset res = new ProcessedAsset
                         {
                             BlobID = asset.BlobID, 
-                            Success = true, 
                             FileName = asset.FileName, 
-                            SizeInKB = asset.FileSizeInKB
+                            SizeInKB = asset.FileSizeInKB,
+                            Success = true
                         };
                         return res;
                     }
                     else 
                     {
-                        UploadAssetsRes res = new UploadAssetsRes
+                        ProcessedAsset res = new ProcessedAsset
                         {
-                            Success = false, 
                             FileName = file.FileName, 
-                            SizeInKB = file.Length / 1024.0
+                            SizeInKB = file.Length / 1024.0,
+                            Success = false
                         };
                         return res;
                     }
                 }));
             }
 
-            // Wait for all tasks to complete and return results
+            // Wait for all tasks to complete and return results of successful and failed cases
             return await Task.WhenAll(uploadTasks);
         }
 
