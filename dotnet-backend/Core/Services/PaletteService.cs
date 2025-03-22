@@ -100,6 +100,48 @@ namespace Core.Services
             }
         }
 
+        public async Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds)
+        {
+            var result = new RemoveTagsResult();
+            
+            foreach (string blobId in blobIds)
+            {
+                foreach (int tagId in tagIds)
+                {
+                    bool exists = await _paletteRepository.AssetTagAssociationExistsAsync(blobId, tagId);
+                    if (exists)
+                    {
+                        bool removed = await _paletteRepository.RemoveAssetTagsFromDb(blobId, tagId);
+                        if (removed)
+                        {
+                            result.RemovedAssociations.Add(new AssetTagAssociationDto
+                            {
+                                BlobId = blobId,
+                                TagId = tagId
+                            });
+                        }
+                        else
+                        {
+                            result.NotFoundAssociations.Add(new AssetTagAssociationDto
+                            {
+                                BlobId = blobId,
+                                TagId = tagId
+                            });
+                        }
+                    }
+                    else
+                    {
+                        result.NotFoundAssociations.Add(new AssetTagAssociationDto
+                        {
+                            BlobId = blobId,
+                            TagId = tagId
+                        });
+                    }
+                }
+            }
+            return result;
+        }
+
         public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId)
         {
             try

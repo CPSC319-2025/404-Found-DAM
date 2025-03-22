@@ -103,7 +103,68 @@ export default function EditMetadataPage() {
   }
 
   function handleTagRemoval(tagToRemove: string) {
-    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+    if (!fileData || !fileData.blobId) {
+      console.warn("File missing blobId");
+      return;
+    }
+    
+    // Find the tag ID corresponding to the tag name
+    const tagIndex = fileData.tags.indexOf(tagToRemove);
+    if (tagIndex === -1) {
+      console.warn(`Tag "${tagToRemove}" not found in file metadata`);
+      return;
+    }
+    
+    const tagIdToRemove = fileData.tagIds[tagIndex];
+    
+    // Call API to delete the tag
+    async function deleteTag() {
+      setIsLoading(true);
+      try {
+        console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
+        
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              BlobIds: [fileData.blobId],
+              TagIds: [tagIdToRemove]
+            })
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Failed to delete tag:", response.status);
+          return;
+        }
+        
+        console.log(`Tag "${tagToRemove}" removed successfully`);
+        
+        // Update local state to remove the tag
+        setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+        
+        // Also update the file metadata in the context
+        const updatedTags = [...fileData.tags];
+        const updatedTagIds = [...fileData.tagIds];
+        updatedTags.splice(tagIndex, 1);
+        updatedTagIds.splice(tagIndex, 1);
+        
+        updateMetadata(fileIndex, {
+          tags: updatedTags,
+          tagIds: updatedTagIds
+        });
+      } catch (err) {
+        console.error("Error deleting tag:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    deleteTag();
   }
 
   if (!fileData) {

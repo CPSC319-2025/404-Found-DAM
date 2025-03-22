@@ -56,34 +56,28 @@ export default function FileTable({
   function handleRemoveTag(fileIndex: number, tagIndex: number) {
     const fileMeta = files[fileIndex];
     const tagToRemove = fileMeta.tags[tagIndex];
+    const tagIdToRemove = fileMeta.tagIds[tagIndex];
     
     if (!fileMeta.blobId) {
       console.warn("File missing blobId:", fileMeta.file.name);
       return;
     }
 
-    // Update UI first for responsiveness
-    setFiles((prev) => {
-      const updated = [...prev];
-      updated[fileIndex] = {
-        ...updated[fileIndex],
-        tags: updated[fileIndex].tags.filter((_, i) => i !== tagIndex),
-      };
-      return updated;
-    });
-
     // Call API to delete the tag
     async function deleteTag() {
       try {
+        console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
+        
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/${fileMeta.blobId}/tags`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
           {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              deleteTags: [tagToRemove]
+              BlobIds: [fileMeta.blobId],
+              TagIds: [tagIdToRemove]
             })
           }
         );
@@ -93,18 +87,36 @@ export default function FileTable({
           return;
         }
 
-        const data = await response.json();
-        console.log("Tag deleted successfully:", data);
+        // remove that tagid and corresponding tag from the fileMeta
+        if (response.ok) {
+          setFiles((prev) => {
+            const updated = [...prev];
+            if (updated[fileIndex]) {
+              // Find the current index of the tagId we're removing
+              // This is important because UI might have changed since API call was made
+              const currentTagIdIndex = updated[fileIndex].tagIds.indexOf(tagIdToRemove);
+              
+              if (currentTagIdIndex !== -1) {
+                const updatedTags = [...updated[fileIndex].tags];
+                const updatedTagIds = [...updated[fileIndex].tagIds];
+                
+                // Remove the tag and tagId at the current index
+                updatedTags.splice(currentTagIdIndex, 1);
+                updatedTagIds.splice(currentTagIdIndex, 1);
+                
+                updated[fileIndex] = {
+                  ...updated[fileIndex],
+                  tags: updatedTags,
+                  tagIds: updatedTagIds
+                };
+              }
+            }
+            return updated;
+          });
+          
+          console.log(`Tag "${tagToRemove}" removed successfully`);
+        }
         
-        // Update tags from the response to ensure consistency
-        setFiles((prev) => {
-          const updated = [...prev];
-          updated[fileIndex] = {
-            ...updated[fileIndex],
-            tags: data.currentTags || [],
-          };
-          return updated;
-        });
       } catch (err) {
         console.error("Error deleting tag:", err);
       }
@@ -138,14 +150,15 @@ export default function FileTable({
       try {
         console.log(fileMeta.tags);
         const deleteTagsResponse = fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/${fileMeta.blobId}/tags`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
           {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              deleteTags: fileMeta.tags
+              BlobIds: [fileMeta.blobId],
+              TagIds: fileMeta.tagIds
             })
           }
         );

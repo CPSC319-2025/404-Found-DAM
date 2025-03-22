@@ -191,6 +191,24 @@ namespace Infrastructure.DataAccess {
              }           
         }
 
+        public async Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            var assetTag = await context.AssetTags.FirstOrDefaultAsync(at => at.BlobID == blobId && at.TagID == tagId);
+            if (assetTag == null)
+            {
+                return false;
+            }
+            context.AssetTags.Remove(assetTag);
+            return await context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> AssetTagAssociationExistsAsync(string blobId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.AssetTags.AnyAsync(at => at.BlobID == blobId && at.TagID == tagId);
+        }
+
         public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId)
         {
             using var _context = _contextFactory.CreateDbContext();
