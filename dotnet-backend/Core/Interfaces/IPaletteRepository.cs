@@ -10,7 +10,7 @@ namespace Core.Interfaces  {
 
         public Task<bool> DeleteAsset(DeletePaletteAssetReq request);
 
-        public Task<string> UploadAssets(IFormFile file, UploadAssetsReq request);
+        public Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService);
         public Task<List<IFormFile>> GetAssetsAsync(int userId);
         Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID);    
 
