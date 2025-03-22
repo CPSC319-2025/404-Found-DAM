@@ -293,33 +293,30 @@ namespace Infrastructure.DataAccess
         public async Task<(bool, string)> ToggleMetadataCategoryActivationInDb(int projectID, int metadataFieldID, bool setEnabled)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
-           
+
             // Check if project exists
             var project = await _context.Projects.FindAsync(projectID);
-
-            if (project != null) 
-            {
-                // Access metadata and update the specific field
-                var projectMetadataField = await _context.ProjectMetadataFields
-                    .Include(pmf => pmf.MetadataField) // Eager loading
-                    .FirstOrDefaultAsync(pmf => pmf.FieldID == metadataFieldID && pmf.FieldID == metadataFieldID);                
-                    
-                if (projectMetadataField != null) 
-                {
-                    projectMetadataField.IsEnabled = setEnabled;
-                    await _context.SaveChangesAsync();
-                    return (true, projectMetadataField.MetadataField.FieldName);
-                } 
-                else 
-                {
-                    throw new DataNotFoundException($"No such metadata field found for Project {projectID}.");
-                }
-            } 
-            else 
+            if (project == null)
             {
                 throw new DataNotFoundException($"Project {projectID} not found.");
             }
+
+            // Access metadata and update the specific field by checking both projectID and metadataFieldID.
+            var projectMetadataField = await _context.ProjectMetadataFields
+                .FirstOrDefaultAsync(pmf => pmf.FieldID == metadataFieldID && pmf.ProjectID == projectID);
+
+            if (projectMetadataField == null)
+            {
+                throw new DataNotFoundException($"No such metadata field found for Project {projectID}.");
+            }
+
+            projectMetadataField.IsEnabled = setEnabled;
+            await _context.SaveChangesAsync();
+
+            // Return the updated status along with the FieldName directly from ProjectMetadataField.
+            return (true, projectMetadataField.FieldName);
         }
+
 
         public async Task<(User, List<ProjectMembership>)> GetRoleDetailsInDb(int userID)
         {
@@ -359,64 +356,48 @@ namespace Infrastructure.DataAccess
         }
 
 
-        public async Task<List<MetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req)
+        public async Task<List<ProjectMetadataField>> AddMetaDataFieldsToProjectInDb(int projectID, List<AddMetadataReq> req)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            // Get the project; 
+            // Get the project
             var project = await _context.Projects.FindAsync(projectID);
-
-            if (project != null) 
-            {
-                // Create two lists for processing newly added metadatafields and projectMetadataFields
-                List<MetadataField> metadataFieldsToAdd = new List<MetadataField>();
-                List<ProjectMetadataField> projectMetadataFieldsToAdd = new List<ProjectMetadataField>();
-
-                // project was found, so insert all new metadata fields to the metadatafield table
-                foreach (AddMetadataReq amreq in req)
-                {
-                    if (Enum.TryParse(amreq.fieldType, true, out MetadataField.FieldDataType dataType))
-                    {
-                        MetadataField mf = new MetadataField { FieldName = amreq.fieldName, FieldType = dataType };
-                        metadataFieldsToAdd.Add(mf); // Add to the list; don't save yet
-                    } 
-                    else 
-                    {
-                        throw new ArgumentException($"Invalid field type: {amreq.fieldType}");
-                    }
-                }
-
-                // Add all MetadataField entities and save
-                await _context.MetadataFields.AddRangeAsync(metadataFieldsToAdd);
-                await _context.SaveChangesAsync();
-
-                foreach (MetadataField mf in metadataFieldsToAdd)
-                {
-                    ProjectMetadataField pmf = new ProjectMetadataField
-                    {
-                        IsEnabled = false, // Explicitly set IsEnabled (default)
-                        FieldValue = "", // Empty string 
-                        
-                        // Do NOT set projectID and fieldID. Below will let EF Core takes care of everything.
-                        Project = project,
-                        MetadataField = mf
-                    };
-                    projectMetadataFieldsToAdd.Add(pmf); // Add to the list; don't save yet
-                }
-
-                // Add all ProjectMetadataField entities and save
-                await _context.ProjectMetadataFields.AddRangeAsync(projectMetadataFieldsToAdd);
-                await _context.SaveChangesAsync();
-
-                // TODO: Make all assets in this project inherit the added metadatafields (check duplication) 
-                
-                return metadataFieldsToAdd;
-            }
-            else 
+            if (project == null)
             {
                 throw new DataNotFoundException("Project not found");
             }
+
+            List<ProjectMetadataField> projectMetadataFieldsToAdd = new List<ProjectMetadataField>();
+
+            foreach (AddMetadataReq amreq in req)
+            {
+                // Parse the field type to the enum defined in ProjectMetadataField.
+                if (Enum.TryParse(amreq.fieldType, true, out ProjectMetadataField.FieldDataType dataType))
+                {
+                    // Create a new ProjectMetadataField directly.
+                    ProjectMetadataField pmf = new ProjectMetadataField
+                    {
+                        FieldName = amreq.fieldName,   // Required property
+                        FieldType = dataType,           // Required property
+                        IsEnabled = false,              // Default value; adjust as needed
+                        Project = project               // Associate this field with the project
+                    };
+
+                    projectMetadataFieldsToAdd.Add(pmf);
+                }
+                else
+                {
+                    throw new ArgumentException($"Invalid field type: {amreq.fieldType}");
+                }
+            }
+
+            // Add all ProjectMetadataField entities and save
+            await _context.ProjectMetadataFields.AddRangeAsync(projectMetadataFieldsToAdd);
+            await _context.SaveChangesAsync();
+
+            return projectMetadataFieldsToAdd;
         }
+
 
         public async Task<List<Project>> CreateProjectsInDb(List<CreateProjectsReq> req, int creatorUserID)
         {

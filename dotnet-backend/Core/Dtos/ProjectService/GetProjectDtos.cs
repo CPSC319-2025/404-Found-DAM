@@ -11,5 +11,6 @@ namespace Core.Dtos
         public List<UserCustomInfo> admins { get; set; } 
         public List<UserCustomInfo> regularUsers { get; set; } 
         public List<TagCustomInfo> tags { get; set; }
+        public List<ProjectMetadataCustomInfo> metadataFields { get; set; }
     }
 }
