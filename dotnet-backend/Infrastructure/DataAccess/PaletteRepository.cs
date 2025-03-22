@@ -3,9 +3,11 @@ using Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Core.Dtos;
-using Core.Interfaces;
+// using Core.Interfaces;
 using System.Reflection.Metadata;
 using Infrastructure.Exceptions;
+using Core.Services.Utils;
+using NetVips;
 
 namespace Infrastructure.DataAccess {
     public class PaletteRepository : IPaletteRepository {
@@ -70,39 +72,99 @@ namespace Infrastructure.DataAccess {
             return await _context.SaveChangesAsync() > 0;
         }
         
-        public async Task<string> UploadAssets(IFormFile file, UploadAssetsReq request)
+        public async Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
-            byte[] compressedData;
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                compressedData = ms.ToArray();
-            }
             using var _context = _contextFactory.CreateDbContext();
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File is empty");
-            string finalName = file.FileName;
-            string suffix = ".zst";
-            if (finalName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+
+            byte[] compressedData;
+
+            try 
             {
-                finalName = finalName.Substring(0, finalName.Length - suffix.Length);
-            }
-            string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
-            var asset = new Asset
+                // Process file name first in case of conversion
+                string fileNameWithoutZstExtension = file.FileName;
+                string suffix = ".zst";
+                if (fileNameWithoutZstExtension.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    fileNameWithoutZstExtension = fileNameWithoutZstExtension.Substring(0, fileNameWithoutZstExtension.Length - suffix.Length);
+                }
+
+                // Check if Asset is an webp image and if conversion is required
+                if (request.AssetMimeType.StartsWith("image") && !request.AssetMimeType.EndsWith("webp") && convertToWebp)
+                {
+                    try 
+                    {
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedData = ms.ToArray();
+
+                            // Decompress for converting to lossy webp
+                            // TODO: guard to only convert images, and skip those that are already in webp
+                            byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
+                            byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuffer, false);
+
+                            // Compress the returned buffer
+                            compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
+
+                            // Change fileName extension and mimetype
+                            string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileNameWithoutZstExtension);
+                            fileNameWithoutZstExtension = fileNameNoExtension + ".webp";
+                            string[] mimeTypeParts = request.AssetMimeType.Split('/');
+                            if (mimeTypeParts.Length > 0) 
+                            {
+                                request.AssetMimeType = mimeTypeParts[0] + "/" + "webp";
+                            }
+                        }
+                    }
+                    catch (VipsException)
+                    {
+                        // TODO: Consider notifying users of failed conversion
+                        Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedData = ms.ToArray();
+                        }
+                    }
+                }
+                else // Asset is video, or webp image, or image to which user does not require webp conversion to be applied
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        await file.CopyToAsync(ms);
+                        compressedData = ms.ToArray();
+                    }
+                }
+
+                // string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
+                // string mimeType = request.Type.ToLower() + "/" + finalExtension;
+               
+                // Create an Asset instance with the file path
+                var asset = new Asset
                 {
                     BlobID = "temp",
-                    FileName = finalName,
-                    MimeType = finalExtension,
+                    FileName = fileNameWithoutZstExtension,
+                    MimeType = request.AssetMimeType,
                     ProjectID = null,
                     UserID = request.UserId,
-                    assetState = Asset.AssetStateType.UploadedToPalette
+                    FileSizeInKB = compressedData.Length / 1024.0,
+                    LastUpdated = DateTime.UtcNow,
+                    assetState = Asset.AssetStateType.UploadedToPalette,
                 };
-            string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
-            asset.BlobID = blobId;
-                // Add the asset to the database context and save changes
-            await _context.Assets.AddAsync(asset);
-            int num = await _context.SaveChangesAsync();
-            return blobId;
+                string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
+                asset.BlobID = blobId;
+                    // Add the asset to the database context and save changes
+                await _context.Assets.AddAsync(asset);
+                int num = await _context.SaveChangesAsync();
+                return asset;
+            }
+            catch (Exception ex) 
+            {
+                Console.WriteLine($"Error saving asset to database: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<bool> DeleteAsset(DeletePaletteAssetReq request)
