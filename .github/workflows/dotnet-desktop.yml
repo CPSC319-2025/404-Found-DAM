@@ -61,3 +61,18 @@ jobs:
 
       - name: Execute directory script on Azure
         run: az webapp ssh run --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --command "bash -c \"$(cat copy_files.sh)\""
+        
+      - name: Create deployment script
+        run: |
+          echo '#!/bin/bash
+          mkdir -p /home/site/Core/MockedSeed
+          cp -r /home/site/wwwroot/publish/Core/MockedSeed/* /home/site/Core/MockedSeed/
+          ' > deploy.sh
+
+      - name: Upload deployment script
+        run: |
+          az webapp deploy --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src-path deploy.sh --target-path site/deployments/scripts/deploy.sh
+
+      - name: Execute deployment script
+        run: |
+          az webapp ssh --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --command "bash /home/site/deployments/scripts/deploy.sh"
