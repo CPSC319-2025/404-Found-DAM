@@ -32,16 +32,29 @@ namespace Core.Services
                     location = p.Location,
                     active = p.Active,
                     archivedAt = null, //TODO: implement later
-                    adminNames = ["TBD"], //TODO: implement later
-                    tags = p.ProjectTags.Select(pt => pt.Tag.Name).ToList()
+                    admins = null, // dont need this
+                    regularUsers = null, // dont need this
+                    tags = null // dont need this
+                    // tags = p.ProjectTags
+                    //     .Select(pt => new TagCustomInfo
+                    //     {
+                    //         tagID = pt.Tag.TagID,
+                    //         name = pt.Tag.Name
+                    //     })
+                    //     .ToList()
                 }).ToList();
 
                 var assetResults = matchingAssets.Select(a => new AssetSearchResultDto
                 {
                     blobID = a.BlobID,
                     fileName = a.FileName,
-                    thumbnailUrl = a.FileName,
-                    tags = a.AssetTags.Select(at => at.Tag.Name).ToList(),
+                    tags = a.AssetTags
+                        .Select(at => new TagCustomInfo
+                        {
+                            tagID = at.Tag.TagID,
+                            name = at.Tag.Name
+                        })
+                        .ToList(),
                     projectID = a.Project != null ? a.Project.ProjectID : 0,
                     projectName = a.Project != null ? a.Project.Name : "Unknown"
                 }).ToList();

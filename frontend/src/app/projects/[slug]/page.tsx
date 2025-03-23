@@ -7,7 +7,7 @@ type ProjectPageProps = {
 export default function ProjectPage({ params }: ProjectPageProps) {
   return (
     <div className="p-6 min-h-screen">
-      <ProjectsTable />
+      <ProjectsTable projectID={params.slug} />
     </div>
   );
 }

@@ -9,20 +9,21 @@ import React, {
   SetStateAction,
 } from "react";
 
-// Define metadata structure for images & videos
 export type FileMetadata = {
-  file: File; // The raw File object
-  fileName?: string; // Optional custom name (defaults to file.name)
+  file: File; // The raw file object
+  fileName?: string; // Optional custom name
   fileSize: string;
   description: string;
   location: string;
   tags: string[];
-  width?: number; // Only for images/videos
-  height?: number; // Only for images/videos
-  duration?: number; // Only for videos
+  tagIds: number[];
+  width?: number; // For images/videos
+  height?: number; // For images/videos
+  duration?: number; // For videos
+  project?: string; // Each file can store its own project name
+  blobId?: string;
 };
 
-// Define context type using built-in React types for setFiles
 type FileContextType = {
   files: FileMetadata[];
   setFiles: Dispatch<SetStateAction<FileMetadata[]>>;
@@ -38,7 +39,6 @@ const FileContext = createContext<FileContextType>({
 export function FileProvider({ children }: { children: ReactNode }) {
   const [files, setFiles] = useState<FileMetadata[]>([]);
 
-  // Update metadata for a single file by index
   function updateMetadata(index: number, metadata: Partial<FileMetadata>) {
     setFiles((prevFiles) =>
       prevFiles.map((f, i) => (i === index ? { ...f, ...metadata } : f))

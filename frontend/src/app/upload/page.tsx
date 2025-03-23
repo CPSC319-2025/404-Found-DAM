@@ -1,24 +1,81 @@
 "use client";
 
-import { useFileContext, FileMetadata } from "@/app/context/FileContext";
+import React, { useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Search from "../projects/components/Search"; // OPTIONAL, remove if not needed
+
+import { useFileContext, FileMetadata } from "@/app/context/FileContext";
+// Import your Zstandard compression helper
+import { compressFileZstd } from "@/app/palette/compressFileZstd";
 
 export default function UploadPage() {
   const { files, setFiles } = useFileContext();
   const router = useRouter();
 
-  // Debug: log current files on every render
-  console.log("Current files in context:", files);
+  // 1) Automatically redirect to /palette if we already have files
+  useEffect(() => {
+    if (files.length > 0) {
+      router.push("/palette");
+    }
+  }, [files, router]);
 
-  // Handle dropping files (images/videos only) with debugging
+  // 2a) Helper function: compress + upload 
+  async function uploadFileZstd(fileMeta: FileMetadata) {
+    try {
+      // Compress file with Zstandard
+      const compressedFile = await compressFileZstd(fileMeta.file);
+
+      // Use native FormData
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // const FormData = require("form-data");
+      const formData = new FormData();
+      formData.append("userId", "1"); // or dynamic
+      formData.append("name", fileMeta.file.name);
+      formData.append("mimeType", fileMeta.file.type); // Use the actual file type
+      formData.append("files", compressedFile);
+
+      // Send the request
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer MY_TOKEN",
+          },
+          body: formData,
+        }
+      );
+      
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload result:", result);
+
+      if (result?.length > 0) {
+        const detail = result[0]; // or find by filename if needed
+
+        console.log(detail.blobID);
+
+        // Update our FileContext so that `fileMeta` gets the blobId
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f === fileMeta ? { ...f, blobId: detail.blobID } : f
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error uploading file:", err);
+      // Optionally remove file from context or show error state
+    }
+  }
+
+  // 2b) Drag-and-drop handling
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      console.log("Files dropped:", acceptedFiles);
       acceptedFiles.forEach((file) => {
-        console.log("Processing file:", file.name, file.type);
         const fileSize = (file.size / 1024).toFixed(2) + " KB";
         const fileMeta: FileMetadata = {
           file,
@@ -26,67 +83,40 @@ export default function UploadPage() {
           description: "",
           location: "",
           tags: [],
+          tagIds: [],
         };
 
         if (file.type.startsWith("image/")) {
           const img = new Image();
           img.onload = () => {
-            console.log(
-              "Image loaded:",
-              file.name,
-              "width:",
-              img.width,
-              "height:",
-              img.height
-            );
             fileMeta.width = img.width;
             fileMeta.height = img.height;
-            setFiles((prev) => {
-              const updated = [...prev, fileMeta];
-              console.log("Updated files after image:", updated);
-              return updated;
-            });
-          };
-          img.onerror = (err) => {
-            console.error("Error loading image:", file.name, err);
+
+            // Add metadata to state
+            setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            uploadFileZstd(fileMeta).catch(console.error);
           };
           img.src = URL.createObjectURL(file);
-          console.log("Image src set for:", file.name);
         } else if (file.type.startsWith("video/")) {
           const video = document.createElement("video");
           video.preload = "metadata";
           video.onloadedmetadata = () => {
-            console.log(
-              "Video metadata loaded:",
-              file.name,
-              "width:",
-              video.videoWidth,
-              "height:",
-              video.videoHeight,
-              "duration:",
-              video.duration
-            );
             fileMeta.width = video.videoWidth;
             fileMeta.height = video.videoHeight;
             fileMeta.duration = Math.floor(video.duration);
-            setFiles((prev) => {
-              const updated = [...prev, fileMeta];
-              console.log("Updated files after video:", updated);
-              return updated;
-            });
-          };
-          video.onerror = (err) => {
-            console.error("Error loading video metadata:", file.name, err);
+
+            // Add metadata to state
+            setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            uploadFileZstd(fileMeta).catch(console.error);
           };
           video.src = URL.createObjectURL(file);
-          console.log("Video src set for:", file.name);
         } else {
-          console.warn("File type not supported:", file.type);
-          setFiles((prev) => {
-            const updated = [...prev, fileMeta];
-            console.log("Updated files after fallback:", updated);
-            return updated;
-          });
+          // Other file types:
+          setFiles((prev) => [...prev, fileMeta]);
+          // Immediately upload
+          uploadFileZstd(fileMeta).catch(console.error);
         }
       });
     },
@@ -101,19 +131,13 @@ export default function UploadPage() {
     },
   });
 
-  // Navigate to /palette
-  function handleUpload() {
-    console.log("Navigating to palette with files:", files);
-    router.push("/palette");
-  }
+  // 3) Manual button to go to /palette
+  async function handleUpload() {
+    router.push("/palette"); //after push to palette, the palette page will refresh
+  }  
 
   return (
     <div className="p-6 min-h-screen">
-      {/* Optional search bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-        <Search />
-      </div>
-
       <main className="flex-grow p-6 flex items-center justify-center">
         <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
           <div
@@ -127,7 +151,7 @@ export default function UploadPage() {
               <>
                 <p className="text-xl mb-2">Drag and Drop here</p>
                 <p className="text-gray-500 mb-4">or</p>
-                <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded ">
+                <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
                   Select files
                 </button>
                 <p className="text-sm text-gray-400 mt-2">
@@ -151,7 +175,7 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Navigate to /palette */}
+          {/* Manual button to jump to /palette */}
           <button
             onClick={handleUpload}
             className="mt-6 px-4 py-2 rounded border border-black bg-indigo-600 text-white hover:bg-indigo-700"
