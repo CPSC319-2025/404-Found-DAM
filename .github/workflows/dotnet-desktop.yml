@@ -30,6 +30,11 @@ jobs:
       - name: Publish API project
         run: dotnet publish dotnet-backend/APIs/APIs.csproj --configuration Release --no-build --output ./publish
 
+      - name: Prepare mock data
+        run: |
+          mkdir -p ./publish/Core/MockedSeed
+          cp -r dotnet-backend/Core/MockedSeed/*.json ./publish/Core/MockedSeed/
+
       - name: Archive published output
         run: zip -r deploy.zip ./publish
 
