@@ -2,6 +2,7 @@
 using Core.Dtos;
 using Infrastructure.Exceptions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Core.Services;
 
 // Use Task<T> or Task for async operations
 
@@ -161,6 +162,7 @@ namespace APIs.Controllers
                 // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
                 int submitterID = MOCKEDUSERID; 
                 AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
+                ActivityLogService.AddLogAsync(submitterID, "Added", )
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex)
