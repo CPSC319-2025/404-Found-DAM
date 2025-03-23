@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.0",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^6.4.7",
+    "@types/jszip": "^3.4.1",
     "multiselect-react-dropdown": "^2.0.25",
     "next": "14.2.23",
     "pintura": "0.3.10",
