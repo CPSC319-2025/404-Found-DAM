@@ -22,6 +22,7 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
             app.MapPatch("/projects/{projectID}/associate-assets", AssociateAssetsWithProject).WithName("AssociateAssetsWithProject").WithOpenApi();
+            app.MapGet("/project/{projectID}/asset-files/storage/{blobID}/{filename}", GetAssetFileFromStorage).WithName("GetAssetFileFromStorageReq").WithOpenApi();
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
@@ -200,6 +201,31 @@ namespace APIs.Controllers
                 );
             }
         }
-        
+
+        private static async Task<IResult> GetAssetFileFromStorage(int projectID, string blobID, string filename, IProjectService projectService)
+        {
+            int requesterID = MOCKEDUSERID;
+            try 
+            {
+                (byte[] fileContent, string fileDownloadName) = await projectService.GetAssetFileFromStorage(projectID, blobID, filename, requesterID);
+                return Results.File(
+                    fileContents: fileContent,
+                    contentType: "application/zstd", 
+                    fileDownloadName: fileDownloadName
+                );
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                detail: ex.Message,
+                statusCode: 500,
+                title: "Internal Server Error"
+                );
+            }
+        }        
     }
 }

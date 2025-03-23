@@ -8,5 +8,6 @@ namespace Core.Interfaces
         Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData);
         Task<bool> DeleteAsync(Asset asset, string containerName);
         Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets);
+        Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples);
     }
 }

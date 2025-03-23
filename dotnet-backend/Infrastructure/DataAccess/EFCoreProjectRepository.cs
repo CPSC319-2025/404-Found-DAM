@@ -9,15 +9,20 @@ using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Infrastructure.DataAccess
 {
     public class EFCoreProjectRepository : IProjectRepository
     {
         private IDbContextFactory<DAMDbContext> _contextFactory;
-        public EFCoreProjectRepository(IDbContextFactory<DAMDbContext> contextFactory)
+        private readonly IBlobStorageService _blobStorageService;
+
+        public EFCoreProjectRepository(IDbContextFactory<DAMDbContext> contextFactory, IBlobStorageService blobStorageService)
         {
             _contextFactory = contextFactory;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<(List<string>, List<string>)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID)
@@ -250,7 +255,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int, List<IFormFile>)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -305,7 +310,13 @@ namespace Infrastructure.DataAccess
                     .Include(a => a.User)
                     .ToListAsync();
 
-                    return (assets,totalFilteredAssetCount);
+                    // Retrieve asset files to be returned too.
+                    List<IFormFile> assetIFormFiles = await _blobStorageService.DownloadAsync("palette-assets", assets);
+
+                    
+                    
+
+                    return (assets, totalFilteredAssetCount, assetIFormFiles);
                 }
             }
             else 
@@ -462,6 +473,23 @@ namespace Infrastructure.DataAccess
             };
             
         }
-        
+
+        public async Task<bool> CheckProjectAssetExistence(int projectID, string blobID, int userID)
+        {
+            try
+            {
+                using var _context = _contextFactory.CreateDbContext();
+
+                return await _context.Projects.AnyAsync(project =>
+                    project.ProjectID == projectID &&
+                    project.ProjectMemberships.Any(membership => membership.UserID == userID) &&
+                    project.Assets.Any(asset => asset.BlobID == blobID)
+                );
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
