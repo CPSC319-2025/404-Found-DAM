@@ -204,7 +204,7 @@ namespace Core.Services.Utils
             List<ProjectMembership> ProjectMemberships
         ) CreateProjectForImport(ZipArchiveEntry entry) 
         {
-            Console.WriteLine($"zipArchive entry full name: {entry.FullName}");
+            // Console.WriteLine($"zipArchive entry full name: {entry.FullName}");
             using Stream entryStream = entry.Open();
 
             // Create project and establish collection relations

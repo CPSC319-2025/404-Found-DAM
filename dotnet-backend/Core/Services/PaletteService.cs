@@ -14,6 +14,7 @@ namespace Core.Services
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
    
+        // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
         public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
         {
             _paletteRepository = paletteRepository;
@@ -25,48 +26,48 @@ namespace Core.Services
             try {
                 return await _paletteRepository.UploadAssets(file, request, convertToWebp, _imageService);
             }
-            catch (Exception ex) {
-                Console.WriteLine($"Error uploading assets: {ex.Message}");
+            catch (Exception) {
+                // Console.WriteLine($"Error uploading assets: {ex.Message}");
                 return null;
             }
         }
 
-        public async Task<UploadAssetsRes[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
+        public async Task<ProcessedAsset[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
             // Create a list of tasks with explicit return type
-            var uploadTasks = new List<Task<UploadAssetsRes>>();
+            var uploadTasks = new List<Task<ProcessedAsset>>();
             
             foreach (var file in files)
             {
                 // Use Task.Run with explicit Function<Task<object>> signature
-                uploadTasks.Add(Task.Run<UploadAssetsRes>(async () => 
+                uploadTasks.Add(Task.Run<ProcessedAsset>(async () => 
                 {
                     var asset = await ProcessUploadAsync(file, request, convertToWebp);
                     if (asset != null) 
                     {
-                        UploadAssetsRes res = new UploadAssetsRes
+                        ProcessedAsset res = new ProcessedAsset
                         {
                             BlobID = asset.BlobID, 
-                            Success = true, 
                             FileName = asset.FileName, 
-                            SizeInKB = asset.FileSizeInKB
+                            SizeInKB = asset.FileSizeInKB,
+                            Success = true
                         };
                         return res;
                     }
                     else 
                     {
-                        UploadAssetsRes res = new UploadAssetsRes
+                        ProcessedAsset res = new ProcessedAsset
                         {
-                            Success = false, 
                             FileName = file.FileName, 
-                            SizeInKB = file.Length / 1024.0
+                            SizeInKB = file.Length / 1024.0,
+                            Success = false
                         };
                         return res;
                     }
                 }));
             }
 
-            // Wait for all tasks to complete and return results
+            // Wait for all tasks to complete and return results of successful and failed cases
             return await Task.WhenAll(uploadTasks);
         }
 
@@ -164,9 +165,9 @@ namespace Core.Services
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
+                // Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
                 throw;
             }
         }
@@ -177,9 +178,9 @@ namespace Core.Services
             {
                 return await _paletteRepository.AssignTagToAssetAsync(blobId, tagId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
+                // Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
                 throw;
             }
         }
