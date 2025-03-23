@@ -98,7 +98,6 @@ namespace Infrastructure.DataAccess
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-                Console.WriteLine("Fetch all projects in a single query");
                 // Fetch all projects in a single query
                 var projects = await _context.Projects
                     .Include(p => p.ProjectMemberships)

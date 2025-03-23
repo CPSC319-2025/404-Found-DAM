@@ -26,8 +26,8 @@ namespace Core.Services
             try {
                 return await _paletteRepository.UploadAssets(file, request, convertToWebp, _imageService);
             }
-            catch (Exception ex) {
-                Console.WriteLine($"Error uploading assets: {ex.Message}");
+            catch (Exception) {
+                // Console.WriteLine($"Error uploading assets: {ex.Message}");
                 return null;
             }
         }
@@ -165,9 +165,9 @@ namespace Core.Services
             {
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
+                // Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
                 throw;
             }
         }
@@ -178,9 +178,9 @@ namespace Core.Services
             {
                 return await _paletteRepository.AssignTagToAssetAsync(blobId, tagId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
+                // Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
                 throw;
             }
         }
