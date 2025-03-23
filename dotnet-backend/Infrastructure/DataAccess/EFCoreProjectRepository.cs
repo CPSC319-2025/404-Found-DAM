@@ -87,6 +87,7 @@ namespace Infrastructure.DataAccess
             }            
         }
 
+
         public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
          {
             // Create empty lists and dictionaries for storing process results
@@ -98,6 +99,7 @@ namespace Infrastructure.DataAccess
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+                Console.WriteLine("Fetch all projects in a single query");
                 // Fetch all projects in a single query
                 var projects = await _context.Projects
                     .Include(p => p.ProjectMemberships)
@@ -460,6 +462,17 @@ namespace Infrastructure.DataAccess
                 Message = "Project updated successfully."
             };
             
+        }
+
+        public async Task<List<Project>> GetProjectsForUserInDb(int userId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.ProjectTags).ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMetadataFields)
+                .Where(p => p.ProjectMemberships.Any(pm => pm.UserID == userId))
+                .ToListAsync();
         }
         
     }

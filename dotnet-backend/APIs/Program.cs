@@ -16,7 +16,6 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(allowedOrigins)
-                  .AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .WithExposedHeaders("Content-Disposition");
@@ -102,8 +101,20 @@ if (app.Environment.IsDevelopment())
         .CreateDbContext();
 
     await context.Database.EnsureCreatedAsync();
-}
-else
+} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
+    
+    // Drop the database
+    dbContext.Database.EnsureDeleted();
+    
+    // Apply migrations to create a new database
+    dbContext.Database.Migrate();
+    await SeedDatabase(app);
+    
+    Console.WriteLine("Database was reset and migrations applied successfully");
+} else
 {
     try
     {
