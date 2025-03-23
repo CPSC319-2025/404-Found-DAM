@@ -8,11 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
-
-
-
 var builder = WebApplication.CreateBuilder(args);
-
 
 //Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
@@ -27,7 +23,6 @@ builder.Services.AddCors(options =>
                   .AllowAnyMethod();
         });
 });
-
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -53,7 +48,6 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
-
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
@@ -76,6 +70,18 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// remove ! for azure testing
+// Pay attention do not contact blob unless you are the 
+// only developer working on this task. 
+// Otherwise debugging will be a nightmare
+// post on the backend channel if you are going to use this
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
+} else {
+    builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
+}
+
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
@@ -83,14 +89,6 @@ app.UseCors("AllowReactApp");
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
 // app.UseAuthorization();
-
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
@@ -124,22 +122,39 @@ app.MapSearchEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 
+// Create/migrate database
 if (app.Environment.IsDevelopment())
 {
-    await using (var serviceScope = app.Services.CreateAsyncScope())
-    await using (var context = serviceScope.ServiceProvider.GetRequiredService<IDbContextFactory<DAMDbContext>>().CreateDbContext())
-    {
-        await context.Database.EnsureCreatedAsync();
-    }
-} else {
+    // Configure the HTTP request pipeline.
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    await using var serviceScope = app.Services.CreateAsyncScope();
+    await using var context = serviceScope.ServiceProvider
+        .GetRequiredService<IDbContextFactory<DAMDbContext>>()
+        .CreateDbContext();
+
+    await context.Database.EnsureCreatedAsync();
+} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
+    
+    // Drop the database
+    dbContext.Database.EnsureDeleted();
+    
+    // Apply migrations to create a new database
+    dbContext.Database.Migrate();
+    await SeedDatabase(app);
+    
+    Console.WriteLine("Database was reset and migrations applied successfully");
+} else
+{
     try
     {
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
-            dbContext.Database.Migrate();
-            Console.WriteLine("Database migrations applied successfully");
-        }
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
+        dbContext.Database.Migrate();
+        Console.WriteLine("Database migrations applied successfully");
     }
     catch (Exception ex)
     {

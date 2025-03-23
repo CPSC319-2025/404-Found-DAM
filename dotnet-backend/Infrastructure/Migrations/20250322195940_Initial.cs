@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -60,18 +60,21 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Palettes",
+                name: "ProjectMetadataFields",
                 columns: table => new
                 {
-                    PaletteID = table.Column<int>(type: "int", nullable: false)
+                    FieldID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProjectID = table.Column<int>(type: "int", nullable: false)
+                    ProjectID = table.Column<int>(type: "int", nullable: false),
+                    FieldName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FieldType = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Palettes", x => x.PaletteID);
+                    table.PrimaryKey("PK_ProjectMetadataFields", x => x.FieldID);
                     table.ForeignKey(
-                        name: "FK_Palettes_Projects_ProjectID",
+                        name: "FK_ProjectMetadataFields_Projects_ProjectID",
                         column: x => x.ProjectID,
                         principalTable: "Projects",
                         principalColumn: "ProjectID",
@@ -106,12 +109,12 @@ namespace Infrastructure.Migrations
                 name: "Assets",
                 columns: table => new
                 {
-                    BlobID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BlobID = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     MimeType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FileSizeInKB = table.Column<double>(type: "float", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    assetState = table.Column<int>(type: "int", nullable: false),
                     ProjectID = table.Column<int>(type: "int", nullable: true),
                     UserID = table.Column<int>(type: "int", nullable: true)
                 },
@@ -177,30 +180,35 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MetadataFields",
+                name: "AssetMetadata",
                 columns: table => new
                 {
-                    FieldID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FieldName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FieldType = table.Column<int>(type: "int", nullable: false),
-                    PaletteID = table.Column<int>(type: "int", nullable: true)
+                    BlobID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    FieldID = table.Column<int>(type: "int", nullable: false),
+                    FieldValue = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MetadataFields", x => x.FieldID);
+                    table.PrimaryKey("PK_AssetMetadata", x => new { x.BlobID, x.FieldID });
                     table.ForeignKey(
-                        name: "FK_MetadataFields_Palettes_PaletteID",
-                        column: x => x.PaletteID,
-                        principalTable: "Palettes",
-                        principalColumn: "PaletteID");
+                        name: "FK_AssetMetadata_Assets_BlobID",
+                        column: x => x.BlobID,
+                        principalTable: "Assets",
+                        principalColumn: "BlobID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AssetMetadata_ProjectMetadataFields_FieldID",
+                        column: x => x.FieldID,
+                        principalTable: "ProjectMetadataFields",
+                        principalColumn: "FieldID",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "AssetTags",
                 columns: table => new
                 {
-                    BlobID = table.Column<int>(type: "int", nullable: false),
+                    BlobID = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     TagID = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -217,57 +225,6 @@ namespace Infrastructure.Migrations
                         column: x => x.TagID,
                         principalTable: "Tags",
                         principalColumn: "TagID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AssetMetadata",
-                columns: table => new
-                {
-                    BlobID = table.Column<int>(type: "int", nullable: false),
-                    FieldID = table.Column<int>(type: "int", nullable: false),
-                    FieldValue = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AssetMetadata", x => new { x.BlobID, x.FieldID });
-                    table.ForeignKey(
-                        name: "FK_AssetMetadata_Assets_BlobID",
-                        column: x => x.BlobID,
-                        principalTable: "Assets",
-                        principalColumn: "BlobID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AssetMetadata_MetadataFields_FieldID",
-                        column: x => x.FieldID,
-                        principalTable: "MetadataFields",
-                        principalColumn: "FieldID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProjectMetadataFields",
-                columns: table => new
-                {
-                    ProjectID = table.Column<int>(type: "int", nullable: false),
-                    FieldID = table.Column<int>(type: "int", nullable: false),
-                    IsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    FieldValue = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProjectMetadataFields", x => new { x.ProjectID, x.FieldID });
-                    table.ForeignKey(
-                        name: "FK_ProjectMetadataFields_MetadataFields_FieldID",
-                        column: x => x.FieldID,
-                        principalTable: "MetadataFields",
-                        principalColumn: "FieldID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ProjectMetadataFields_Projects_ProjectID",
-                        column: x => x.ProjectID,
-                        principalTable: "Projects",
-                        principalColumn: "ProjectID",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -307,25 +264,14 @@ namespace Infrastructure.Migrations
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MetadataFields_PaletteID",
-                table: "MetadataFields",
-                column: "PaletteID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Palettes_ProjectID",
-                table: "Palettes",
-                column: "ProjectID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ProjectMemberships_UserID",
                 table: "ProjectMemberships",
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProjectMetadataFields_FieldID",
+                name: "IX_ProjectMetadataFields_ProjectID",
                 table: "ProjectMetadataFields",
-                column: "FieldID");
+                column: "ProjectID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Projects_Name",
@@ -364,28 +310,22 @@ namespace Infrastructure.Migrations
                 name: "ProjectMemberships");
 
             migrationBuilder.DropTable(
-                name: "ProjectMetadataFields");
+                name: "ProjectTags");
 
             migrationBuilder.DropTable(
-                name: "ProjectTags");
+                name: "ProjectMetadataFields");
 
             migrationBuilder.DropTable(
                 name: "Assets");
 
             migrationBuilder.DropTable(
-                name: "MetadataFields");
-
-            migrationBuilder.DropTable(
                 name: "Tags");
 
             migrationBuilder.DropTable(
-                name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "Palettes");
-
-            migrationBuilder.DropTable(
                 name: "Projects");
+
+            migrationBuilder.DropTable(
+                name: "Users");
         }
     }
 }

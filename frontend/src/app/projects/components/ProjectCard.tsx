@@ -8,8 +8,6 @@ interface ProjectCardProps {
   userNames: string[];
 }
 
-const isAdmin = true;
-
 export default function ProjectCard({
   id,
   name,

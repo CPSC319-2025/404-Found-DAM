@@ -1,26 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, { FormData } from "@/app/components/GenericForm";
+import GenericForm, { Field as FormFieldType, FormData, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
+import { Project, User } from "@/app/types";
 
-interface FullProjectInfo {
-  projectID: number;
-  projectName: string;
-  location: string;
-  description: string;
-  creationTime: string; // ISO
-  active: boolean;
-  archivedAt: string | null;
-  assetCount: number;
-  regularUserNames: string[];
-  adminNames: string[];
-}
-
-interface Project {
+interface ProjectCardProps {
   projectID: number;
   name: string;
   creationTime: string;
@@ -30,10 +18,10 @@ interface Project {
 
 interface GetAllProjectsResponse {
   projectCount: number;
-  fullProjectInfos: FullProjectInfo[];
+  fullProjectInfos: Project[];
 }
 
-const newProjectFormFields = [
+const newProjectFormFields: FormFieldType[] = [
   {
     name: "name",
     label: "Project Name",
@@ -68,32 +56,52 @@ const newProjectFormFields = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: false,
-    options: [
-      { id: "1", name: "alice (alice@example.com)" },
-      { id: "2", name: "bob (bob@example.com)" },
-      { id: "3", name: "charlie (charlie@example.com)" },
-    ],
+    required: false
   },
   {
     name: "users",
     label: "Users",
     type: "select",
-    isMultiSelect: true,
-    options: [
-      { id: "1", name: "alice (alice@example.com)" },
-      { id: "2", name: "bob (bob@example.com)" },
-      { id: "3", name: "charlie (charlie@example.com)" },
-    ],
+    isMultiSelect: true
   },
 ];
 
 export default function ProjectsPage() {
-  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState<Project[]>([]);
+  const { user } = useUser();
+
   const [query, setQuery] = useState<string>("");
 
-  const { user } = useUser();
+  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
+
+  const [formFields, setFormFields] = useState<FormFieldType[]>(newProjectFormFields);
+
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
+  const [adminOptions, setAdminOptions] = useState<User[]>([]);
+
+  const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
+    if (fieldName === "admins") {
+      if (changeType === "select") {
+        setRegularUserOptions((prev) =>
+          prev.filter((user) => user.userID !== changeItem.id)
+        );
+      } else {
+        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        setRegularUserOptions((prev) => [...prev, userToAddBack!]);
+      }
+    } else {
+      if (changeType === "select") {
+        setAdminOptions((prev) =>
+          prev.filter((admin) => admin.userID !== changeItem.id)
+        );
+      } else {
+        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        setAdminOptions((prev) => [...prev, userToAddBack!]);
+      }
+    }
+  }
 
   const fetchProjects = async () => {
     try {
@@ -105,21 +113,21 @@ export default function ProjectsPage() {
       }
       const data = (await response.json()) as GetAllProjectsResponse;
 
-      const projectsFromBackend = data.fullProjectInfos.map(
-        (project: FullProjectInfo) =>
+      return data.fullProjectInfos.map(
+        (project: Project) =>
           ({
             projectID: project.projectID,
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
-            userNames: project.adminNames.concat(project.regularUserNames),
-          }) as Project
+            userNames: project.admins
+              .concat(project.regularUsers)
+              .map((user: User) => user.name),
+          }) as ProjectCardProps
       );
-
-      return projectsFromBackend;
     } catch (error) {
       console.error("[Diagnostics] Error fetching projects: ", error);
-      return [];
+      return [] as ProjectCardProps[];
     }
   };
 
@@ -163,6 +171,7 @@ export default function ProjectsPage() {
 
       setNewProjectModalOpen(false);
       toast.success("Created new project successfully.");
+
       const projects = await fetchProjects();
       setProjectList(projects);
     } catch (error) {
@@ -190,7 +199,7 @@ export default function ProjectsPage() {
 
     console.log(data);
 
-    const filteredProjects = projects.filter((p: Project) =>
+    const filteredProjects = projects.filter((p: ProjectCardProps) =>
       data.projects.some(
         (project: Project) => project.projectID === p.projectID
       )
@@ -199,9 +208,55 @@ export default function ProjectsPage() {
     setProjectList(filteredProjects);
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetchWithAuth("users");
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch users (Status: ${response.status} - ${response.statusText})`
+        );
+      }
+      return (await response.json()).users as User[];
+    } catch (error) {
+      console.error("[Diagnostics] Error fetching users: ", error);
+      return [] as User[];
+    }
+  }
+
   useEffect(() => {
-    fetchProjects().then((data) => setProjectList(data));
+    fetchProjects().then((projects) => setProjectList(projects));
+    fetchUsers().then((users) => {
+      setAllUsers(users);
+      setAdminOptions(users);
+      setRegularUserOptions(users);
+    })
   }, []);
+
+  // whenever a user selects an admin/regular user we need to update the form (filter options)
+  useEffect(() => {
+    const updatedFormFields = [...newProjectFormFields];
+
+    updatedFormFields.forEach((field) => {
+      if (field.name === 'admins') {
+        field.options = adminOptions.map((user) => ({
+          id: user.userID,
+          name: `${user.name} (${user.email})`,
+        }));
+        field.onChange = onUserChange;
+      }
+
+      if (field.name === 'users') {
+        field.options = regularUserOptions.map((user) => ({
+          id: user.userID,
+          name: `${user.name} (${user.email})`,
+        }));
+        field.onChange = onUserChange;
+      }
+    });
+
+    setFormFields(updatedFormFields);
+
+  }, [adminOptions, regularUserOptions]);
 
   return (
     <div className="p-6 min-h-screen">
@@ -240,7 +295,7 @@ export default function ProjectsPage() {
       {newProjectModalOpen && (
         <GenericForm
           title="Create New Project"
-          fields={newProjectFormFields}
+          fields={formFields}
           onSubmit={handleAddProject}
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"

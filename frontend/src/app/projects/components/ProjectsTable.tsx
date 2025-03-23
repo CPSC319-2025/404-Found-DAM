@@ -3,78 +3,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
+import { fetchWithAuth } from "@/app/utils/api/api";
+import {
+  User,
+  Tag,
+  Project,
+  Asset,
+  Pagination as PaginationType,
+} from "@/app/types";
 
-interface User {
-  userId: string;
-  name: string;
+interface ProjectWithTags extends Project {
+  tags: Tag[];
 }
 
-const TempUsers: User[] = [
-  { userId: "1", name: "John" },
-  { userId: "2", name: "Luke" },
-  { userId: "3", name: "Dave" },
-];
-
-const TempAssets = [
-  {
-    id: "1",
-    user: TempUsers[0],
-    datePosted: "2025-01-26",
-    tags: ["construction", "building"],
-    thumbnail: "/images/image1.jpg",
-    name: "filename",
-  },
-  {
-    id: "2",
-    user: TempUsers[1],
-    datePosted: "2025-01-29",
-    tags: ["office", "building"],
-    thumbnail: "/images/image2.jpg",
-    name: "filename",
-  },
-  {
-    id: "3",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: ["sports", "soccer", "ball"],
-    thumbnail: "/images/image3.jpg",
-    name: "filename",
-  },
-  {
-    id: "4",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image4.jpg",
-    name: "filename",
-  },
-  {
-    id: "5",
-    user: TempUsers[1],
-    datePosted: "2025-02-26",
-    tags: ["travel", "fast", "usa"],
-    thumbnail: "/images/image5.jpg",
-    name: "filename",
-  },
-  {
-    id: "6",
-    user: TempUsers[2],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image6.jpg",
-    name: "filename",
-  },
-  {
-    id: "7",
-    user: TempUsers[0],
-    datePosted: "2025-02-26",
-    tags: [],
-    thumbnail: "/images/image7.jpg",
-    name: "filename",
-  },
-];
+interface PaginatedAssets {
+  assets: Asset[];
+  pagination: PaginationType;
+}
 
 interface ItemsProps {
   currentItems?: any;
@@ -109,18 +55,21 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentItems.map((asset: any) => (
-              <tr key={asset.id} className="cursor-pointer hover:bg-gray-50">
+            {currentItems.map((asset: Asset) => (
+              <tr
+                key={asset.blobID}
+                className="cursor-pointer hover:bg-gray-50"
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {asset.id}
+                    {asset.blobID}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="h-20 w-20 relative">
                     <Image
-                      src={asset.thumbnail}
-                      alt={`${asset.name} thumbnail`}
+                      src="/images/missing-image.png"
+                      alt={`${asset.filename} thumbnail`}
                       width={120}
                       height={120}
                       className="object-cover rounded w-full h-full"
@@ -128,10 +77,12 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {asset.datePosted}
+                  {new Date(asset.date).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{asset.user.name}</div>
+                  <div className="text-sm text-gray-900">
+                    {asset.uploadedBy?.name}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex gap-1">
@@ -151,7 +102,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                       className="text-indigo-600 hover:text-indigo-900"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // EDIT LOGIC
+                        // TODO: EDIT LOGIC
                       }}
                     >
                       <PencilIcon className="h-5 w-5" />
@@ -165,10 +116,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                             "Are you sure you want to delete this project?"
                           )
                         ) {
-                          const updatedImages = currentItems.filter(
-                            (img: any) => img.id !== asset.id
-                          );
-                          setCurrentItems(updatedImages);
+                          // TODO
                         }
                       }}
                     >
@@ -185,64 +133,90 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
   );
 }
 
-const itemsPerPage = 10;
-
-const ProjectsTable = () => {
+const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentItems, setCurrentItems] = useState<any>([]);
+  const [currentItems, setCurrentItems] = useState<Asset[]>([]);
 
-  const [selectedUser, setSelectedUser] = useState<any>("");
-  const [selectedDate, setSelectedDate] = useState<any>("");
-  // const [selectedStatus, setSelectedStatus] = useState<any>("");
-  const [searchTag, setSearchTag] = useState<any>("");
-
-  const [pendingSearchTag, setPendingSearchTag] = useState<any>("");
-
-  // TODO: we need list of users within the project
+  const [selectedUser, setSelectedUser] = useState<number>(0);
+  const [selectedTag, setSelectedTag] = useState<number>(0);
+  const [selectedAssetType, setSelectedAssetType] = useState<string>("");
 
   // TODO: ADD IMAGE SIZE
 
-  const [users, setUsers] = useState<any>(TempUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
 
-  const handleTagBlur = () => {
-    setSearchTag(pendingSearchTag);
-  };
+  const fetchAssets = async (page: number) => {
+    const queryParams = new URLSearchParams({
+      assetsPerPage: String(10),
+      pageNumber: String(page),
+      postedBy: String(selectedUser),
+      tagID: String(selectedTag),
+      assetType: selectedAssetType,
+    }).toString();
+    const response = await fetchWithAuth(
+      `projects/${projectID}/assets/pagination?${queryParams}`
+    );
 
-  const handleChange = async (e: any, page: number) => {
-    // await mock api call
-    const { items, totalPages } = await fetchAssets(page, {
-      selectedUser,
-      selectedDate,
-      searchTag,
-    });
-    setCurrentPage(page);
-    setTotalPages(totalPages);
-    setCurrentItems(items);
-  };
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch assets (Status: ${response.status} - ${response.statusText})`
+      );
+      return { assets: [], totalPages: 0 };
+    }
 
-  const fetchAssets = async (page: number, filters: {}) => {
-    console.log("Fetching assets with filters: ", filters);
-    // TODO: await fetch logs
+    const data = (await response.json()) as PaginatedAssets;
+
     return {
-      items: TempAssets.slice(
-        page * itemsPerPage - itemsPerPage,
-        page * itemsPerPage
-      ),
-      totalPages: totalPages,
+      assets: data.assets,
+      totalPages: data.pagination.totalPages,
     };
   };
 
-  useEffect(() => {
-    fetchAssets(1, {
-      selectedUser,
-      selectedDate,
-      searchTag,
-    }).then(({ items, totalPages }) => {
-      setCurrentItems(items);
+  const getProject = async () => {
+    const response = await fetchWithAuth(`projects/${projectID}`);
+
+    if (!response.ok) {
+      throw new Error("Failed to get project.");
+    }
+
+    const project = await response.json();
+
+    if (!project) {
+      throw new Error("No project returned from the API.");
+    }
+
+    return project as ProjectWithTags;
+  };
+
+  const handlePageChange = (e: any, page: number) => {
+    setCurrentPage(page);
+    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+      setCurrentItems(assets);
       setTotalPages(totalPages);
     });
-  }, [selectedUser, selectedDate, searchTag]);
+  };
+
+  useEffect(() => {
+    // upon filter change we go back to page 1
+    setCurrentPage(1);
+    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+      setCurrentItems(assets);
+      setTotalPages(totalPages);
+    });
+  }, [selectedUser, selectedTag, selectedAssetType]);
+
+  useEffect(() => {
+    getProject()
+      .then((project: ProjectWithTags) => {
+        setUsers(project.admins.concat(project.regularUsers));
+        setTags(project.tags);
+      })
+      .catch((error) => {
+        console.error("Error fetching project:", error);
+      });
+  }, []);
 
   return (
     <>
@@ -251,41 +225,47 @@ const ProjectsTable = () => {
           <select
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
+            onChange={(e) => setSelectedUser(Number(e.target.value))}
           >
             <option value="">Filter by User</option>
             {users.map((user: any) => (
-              <option key={user.userId} value={user.userId}>
+              <option key={user.userID} value={user.userID}>
                 {user.name}
               </option>
             ))}
           </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <input
-            type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Filter by Date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(Number(e.target.value))}
+          >
+            <option value="">Filter by Tag</option>
+            {tags.map((tag: Tag) => (
+              <option key={tag.tagID} value={tag.tagID}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search by Tags"
-            value={pendingSearchTag}
-            onChange={(e) => setPendingSearchTag(e.target.value)}
-            onBlur={handleTagBlur}
-          />
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedAssetType}
+            onChange={(e) => setSelectedAssetType(e.target.value)}
+          >
+            <option value="all">Filter by Asset Type</option>
+            <option value="image">image</option>
+            <option value="video">video</option>
+          </select>
         </div>
       </div>
       <Items currentItems={currentItems} setCurrentItems={setCurrentItems} />
       <Pagination
         count={totalPages}
         page={currentPage}
-        onChange={handleChange}
+        onChange={handlePageChange}
         shape="rounded"
         color="standard"
         className="border border-gray-300"

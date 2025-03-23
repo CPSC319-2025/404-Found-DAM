@@ -1,29 +1,456 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
-import FileTable from "./components"; // assumes FileTable is in a file named components.tsx (adjust the path as needed)
+
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
+import FileTable from "./components";
+import { ZstdCodec } from "zstd-codec";
+import { compressFileZstd } from "@/app/palette/compressFileZstd";
+import JSZip from "jszip";
+import { decompressSync } from "zstd.ts";
+
+interface Project {
+  projectID: number;
+  projectName: string;
+  location: string;
+  description: string;
+  creationTime: string;
+  assetCount: number;
+  adminNames: string[];
+  regularUserNames: string[];
+}
 
 export default function PalettePage() {
   const router = useRouter();
   const { files, setFiles } = useFileContext();
 
-  // Track dropdown open/close & selected project
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const didFetchRef = useRef(false);
 
-  // Remove a file by index
+  useEffect(() => {
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
+    fetchPaletteAssets();
+  }, []);
+
+  function getMimeTypeFromFileName(filename: string): string {
+    const extension = filename.split(".").pop()?.toLowerCase();
+    //console.log(filename)
+    if (!extension) return "unknown";
+    const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
+    const videoExtensions = ["mp4", "webm", "ogg"];
+    if (imageExtensions.includes(extension)) {
+      return extension === "jpg" ? "image/jpeg" : `image/${extension}`;
+    } else if (videoExtensions.includes(extension)) {
+      return extension === "mp4" ? "video/mp4" : `video/${extension}`;
+    }
+    return "unknown";
+  }
+
+  function getFilenameFromContentDisposition(disposition: string): string {
+    // Example disposition:
+    // 'attachment; filename=11.Screenshot 2025-03-18 200722.png.zst; filename*=UTF-8\'\'11.Screenshot 2025-03-18 200722.png.zst'
+
+    // Split on semicolons
+    const parts = disposition.split(";");
+
+    for (const part of parts) {
+      const trimmed = part.trim();
+
+      // Look for filename=
+      if (trimmed.toLowerCase().startsWith("filename=")) {
+        // e.g. filename=11.Screenshot 2025-03-18 200722.png.zst
+        const val = trimmed
+          .substring("filename=".length)
+          .trim()
+          .replace(/^"|"$/g, "");
+        return val;
+      }
+
+      // Look for filename*= (UTF-8)
+      if (trimmed.toLowerCase().startsWith("filename*=")) {
+        // e.g. filename*=UTF-8''11.Screenshot 2025-03-18 200722.png.zst
+        const val = trimmed
+          .substring("filename*=".length)
+          .trim()
+          .replace(/^"|"$/g, "");
+        // If it starts with UTF-8'', remove that and decode
+        if (val.toLowerCase().startsWith("utf-8''")) {
+          return decodeURIComponent(val.substring(7));
+        }
+        return val;
+      }
+    }
+
+    // Fallback if we don't find anything
+    return "defaultFilename.zst";
+  }
+
+  // Function to extract the original filename from the server format (BlobID.OriginalFilename.zst)
+  function extractOriginalFilename(filename: string): string {
+    // Format: BlobID.OriginalFilename.zst
+    const parts = filename.split('.');
+    if (parts.length < 3) {
+      return filename; // Return as is if not in expected format
+    }
+    
+    // Remove the first part (BlobID) and the last part (.zst)
+    parts.shift(); // Remove BlobID
+    parts.pop(); // Remove .zst extension
+    
+    // Join the remaining parts to handle filenames with dots
+    return parts.join('.');
+  }
+
+  // Function to extract BlobID from the server format (BlobID.OriginalFilename.zst)
+  function extractBlobId(filename: string): string | undefined {
+    const parts = filename.split('.');
+    if (parts.length < 2) {
+      return undefined;
+    }
+    
+    const blobIdStr = parts[0];
+    return blobIdStr;
+  }
+
+  // Fetch project and tags for a blob
+  async function fetchBlobDetails(blobId: string): Promise<{project?: any, tags?: string[], tagIds?: number[], description?: string, location?: string}> {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
+      if (!response.ok) {
+        console.error(`Failed to fetch details for blob ${blobId}: ${response.status}`);
+        return {};
+      }
+      const data = await response.json();
+      
+      const projectId = data.project?.projectId.toString();
+      
+      // Check for different possible property name casings from the backend
+      // The C# backend might use "location" or "Location" depending on serialization settings
+      let description = data.project?.description || data.project?.Description;
+      let location = data.project?.location || data.project?.Location;
+      // console.log(data.tagIds);
+      return {
+        project: projectId,
+        tags: data.tags || [],
+        tagIds: data.tagIds || [],
+        description: description || "",
+        location: location || ""
+      };
+    } catch (error) {
+      console.error(`Error fetching details for blob ${blobId}:`, error);
+      return {};
+    }
+  }
+
+  async function fetchPaletteAssets() {
+
+    setFiles([]);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // const FormData = require("form-data");
+    const formData = new FormData();
+    formData.append("UserId", "1"); // Fixed requirement: UserId=1
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets`, {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer MY_TOKEN",
+      },
+      // body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fetch failed with status ${response.status}`);
+    }
+
+    console.log(response);
+
+    const blob = await response.blob();
+    const contentType = response.headers.get("content-type");
+
+    // Helper to decompress using ZstdCodec
+    const decompressZstd = async (data: Uint8Array): Promise<Uint8Array> => {
+      return new Promise((resolve, reject) => {
+        ZstdCodec.run((zstd: any) => {
+          try {
+            const simple = new zstd.Simple();
+            const result = simple.decompress(data);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+    };
+
+    if (contentType === "application/zstd") {
+      const fileContent = new Uint8Array(await blob.arrayBuffer());
+      const decompressed = await decompressZstd(fileContent);
+
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = "defaultFilename.zst";
+      if (contentDisposition) {
+        filename = getFilenameFromContentDisposition(contentDisposition);
+      }
+
+      // Extract the original filename and blobId from the server format
+      const originalFilename = extractOriginalFilename(filename);
+      const blobId = extractBlobId(filename);
+      
+      const file = new File(
+        [decompressed],
+        originalFilename, // Use the original filename without BlobID and .zst
+        { type: getMimeTypeFromFileName(originalFilename) }
+      );
+
+      const fileSize = (file.size / 1024).toFixed(2) + " KB";
+      const fileMeta: FileMetadata = {
+        file,
+        fileSize,
+        description: "",
+        location: "",
+        tags: [],
+        tagIds: [],
+        blobId // Store the blobId extracted from the filename
+      };
+
+      // Fetch project and tags information if we have a blobId
+      if (blobId) {
+        const details = await fetchBlobDetails(blobId);
+        if (details.project) {
+          fileMeta.project = details.project;
+        }
+        if (details.tags && details.tags.length > 0) {
+          fileMeta.tags = details.tags;
+          fileMeta.tagIds = details.tagIds || [];
+          fileMeta.description = details.description || "";
+          fileMeta.location = details.location || "";
+        }
+      }
+
+      if (file.type.startsWith("image/")) {
+        const img = new Image();
+        img.onload = () => {
+          fileMeta.width = img.width;
+          fileMeta.height = img.height;
+          setFiles((prev) => [...prev, fileMeta]);
+        };
+        img.src = URL.createObjectURL(file);
+      } else if (file.type.startsWith("video/")) {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          fileMeta.width = video.videoWidth;
+          fileMeta.height = video.videoHeight;
+          fileMeta.duration = Math.floor(video.duration);
+          // Add metadata to state
+          setFiles((prev) => [...prev, fileMeta]);
+        };
+        video.src = URL.createObjectURL(file);
+      } else {
+        // Other file types:
+        setFiles((prev) => [...prev, fileMeta]);
+      }
+    } else if (contentType === "application/zip") {
+      const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+      // const fileContents: FileMetadata[] = [];
+      // console.log("zip");
+      await Promise.all(
+        Object.keys(zip.files).map(async (filename) => {
+          const fileData = await zip.files[filename].async("uint8array");
+          const decompressedData = await decompressZstd(fileData);
+
+          // Extract the original filename and blobId from the server format
+          const originalFilename = extractOriginalFilename(filename);
+          const blobId = extractBlobId(filename);
+          
+          const file = new File(
+            [decompressedData],
+            originalFilename, // Use the original filename without BlobID and .zst
+            { type: getMimeTypeFromFileName(originalFilename) }
+          );
+
+          const fileSize = (file.size / 1024).toFixed(2) + " KB";
+          const fileMeta: FileMetadata = {
+            file,
+            fileSize,
+            description: "",
+            location: "",
+            tags: [],
+            tagIds: [],
+            blobId // Store the blobId extracted from the filename
+          };
+
+          // Fetch project and tags information if we have a blobId
+          if (blobId) {
+            const details = await fetchBlobDetails(blobId);
+            if (details.project) {
+              fileMeta.project = details.project;
+            }
+            if (details.tags && details.tags.length > 0) {
+              fileMeta.tags = details.tags;
+              fileMeta.tagIds = details.tagIds || [];
+              fileMeta.description = details.description || "";
+              fileMeta.location = details.location || "";
+            }
+          }
+
+          if (file.type.startsWith("image/")) {
+            const img = new Image();
+            img.onload = () => {
+              fileMeta.width = img.width;
+              fileMeta.height = img.height;
+              setFiles((prev) => [...prev, fileMeta]);
+            };
+            img.src = URL.createObjectURL(file);
+          } else if (file.type.startsWith("video/")) {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+              fileMeta.width = video.videoWidth;
+              fileMeta.height = video.videoHeight;
+              fileMeta.duration = Math.floor(video.duration);
+              // Add metadata to state
+              setFiles((prev) => [...prev, fileMeta]);
+            };
+            video.src = URL.createObjectURL(file);
+          } else {
+            // Other file types:
+            setFiles((prev) => [...prev, fileMeta]);
+          }
+        })
+      );
+    } else if (contentType == "application/json; charset=utf-8") {
+      console.log("no file in palette");
+    } else {
+      console.error("Unexpected content type:", contentType);
+    }
+  }
+
+  async function uploadFileZstd(fileMeta: FileMetadata) {
+    try {
+      // 3.1 Compress file with Zstandard
+      const compressedFile = await compressFileZstd(fileMeta.file);
+
+      // 3.2 Use native FormData (NOT require("form-data"))
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // const FormData = require("form-data");
+      const formData = new FormData();
+      formData.append("userId", "001"); // or dynamic
+      formData.append("name", fileMeta.file.name);
+      formData.append("mimeType", fileMeta.file.type); // Use the file's actual MIME type dynamically
+      formData.append("files", compressedFile);
+
+      // 3.3 Send the request
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer MY_TOKEN",
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload result:", result);
+
+      if (result?.length > 0) {
+        const detail = result[0]; // or find by filename if needed
+
+        console.log(detail.blobID);
+
+        // Update our FileContext so that `fileMeta` gets the blobId
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f === fileMeta ? { ...f, blobId: detail.blobID } : f
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error uploading file:", err);
+    }
+  }
+
+  // 1. Fetch the project logs  once on mount
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`);
+        if (!res.ok) {
+          console.error("Failed to fetch project logs:", res.status);
+          return;
+        }
+        const data = await res.json();
+        // data.logs is the array we want
+        if (data.fullProjectInfos) {
+          setProjects(data.fullProjectInfos);
+        } else {
+          console.warn("No 'logs' found in response:", data);
+        }
+      } catch (err) {
+        console.error("Error fetching project logs:", err);
+      }
+    }
+
+    fetchProjects();
+  }, []);
+
+  // 2. Remove a file by index
   function removeFile(index: number) {
     setFiles((prev) => {
       const updated = [...prev];
+
+      // Grab the file object we are removing
+      const fileToRemove = updated[index];
+
+      // Prepare form data
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // const FormData = require("form-data");
+      const formData = new FormData();
+      formData.append("UserId", "1");
+
+      // Use whatever property holds the "blobId" or "name" you need to pass
+      // For example, if your file object has "blobId":
+      if (fileToRemove.blobId !== undefined) {
+        formData.append("Name", fileToRemove.blobId);
+      } else {
+        console.warn("No blobId found for file:", fileToRemove.file.name);
+        // Continue with deletion from UI even if we can't delete from server
+      }
+
+      //Make the DELETE request with form data
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset`, {
+        method: "DELETE",
+        body: formData,
+        // No need to set 'Content-Type'; fetch does it automatically for FormData
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json(); // or response.text() depending on your API
+        })
+        .then((data) => {
+          console.log("Delete successful:", data);
+        })
+        .catch((error) => {
+          console.error("Error deleting:", error);
+        });
+
+      // Remove the file from state
       updated.splice(index, 1);
       return updated;
     });
   }
 
-  // Handle dropped files
+  // 3. Drag-and-drop for images/videos
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       acceptedFiles.forEach((file) => {
@@ -34,6 +461,7 @@ export default function PalettePage() {
           description: "",
           location: "",
           tags: [],
+          tagIds: [],
         };
 
         if (file.type.startsWith("image/")) {
@@ -41,7 +469,11 @@ export default function PalettePage() {
           img.onload = () => {
             fileMeta.width = img.width;
             fileMeta.height = img.height;
+
+            // Add metadata to state
             setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            uploadFileZstd(fileMeta).catch(console.error);
           };
           img.src = URL.createObjectURL(file);
         } else if (file.type.startsWith("video/")) {
@@ -51,11 +483,18 @@ export default function PalettePage() {
             fileMeta.width = video.videoWidth;
             fileMeta.height = video.videoHeight;
             fileMeta.duration = Math.floor(video.duration);
+
+            // Add metadata to state
             setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            uploadFileZstd(fileMeta).catch(console.error);
           };
           video.src = URL.createObjectURL(file);
         } else {
+          // Other file types:
           setFiles((prev) => [...prev, fileMeta]);
+          // Immediately upload
+          uploadFileZstd(fileMeta).catch(console.error);
         }
       });
     },
@@ -67,131 +506,110 @@ export default function PalettePage() {
     accept: { "image/*": [], "video/*": [] },
   });
 
-  // When "Upload Assets" is clicked, call the API
-  async function handleUpload() {
-    if (!selectedProject) {
-      alert("Please select a project first!");
+  // 4. Example: One call per selected file
+  async function handleSubmitAssets() {
+    if (selectedIndices.length === 0) {
+      alert("No files selected!");
       return;
     }
 
-    alert("Upload successful!");
+    // Check if any selected files don't have a project assigned
+    const filesWithoutProject = selectedIndices.filter((index) => !files[index].project);
+    if (filesWithoutProject.length > 0) {
+      alert(`Warning: ${filesWithoutProject.length} selected file(s) don't have a project assigned. Please select a project for all files before submitting.`);
+      return;
+    }
 
-    const assignedImages = files.map((fileMeta) => {
-      const id =
-        (fileMeta as any).id ||
-        (typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : "img-" + Math.random().toString(36).substring(2, 10));
+    // 1) Group selected files by their project
+    const projectMap: Record<string, string[]> = {};
+    //   projectMap[projectID] => [blobIDs]
 
-      return {
-        id,
-        filename: fileMeta.file.name,
-        fileSize: fileMeta.fileSize,
-        description: fileMeta.description,
-        location: fileMeta.location,
-        tags: fileMeta.tags,
-        width: fileMeta.width,
-        height: fileMeta.height,
-        duration: fileMeta.duration,
-      };
-    });
+    selectedIndices.forEach((fileIndex) => {
+      const fileMeta = files[fileIndex];
 
-    const requestBody = {
-      projectId: selectedProject,
-      assignedImages,
-    };
-
-    try {
-      const res = await fetch("/projects/assign-images", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer YOUR_TOKEN_HERE",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!res.ok) {
-        console.error("API call failed:", res.status);
+      // Make sure this file has both a blobId and a project ID
+      if (!fileMeta.blobId) {
+        console.warn("File missing blobId:", fileMeta.file.name);
+        return;
+      }
+      if (!fileMeta.project) {
+        console.warn("File missing project ID:", fileMeta.file.name);
         return;
       }
 
-      const data = await res.json();
-      console.log("Upload successful:", data);
-      router.push("/palette");
-    } catch (err) {
-      console.error("Error in upload:", err);
+      const projectId = fileMeta.project;
+      if (!projectMap[projectId]) {
+        projectMap[projectId] = [];
+      }
+      projectMap[projectId].push(fileMeta.blobId);
+    });
+
+    // 2) For each project, hit the PATCH endpoint with the array of blobIDs
+    for (const projectId in projectMap) {
+      const blobIDs = projectMap[projectId];
+
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/${projectId}/submit-assets`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: "Bearer MY_TOKEN",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": [123, 456] }
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Submit assets failed:", response.status);
+          continue;
+        }
+
+        
+
+        const data = await response.json();
+        console.log("Submission success:", data);
+
+        // 3) Remove these files from our palette state
+        setFiles((prev) =>
+          prev.filter(
+            (file) =>
+              file.project !== projectId || // keep files from other projects
+              !file.blobId ||
+              !blobIDs.includes(file.blobId) // keep files not in this batch
+          )
+        );
+
+        // Also remove them from the selectedIndices array
+        setSelectedIndices((prev) =>
+          prev.filter((i) => {
+            const f = files[i];
+            return (
+              f.project !== projectId ||
+              !f.blobId ||
+              !blobIDs.includes(f.blobId)
+            );
+          })
+        );
+      } catch (err) {
+        console.error("Error submitting assets:", err);
+      }
     }
-  }
-
-  function handleSelectProject() {
-    setShowDropdown((prev) => !prev);
-  }
-
-  function handleProjectChoice(projectName: string) {
-    setSelectedProject(projectName);
-    setShowDropdown(false);
-  }
-
-  function handleGoBack() {
-    router.push("/upload");
   }
 
   return (
     <div className="p-6 min-h-screen">
-      {/*<h1 className="text-3xl font-bold mb-6 text-gray-700">Palette</h1>*/}
+      <FileTable
+        files={files}
+        removeFile={removeFile}
+        selectedIndices={selectedIndices}
+        setSelectedIndices={setSelectedIndices}
+        projects={projects} // Pass in the array from Beeceptor
+      />
 
-      <div className="flex items-center justify-between mb-6 bg-white p-4 rounded shadow">
-        {/* Centered selected project name */}
-        <div className="flex-1 text-center">
-          {selectedProject ? (
-            <span className="text-2xl font-extrabold text-gray-700">
-              {selectedProject}
-            </span>
-          ) : (
-            <span className="text-lg text-gray-400">No project selected</span>
-          )}
-        </div>
-
-        {/* Right-aligned "Select Project" button + dropdown */}
-        <div className="relative w-44 ">
-          <button
-            onClick={handleSelectProject}
-            className="inline-block h-12 w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Select Project
-          </button>
-          {showDropdown && (
-            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-gray-300 rounded shadow z-10">
-              <div
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project One")}
-              >
-                Project One
-              </div>
-              <div
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project Two")}
-              >
-                Project Two
-              </div>
-              <div
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleProjectChoice("Project Three")}
-              >
-                Project Three
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* File list table */}
-      <FileTable files={files} removeFile={removeFile} />
-
-      {/* Drag-and-Drop area & Upload button */}
       <div className="mt-6 bg-white p-4 rounded shadow flex flex-col items-center">
-        {/* Drop zone with fixed width/height in the center */}
         <div
           {...getRootProps()}
           className="w-96 h-48 border-2 border-dashed border-gray-300 p-4 rounded-lg text-center cursor-pointer flex flex-col items-center justify-center"
@@ -218,13 +636,21 @@ export default function PalettePage() {
           )}
         </div>
 
-        {/* Upload button at the bottom */}
+        {/* Button that uploads each selected file individually */}
         <button
-          onClick={handleUpload}
+          onClick={handleSubmitAssets}
           className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          Upload Assets
+          Submit Assets
         </button>
+
+        {/*TODO*/}
+        {/*<button*/}
+        {/*    onClick={handleUpload}*/}
+        {/*    className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"*/}
+        {/*>*/}
+        {/*  Select Files to Upload*/}
+        {/*</button>*/}
       </div>
     </div>
   );

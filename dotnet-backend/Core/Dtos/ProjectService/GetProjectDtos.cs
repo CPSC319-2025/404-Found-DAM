@@ -8,8 +8,9 @@ namespace Core.Dtos
         public string location { get; set; }
         public bool active { get; set; }
         public DateTime? archivedAt { get; set; }
-        public List<string> adminNames { get; set; }
-        public List<string> regularUserNames { get; set; }
-        public List<string> tags { get; set; }
+        public List<UserCustomInfo> admins { get; set; } 
+        public List<UserCustomInfo> regularUsers { get; set; } 
+        public List<TagCustomInfo> tags { get; set; }
+        public List<ProjectMetadataCustomInfo> metadataFields { get; set; }
     }
 }
