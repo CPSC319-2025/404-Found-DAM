@@ -324,8 +324,7 @@ namespace Core.Services
             {
                 (
                     List<Asset> retrievedAssets, 
-                    int totalFilteredAssetCount, 
-                    List<IFormFile> assetIFormFiles
+                    int totalFilteredAssetCount
                 ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);

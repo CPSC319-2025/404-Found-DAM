@@ -255,7 +255,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<(List<Asset>, int, List<IFormFile>)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -309,14 +309,8 @@ namespace Infrastructure.DataAccess
                     .Take(req.assetsPerPage)
                     .Include(a => a.User)
                     .ToListAsync();
-
-                    // Retrieve asset files to be returned too.
-                    List<IFormFile> assetIFormFiles = await _blobStorageService.DownloadAsync("palette-assets", assets);
-
                     
-                    
-
-                    return (assets, totalFilteredAssetCount, assetIFormFiles);
+                    return (assets, totalFilteredAssetCount);
                 }
             }
             else 
