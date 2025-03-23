@@ -8,6 +8,6 @@ namespace Core.Dtos
         public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
         public bool IsSuperAdmin { get; set; }
-        public List<ProjectMembershipDto> ProjectMemberships { get; set; } = new List<ProjectMembershipDto>();
+        public List<ProjectMembershipAuthDto> ProjectMemberships { get; set; } = new List<ProjectMembershipAuthDto>();
     }
 }

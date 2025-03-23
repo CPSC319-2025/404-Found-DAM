@@ -65,7 +65,7 @@ namespace Core.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
             
-            var membershipsDto = user.ProjectMemberships.Select(pm => new ProjectMembershipDto
+            var membershipsDto = user.ProjectMemberships.Select(pm => new ProjectMembershipAuthDto
             {
                 ProjectId = pm.ProjectID,
                 Role = pm.UserRole.ToString().ToLower()
