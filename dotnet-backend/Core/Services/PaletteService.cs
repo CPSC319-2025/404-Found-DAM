@@ -10,7 +10,7 @@ namespace Core.Services
     public class PaletteService : IPaletteService
     {
         private readonly IPaletteRepository _paletteRepository;
-        
+    
         public PaletteService(IPaletteRepository paletteRepository)
         {
             _paletteRepository = paletteRepository;
