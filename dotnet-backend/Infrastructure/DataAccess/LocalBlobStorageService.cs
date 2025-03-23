@@ -42,43 +42,6 @@ namespace Infrastructure.DataAccess
 
             return true;
         }
-        
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
-        {
-            var compressedFiles = new List<IFormFile>();
-            
-            // Create storage directory if it doesn't exist
-            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-            if (!Directory.Exists(storageDirectory)) {
-                Directory.CreateDirectory(storageDirectory);
-            }
-                
-            // Create tasks for parallel file reading
-            var readTasks = assets.Select(async asset => {
-            var filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
-                var bytes = await File.ReadAllBytesAsync(filePath);
-                
-                string fileName = $"{asset.BlobID}.{asset.FileName}.zst";
-                
-                // Convert byte array to IFormFile
-                var stream = new MemoryStream(bytes);
-                var formFile = new FormFile(
-                    baseStream: stream,
-                    baseStreamOffset: 0,
-                    length: bytes.Length,
-                    name: "file",
-                    fileName: fileName
-                );
-                
-                return formFile;
-            }).ToList();
-            
-            // Wait for all tasks to complete
-            var files = await Task.WhenAll(readTasks);
-            
-            compressedFiles.AddRange(files);
-            return compressedFiles;
-        }
 
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {

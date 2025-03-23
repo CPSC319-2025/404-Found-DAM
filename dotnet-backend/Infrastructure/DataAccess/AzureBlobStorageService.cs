@@ -69,59 +69,6 @@ namespace Infrastructure.DataAccess
             return await blobClient.DeleteIfExistsAsync();
         }
         
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
-        {
-            var blobServiceClient = new BlobServiceClient(_connectionString);
-            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-            
-            // Make sure container exists
-            if (!await containerClient.ExistsAsync())
-            {
-                throw new FileNotFoundException($"Container {containerName} not found");
-            }
-            
-            // Initialize the list of form files
-            List<IFormFile> formFiles = new List<IFormFile>();
-            
-            // Create a list of tasks for parallel execution
-            var downloadTasks = assets.Select(async asset =>
-            {
-                // Get a client for this specific blob
-                var blobClient = containerClient.GetBlobClient(asset.BlobID);
-                
-                // Download the blob
-                var response = await blobClient.DownloadAsync();
-                
-                // Create a memory stream to copy the blob content
-                var memoryStream = new MemoryStream();
-                await response.Value.Content.CopyToAsync(memoryStream);
-                memoryStream.Position = 0; // Reset position for reading
-
-                // Create a FormFile from the memory stream
-                var formFile = new FormFile(
-                    baseStream: memoryStream,
-                    baseStreamOffset: 0,
-                    length: memoryStream.Length,
-                    name: "file", // Form field name
-                    fileName: Path.GetFileName(asset.BlobID)
-                );
-                
-                // Set content type if needed
-                // formFile.ContentType = properties.Value.ContentType;
-                
-                return formFile;
-            }).ToList();
-            
-            // Wait for all downloads to complete
-            var results = await Task.WhenAll(downloadTasks);
-            
-            // Add all results to the existing formFiles list
-            formFiles.AddRange(results);
-            
-            // Return the list of form files
-            return formFiles;
-        }
-
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
             var blobServiceClient = new BlobServiceClient(_connectionString);

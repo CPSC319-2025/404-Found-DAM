@@ -352,12 +352,9 @@ namespace Core.Services
                 }).ToList();
 
 
-                List<GetAssetFileFromStorageReq> assetIdNameList = new List<GetAssetFileFromStorageReq>();
-
-                foreach (Asset a in retrievedAssets) 
-                {
-                    assetIdNameList.Add(new GetAssetFileFromStorageReq{ blobID = a.BlobID, filename = a.FileName});
-                }
+                List<GetAssetFileFromStorageReq> assetIdNameList = retrievedAssets
+                    .Select(a => new GetAssetFileFromStorageReq { blobID = a.BlobID, filename = a.FileName })
+                    .ToList();
 
                 GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes
                 {  

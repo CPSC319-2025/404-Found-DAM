@@ -202,7 +202,21 @@ namespace Infrastructure.DataAccess {
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
-            return await _blobStorageService.DownloadAsync("palette-assets", assets);
+
+            if (assets == null || assets.Count == 0) 
+            {
+                return new List<IFormFile>(); // Return an empty list
+            }
+            else 
+            {
+                            
+                // Construct tuple list to be passed into DownloadAsync
+                List<(string, string)> assetIdNameTupleList = assets
+                    .Select(a => (a.BlobID, a.FileName))
+                    .ToList();
+
+                return await _blobStorageService.DownloadAsync("palette-assets", assetIdNameTupleList);
+            }
         }
 
         public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {
