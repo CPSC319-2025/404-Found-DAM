@@ -27,8 +27,6 @@ export async function login(email: string, password: string) {
 
   const data = await response.json();
 
-  console.log(data);
-
   localStorage.setItem("token", data.token);
 }
 
@@ -45,8 +43,6 @@ export async function getUserFromToken() {
       logout();
       return null;
     }
-
-    console.log(payload);
 
     const parsedProjectMemberships: ProjectMembership[] = JSON.parse(payload.projectMemberships).map(
       (membership: { ProjectID: number; Role: string }) => ({

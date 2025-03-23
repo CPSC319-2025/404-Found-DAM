@@ -64,7 +64,6 @@ export default function RootLayout({
   useEffect(() => {
     const fetchUserData = async () => {
       const user = await getUserFromToken();
-      console.log("USer from token", user);
       setUser(user);
       setLoading(false);
     };
