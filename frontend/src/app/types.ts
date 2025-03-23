@@ -34,7 +34,7 @@ export interface Project {
 }
 
 export interface Asset {
-  blobID: number;
+  blobID: string;
   filename: string;
   uploadedBy: {
     userID: number;

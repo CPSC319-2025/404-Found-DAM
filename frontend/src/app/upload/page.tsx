@@ -62,7 +62,7 @@ export default function UploadPage() {
         // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId: detail.blobID.toString() } : f
+            f === fileMeta ? { ...f, blobId: detail.blobID } : f
           )
         );
       }
@@ -86,23 +86,19 @@ export default function UploadPage() {
           tagIds: [],
         };
 
-        // For images, read width & height
         if (file.type.startsWith("image/")) {
           const img = new Image();
           img.onload = () => {
             fileMeta.width = img.width;
             fileMeta.height = img.height;
 
-            // Add to context immediately
+            // Add metadata to state
             setFiles((prev) => [...prev, fileMeta]);
-
-            // Then compress & upload
+            // Immediately upload
             uploadFileZstd(fileMeta).catch(console.error);
           };
           img.src = URL.createObjectURL(file);
-        }
-        // For videos, read width, height, duration
-        else if (file.type.startsWith("video/")) {
+        } else if (file.type.startsWith("video/")) {
           const video = document.createElement("video");
           video.preload = "metadata";
           video.onloadedmetadata = () => {
@@ -110,13 +106,16 @@ export default function UploadPage() {
             fileMeta.height = video.videoHeight;
             fileMeta.duration = Math.floor(video.duration);
 
+            // Add metadata to state
             setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
             uploadFileZstd(fileMeta).catch(console.error);
           };
           video.src = URL.createObjectURL(file);
         } else {
-          // For other types, just store and then upload
+          // Other file types:
           setFiles((prev) => [...prev, fileMeta]);
+          // Immediately upload
           uploadFileZstd(fileMeta).catch(console.error);
         }
       });
@@ -135,7 +134,7 @@ export default function UploadPage() {
   // 3) Manual button to go to /palette
   async function handleUpload() {
     router.push("/palette"); //after push to palette, the palette page will refresh
-  }
+  }  
 
   return (
     <div className="p-6 min-h-screen">

@@ -63,7 +63,9 @@ namespace Infrastructure.DataAccess
             // Create blob client and container
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-            var blobClient = containerClient.GetBlobClient(asset.BlobID);
+            
+            // Use the same blob naming convention as in upload
+            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}.{asset.FileName}.zst");
             
             // Delete the blob
             return await blobClient.DeleteIfExistsAsync();
@@ -103,7 +105,7 @@ namespace Infrastructure.DataAccess
                     baseStreamOffset: 0,
                     length: memoryStream.Length,
                     name: "file", // Form field name
-                    fileName: Path.GetFileName(asset.BlobID)
+                    fileName: $"{asset.BlobID}.{asset.FileName}.zst"
                 );
                 
                 // Set content type if needed

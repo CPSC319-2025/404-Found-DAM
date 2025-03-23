@@ -369,7 +369,7 @@ export default function PalettePage() {
         // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId: detail.blobID.toString() } : f
+            f === fileMeta ? { ...f, blobId: detail.blobID } : f
           )
         );
       }
@@ -419,7 +419,7 @@ export default function PalettePage() {
       // Use whatever property holds the "blobId" or "name" you need to pass
       // For example, if your file object has "blobId":
       if (fileToRemove.blobId !== undefined) {
-        formData.append("Name", fileToRemove.blobId.toString());
+        formData.append("Name", fileToRemove.blobId);
       } else {
         console.warn("No blobId found for file:", fileToRemove.file.name);
         // Continue with deletion from UI even if we can't delete from server
