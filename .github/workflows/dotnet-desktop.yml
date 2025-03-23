@@ -50,4 +50,14 @@ jobs:
             }
 
       - name: Deploy to Azure Web App
-        run: az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
+        run: 
+          az webapp deployment source config-zip --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --src deploy.zip
+      - name: Create directory script
+        run: |
+          echo '#!/bin/bash
+          mkdir -p /home/site/Core/MockedSeed
+          cp -r /home/site/wwwroot/publish/Core/MockedSeed/* /home/site/Core/MockedSeed/
+          ' > copy_files.sh
+
+      - name: Execute directory script on Azure
+        run: az webapp ssh run --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --command "bash -c \"$(cat copy_files.sh)\""
