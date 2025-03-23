@@ -300,6 +300,7 @@ namespace Core.Services.Utils
                         Email = memberSheetRow.Cell(3).GetValue<string>(),
                         IsSuperAdmin = memberSheetRow.Cell(4).GetValue<bool>(),
                         LastUpdated = DateTimeOffset.Parse(memberSheetRow.Cell(5).GetValue<string>()).UtcDateTime,
+                        PasswordHash = ""
                     };
                     userList.Add(u);
 

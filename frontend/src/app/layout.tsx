@@ -64,6 +64,7 @@ export default function RootLayout({
   useEffect(() => {
     const fetchUserData = async () => {
       const user = await getUserFromToken();
+      console.log("USer from token", user);
       setUser(user);
       setLoading(false);
     };
@@ -97,6 +98,7 @@ export default function RootLayout({
         >
           <div className="flex min-h-screen items-center justify-center">
             <Login setUser={setUser} />
+            <ToastContainer autoClose={5000} position="top-center" />
           </div>
         </body>
       </html>

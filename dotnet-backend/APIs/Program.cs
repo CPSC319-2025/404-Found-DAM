@@ -82,7 +82,7 @@ app.UseCors("AllowReactApp");
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthorization();
 
 
 // Configure the HTTP request pipeline.

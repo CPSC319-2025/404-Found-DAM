@@ -10,7 +10,7 @@ export async function fetchWithAuth(
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const AUTH_EXCLUDED_ROUTES = ["/login"];
+  const AUTH_EXCLUDED_ROUTES = ["/auth/login"];
 
   const headers = new Headers(
     options.headers || { "Content-Type": "application/json" }

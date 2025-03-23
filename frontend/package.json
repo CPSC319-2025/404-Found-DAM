@@ -17,15 +17,14 @@
     "@emotion/styled": "^11.14.0",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^6.4.7",
-    "jose": "^6.0.8",
     "multiselect-react-dropdown": "^2.0.25",
     "next": "14.2.23",
     "pintura": "0.3.10",
     "react": "^18",
     "react-dom": "^18",
     "react-dropzone": "^14.3.8",
+    "react-easy-crop": "^5.4.1",
     "react-toastify": "^11.0.5"
-    "react-easy-crop": "^5.4.1"
   },
   "devDependencies": {
     "@types/node": "^20",
