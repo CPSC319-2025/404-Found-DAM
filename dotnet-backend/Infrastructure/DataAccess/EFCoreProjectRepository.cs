@@ -230,13 +230,15 @@ namespace Infrastructure.DataAccess
         }
 
         // Get ALL assets of a project from database
-        public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
+        public async Task<List<Asset>> GetProjectAndAssetsInDb(int projectID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
             var project = await _context.Projects
+                .Include(p => p.ProjectMetadataFields)
                 .Include(p => p.Assets)
                     .ThenInclude(a => a.AssetTags)
+                        .ThenInclude(at => at.Tag)
                 .Include(p => p.Assets)
                     .ThenInclude(a => a.AssetMetadata)
                 .AsNoTracking() // Improve performance for Read-only operations
