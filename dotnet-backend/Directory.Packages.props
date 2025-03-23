@@ -16,14 +16,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
-<<<<<<< HEAD
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-=======
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.2" />
     <PackageVersion Include="NetVips.Native.linux-x64" Version="8.16.1" />
     <PackageVersion Include="NetVips.Native.osx-arm64" Version="8.16.1" />
->>>>>>> main
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageVersion Include="xunit" Version="2.4.2" />
