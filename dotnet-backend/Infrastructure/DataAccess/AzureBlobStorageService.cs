@@ -31,8 +31,8 @@ namespace Infrastructure.DataAccess
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
             
             // Generate a unique blob name
-            string fileName = assetMetaData.FileName;
-            string uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
+            // string fileName = assetMetaData.FileName;
+            string uniqueFileName = $"{Guid.NewGuid()}";
             
             // Get blob client and upload file
             var blobClient = containerClient.GetBlobClient(uniqueFileName);
@@ -53,6 +53,7 @@ namespace Infrastructure.DataAccess
             }
             
             // Return blob ID (full path)
+            Console.WriteLine(blobClient.Name);
             return blobClient.Name;
             
         }

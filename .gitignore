@@ -7,13 +7,13 @@
 dotnet-backend/APIs/appsettings.json
 bin/
 obj/
-dotnet-backend/APIs/appsettings.json
 
 *.xlsx
 *.png
 *.jpg
 *.jpeg
 *.webp
+*.zst
 
 
 **/.idea/
