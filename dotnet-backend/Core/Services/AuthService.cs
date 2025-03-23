@@ -14,12 +14,12 @@ namespace Core.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IAuthRepository _userRepository;
         private readonly IConfiguration _configuration;
         
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IAuthRepository AuthRepository, IConfiguration configuration)
         {
-            _userRepository = userRepository;
+            _userRepository = AuthRepository;
             _configuration = configuration;
         }
         

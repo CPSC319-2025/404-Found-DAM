@@ -16,7 +16,7 @@ namespace APIs.Controllers
         {
             var authResponse = await authService.AuthenticateAsync(loginDto.Email, loginDto.Password);
             if (authResponse == null)
-                return Results.Unauthorized("Invalid credentials");
+                return Results.Unauthorized();
             
             return Results.Ok(authResponse);
         }
