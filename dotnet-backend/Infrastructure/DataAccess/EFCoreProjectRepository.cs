@@ -27,45 +27,46 @@ namespace Infrastructure.DataAccess
 
             List<string> successfulAssociations = new List<string>();
 
-            // check project exist & if submitter is a member
+            // check if project exists
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
-            if (isProjectFound) 
+            if (!isProjectFound)
             {
-                var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
-                if (isSubmitterMember) 
-                {
-                    // Retrieve assets using blobIDs
-                    var assetsToBeAssociated = await _context.Assets
-                        .Where(a => blobIDs.Contains(a.BlobID))
-                        .ToListAsync();
-                    
-                    if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0) 
-                    {
-                        // No assets to be associated, return empty successfulAssociations, and blobIDs = failedAssociations
-                        return (successfulAssociations, blobIDs);
-                    }
-                    else 
-                    {
-                        // Assign projectID t0 each asset and add to successfulAssociations
-                        foreach (Asset a in assetsToBeAssociated)
-                        {
-                            a.ProjectID = projectID;
-                            a.LastUpdated = DateTime.UtcNow;
-                            successfulAssociations.Add(a.BlobID);
-                        }
-                        await _context.SaveChangesAsync();
-                        return (successfulAssociations, blobIDs.Except(successfulAssociations).ToList());
-                    }
-                }
-                else 
-                {
-                    throw new DataNotFoundException($"User ${submitterID} not a member of project ${projectID}");
-                }
+                throw new DataNotFoundException($"Project {projectID} not found");
             }
-            else 
+            // check if submitter is member of project
+            var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
+            if (!isSubmitterMember)
             {
-                throw new DataNotFoundException($"Project ${projectID} not found");
-            }            
+                throw new DataNotFoundException($"User {submitterID} is not a member of project {projectID}");
+            }
+            var assetsToBeAssociated = await _context.Assets
+            .Where(a => blobIDs.Contains(a.BlobID))
+            .ToListAsync();
+
+            // check if there are any assets to be associated
+            if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0)
+            {
+                return (successfulAssociations, blobIDs);
+            }
+            foreach (Asset a in assetsToBeAssociated)
+            {
+                // Guard: Only allow association if:
+                // 1) The asset is in state "Uploaded to palette" (enum value 0), and
+                // 2) The asset was uploaded by the submitter
+                if (a.assetState != Asset.AssetStateType.UploadedToPalette || a.UserID != submitterID)
+                {
+                    // skip asset
+                    continue;
+                }
+
+                a.ProjectID = projectID;
+                a.LastUpdated = DateTime.UtcNow;
+                successfulAssociations.Add(a.BlobID);
+            } 
+            await _context.SaveChangesAsync();
+
+            return (successfulAssociations, blobIDs.Except(successfulAssociations).ToList());   
+
         }
 
         public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
