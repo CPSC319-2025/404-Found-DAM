@@ -1,4 +1,5 @@
-using Core.Entities;
+using System.Text.Json;
+
 
 namespace Core.Dtos
 {
@@ -13,7 +14,7 @@ namespace Core.Dtos
     public class AssetMetadataEntry
     {
         public required int FieldId { get; set; }
-        public required string FieldValue { get; set; }
+        public required JsonElement FieldValue { get; set; }
     }
 
         public class AssociateAssetsWithProjectRes

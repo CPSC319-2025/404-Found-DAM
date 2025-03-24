@@ -1,5 +1,6 @@
 using Core.Entities;
 using Core.Dtos;
+using System.Text.Json;
 
 namespace Core.Interfaces
 {
@@ -15,6 +16,6 @@ namespace Core.Interfaces
         Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
         Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req);
         Task AddAssetTagAssociationAsync(string imageId, int tagId);
-        Task UpsertAssetMetadataAsync(string imageId, int fieldId, string fieldValue);
+        Task UpsertAssetMetadataAsync(string imageId, int fieldId, JsonElement fieldValueElement);
     }
 }

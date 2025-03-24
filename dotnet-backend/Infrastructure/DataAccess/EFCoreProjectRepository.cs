@@ -9,6 +9,7 @@ using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace Infrastructure.DataAccess
 {
@@ -473,9 +474,20 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task UpsertAssetMetadataAsync(string imageId, int fieldId, string fieldValue)
+        public async Task UpsertAssetMetadataAsync(string imageId, int fieldId, JsonElement fieldValueElement)
         {
             using var context = _contextFactory.CreateDbContext();
+
+            string fieldValueString;
+            // case: string
+            if (fieldValueElement.ValueKind == JsonValueKind.String) {
+                fieldValueString = fieldValueElement.GetString() ?? "";
+            } else {
+                // return raw text for numbers and bools (eg 100 or true)
+                fieldValueString = fieldValueElement.GetRawText();
+            }
+
+
             
             var assetMetadata = await context.AssetMetadata
                 .FirstOrDefaultAsync(am => am.BlobID == imageId && am.FieldID == fieldId);
@@ -483,7 +495,7 @@ namespace Infrastructure.DataAccess
             if (assetMetadata != null)
             {
                 // Update existing record.
-                assetMetadata.FieldValue = fieldValue;
+                assetMetadata.FieldValue = fieldValueString;
             }
             else
             {
@@ -500,7 +512,7 @@ namespace Infrastructure.DataAccess
                 {
                     BlobID = imageId,
                     FieldID = fieldId,
-                    FieldValue = fieldValue,
+                    FieldValue = fieldValueString,
                     Asset = asset, // required navigation property
                     ProjectMetadataField = metadataField // required navigation property
                 };
