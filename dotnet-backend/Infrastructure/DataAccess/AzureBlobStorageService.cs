@@ -65,7 +65,7 @@ namespace Infrastructure.DataAccess
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
             // Use the same blob naming convention as in upload
-            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}.{asset.FileName}.zst");
+            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}");
             
             // Delete the blob
             return await blobClient.DeleteIfExistsAsync();
