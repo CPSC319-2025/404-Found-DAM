@@ -442,6 +442,73 @@ namespace Infrastructure.DataAccess
             };
             
         }
+
+        public async Task AddAssetTagAssociationAsync(string imageId, int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+
+            // Check if the association already exists.
+            bool exists = await context.AssetTags.AnyAsync(at => at.BlobID == imageId && at.TagID == tagId);
+            if (!exists)
+            {
+                // Retrieve the required navigation properties.
+                var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == imageId);
+                var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagID == tagId);
+
+                if (asset == null || tag == null)
+                {
+                    throw new Exception("Either the asset or tag was not found.");
+                }
+
+                var assetTag = new AssetTag
+                {
+                    BlobID = imageId,
+                    TagID = tagId,
+                    Asset = asset, // required property
+                    Tag = tag      // required property
+                };
+
+                await context.AssetTags.AddAsync(assetTag);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        public async Task UpsertAssetMetadataAsync(string imageId, int fieldId, string fieldValue)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            var assetMetadata = await context.AssetMetadata
+                .FirstOrDefaultAsync(am => am.BlobID == imageId && am.FieldID == fieldId);
+
+            if (assetMetadata != null)
+            {
+                // Update existing record.
+                assetMetadata.FieldValue = fieldValue;
+            }
+            else
+            {
+                // Retrieve the required navigation properties.
+                var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == imageId);
+                var metadataField = await context.ProjectMetadataFields.FirstOrDefaultAsync(f => f.FieldID == fieldId);
+
+                if (asset == null || metadataField == null)
+                {
+                    throw new Exception("Either the asset or metadata field was not found.");
+                }
+
+                assetMetadata = new AssetMetadata
+                {
+                    BlobID = imageId,
+                    FieldID = fieldId,
+                    FieldValue = fieldValue,
+                    Asset = asset, // required navigation property
+                    ProjectMetadataField = metadataField // required navigation property
+                };
+
+                await context.AssetMetadata.AddAsync(assetMetadata);
+            }
+            await context.SaveChangesAsync();
+        }
         
     }
 }

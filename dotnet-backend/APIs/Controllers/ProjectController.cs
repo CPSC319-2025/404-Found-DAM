@@ -160,14 +160,28 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsReq req, IProjectService projectService)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsWithProjectReq request, IProjectService projectService, ILogger<Program> logger)
         {
-            try 
+            try
             {
-                // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
-                int submitterID = MOCKEDUSERID; 
-                AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
-                return Results.Ok(result);
+                // Ensure the projectID in the route matches the one in the request.
+                if (projectID != request.ProjectID)
+                {
+                    return Results.BadRequest("Project ID mismatch between route and request body.");
+                }
+
+                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
+
+                AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
+
+                return Results.Ok(new
+                {
+                    status = "success",
+                    projectId = result.ProjectID,
+                    updatedImages = result.UpdatedImages,
+                    failedAssociations = result.FailedAssociations,
+                    message = result.Message
+                });
             }
             catch (DataNotFoundException ex)
             {
@@ -175,7 +189,7 @@ namespace APIs.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
+                logger.LogError($"Error in AssociateAssetsWithProject: {ex.Message}");
                 return Results.StatusCode(500);
             }
         }

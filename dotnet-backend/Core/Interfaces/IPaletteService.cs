@@ -15,7 +15,6 @@ namespace Core.Interfaces
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);
         Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
         Task<List<string>> GetProjectTagsAsync(int projectId);
-        Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId);
         Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID);    
     }
 }

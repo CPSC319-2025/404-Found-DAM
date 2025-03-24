@@ -50,27 +50,27 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<string> blobIDs, int submitterID)
+        public async Task<AssociateAssetsWithProjectRes> AssociateAssetsWithProject(AssociateAssetsWithProjectReq request, int submitterID)
         {
-            try 
+            (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(request.ProjectID, request.BlobIDs, submitterID);
+            foreach (string blobId in successfulAssociations)
             {
-                (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
-                AssociateAssetsRes result = new AssociateAssetsRes
+                foreach (int tagId in request.TagIDs)
                 {
-                    projectID = projectID,
-                    success = successfulAssociations,
-                    fail = failedAssociations,
-                };
-                return result;
+                    await _repository.AddAssetTagAssociationAsync(blobId, tagId);
+                }
+                foreach (var metadata in request.MetadataEntries)
+                {
+                    await _repository.UpsertAssetMetadataAsync(blobId, metadata.FieldId, metadata.FieldValue);
+                }
             }
-            catch (DataNotFoundException)
+            return new AssociateAssetsWithProjectRes
             {
-                throw;
-            }
-            catch (Exception) 
-            {
-                throw;
-            }
+                ProjectID = request.ProjectID,
+                UpdatedImages = successfulAssociations,
+                FailedAssociations = failedAssociations,
+                Message = "Assets associated with project along with tags and metadata successfully."
+            };
         }
 
         public async Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs)

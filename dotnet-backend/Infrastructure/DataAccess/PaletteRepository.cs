@@ -31,44 +31,6 @@ namespace Infrastructure.DataAccess {
 
             return projectTags ?? new List<string>();
         }
-
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags) {
-            using var _context = _contextFactory.CreateDbContext();
-
-            var assets = await _context.Assets
-            .Where(a => imageIds
-            .Contains(a.BlobID))
-            .Include(a => a.AssetTags)
-            .ThenInclude(at => at.Tag)
-            .ToListAsync();
-
-            if (!assets.Any()) {
-                return false; 
-            }
-
-            foreach (var asset in assets) {
-
-                var existingTags = asset.AssetTags.Select(at => at.Tag.Name).ToHashSet();
-
-                foreach (var tagName in tags) {
-                    if (!existingTags.Contains(tagName)) {
-                        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
-                        if (tag == null) {
-                            tag = new Tag { Name = tagName };
-                            await _context.Tags.AddAsync(tag);
-                            await _context.SaveChangesAsync();
-                        } 
-                        asset.AssetTags.Add(new AssetTag {
-                            BlobID = asset.BlobID,
-                            Asset = asset,
-                            TagID = tag.TagID,
-                            Tag = tag
-                        });
-                    }
-                }
-            }
-            return await _context.SaveChangesAsync() > 0;
-        }
         
         public async Task<string> UploadAssets(IFormFile file, UploadAssetsReq request)
         {
