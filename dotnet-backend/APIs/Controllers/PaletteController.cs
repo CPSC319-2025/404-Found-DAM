@@ -21,6 +21,14 @@ namespace APIs.Controllers
         .WithName("GetPaletteAssets")
         .WithOpenApi();
 
+        // Get a specific asset by blobId
+        app.MapGet("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
+        {
+            return await GetSingleAsset(blobId, request, paletteService);
+        })
+        .WithName("GetSingleAsset")
+        .WithOpenApi();
+
         app.MapPost("/palette/upload", async (HttpRequest request, IPaletteService paletteService) =>
         {
             return await UploadAssets(request, paletteService);
@@ -117,7 +125,6 @@ namespace APIs.Controllers
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
         {
-            // Console.WriteLine("Request received. Form data: " + string.Join(", ", request.Form.Keys));
             try {
                 int userId = MOCKEDUSERID;
 
@@ -132,6 +139,17 @@ namespace APIs.Controllers
                     UserId = userId
                 };
 
+                // Check if client prefers decompressed files
+                bool decompressFiles = request.Query.ContainsKey("decompress") && 
+                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
+
+                // Get size limit parameter from query with default of 10MB
+                int sizeLimit = 10 * 1024 * 1024; // Default 10MB
+                if (request.Query.ContainsKey("sizeLimit") && 
+                    int.TryParse(request.Query["sizeLimit"], out int customLimit)) {
+                    sizeLimit = customLimit;
+                }
+
                 // Create a task for each file
                 var files = await paletteService.GetAssets(uploadRequest);
                 // If no files were found
@@ -140,47 +158,21 @@ namespace APIs.Controllers
                     return Results.Ok(new { assets = Array.Empty<object>() }); 
                 }
                 
-                // If there's only one file, return it directly
-                if (files.Count == 1)
-                {
-                    var file = files[0];
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        await file.CopyToAsync(memoryStream);
-                        return Results.File(
-                            fileContents: memoryStream.ToArray(),
-                            contentType: "application/zstd",  // Use appropriate MIME type for zstd
-                            fileDownloadName: file.FileName
-                        );
-                    }
-                }
-                
-                // If multiple files, create a zip archive containing the already-compressed .zst files
-                using (var memoryStream = new MemoryStream())
-                {
-                    using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
-                    {
-                        foreach (var file in files)
-                        {
-                            // Create a zip entry with the original filename
-                            var zipEntry = archive.CreateEntry(file.FileName, System.IO.Compression.CompressionLevel.NoCompression); // Use NoCompression since files are already compressed
-                            
-                            // Write the .zst file content to the zip entry
-                            using (var entryStream = zipEntry.Open())
-                            using (var fileStream = file.OpenReadStream())
-                            {
-                                await fileStream.CopyToAsync(entryStream);
-                            }
-                        }
-                    }
-                    
-                    memoryStream.Position = 0;
-                    return Results.File(
-                        fileContents: memoryStream.ToArray(),
-                        contentType: "application/zip",
-                        fileDownloadName: $"zst-files-{DateTime.Now:yyyyMMddHHmmss}.zip"
-                    );
-                }
+                // Get the metadata for all files (including their sizes)
+                var fileMetadata = files.Select(f => new {
+                    fileName = f.FileName,
+                    size = f.Length,
+                    contentType = decompressFiles ? 
+                        GetMimeTypeFromFileName(f.FileName.Replace(".zst", "")) : 
+                        "application/zstd",
+                    blobId = ExtractBlobId(f.FileName)
+                }).ToList();
+
+                // Return just the metadata for all files
+                return Results.Ok(new { 
+                    files = fileMetadata,
+                    message = "Get file metadata only. Use /palette/assets/{blobId} endpoint to download individual files."
+                });
             } catch (Exception ex) {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return Results.Problem
@@ -190,9 +182,39 @@ namespace APIs.Controllers
                     title: "Internal Server Error"
                 );
             }
-            
         }
 
+        // Helper function to extract the blobId from a filename
+        private static string ExtractBlobId(string filename)
+        {
+            // Format: BlobID.OriginalFilename.zst
+            var parts = filename.Split('.');
+            if (parts.Length < 2)
+            {
+                return string.Empty;
+            }
+            
+            return parts[0];
+        }
+
+        // Helper function to determine mime type from filename
+        private static string GetMimeTypeFromFileName(string filename)
+        {
+            var extension = Path.GetExtension(filename).ToLowerInvariant();
+            
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".webp" => "image/webp",
+                ".mp4" => "video/mp4",
+                ".webm" => "video/webm",
+                ".ogg" => "video/ogg",
+                _ => "application/octet-stream"
+            };
+        }
 
         /*
             UploadAssets supports batch uploading, but FE currently will only send 1 asset per call.
@@ -406,5 +428,147 @@ namespace APIs.Controllers
             }
         }
         
+        private static async Task<IResult> GetSingleAsset(string blobId, HttpRequest request, IPaletteService paletteService)
+        {
+            try 
+            {
+                int userId = MOCKEDUSERID;
+
+                // Check if we should decompress the file
+                bool decompress = request.Query.ContainsKey("decompress") && 
+                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
+
+                // Get range headers for chunked download
+                var rangeHeader = request.Headers.Range.FirstOrDefault();
+                long? startByte = null;
+                long? endByte = null;
+
+                if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
+                {
+                    var rangeValue = rangeHeader.Substring("bytes=".Length);
+                    var rangeParts = rangeValue.Split('-');
+                    
+                    if (rangeParts.Length == 2)
+                    {
+                        if (!string.IsNullOrEmpty(rangeParts[0]))
+                            startByte = Convert.ToInt64(rangeParts[0]);
+                        
+                        if (!string.IsNullOrEmpty(rangeParts[1]))
+                            endByte = Convert.ToInt64(rangeParts[1]);
+                    }
+                }
+
+                // Get the specific file by blobId
+                var file = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
+                
+                if (file == null)
+                {
+                    return Results.NotFound($"File with blobId {blobId} not found");
+                }
+
+                // Get file information
+                var fileSize = file.Length;
+                var fileName = file.FileName;
+                
+                // Extract original filename from BlobId.OriginalFilename.zst format
+                string originalFileName = fileName;
+                if (fileName.EndsWith(".zst"))
+                {
+                    originalFileName = fileName.Substring(0, fileName.Length - 4); // Remove .zst
+                    
+                    var parts = originalFileName.Split('.');
+                    if (parts.Length > 1)
+                    {
+                        // Remove blobId prefix
+                        originalFileName = string.Join('.', parts.Skip(1));
+                    }
+                }
+
+                // Determine content type based on original filename and decompress option
+                var contentType = decompress
+                    ? GetMimeTypeFromFileName(originalFileName)
+                    : "application/zstd";
+
+                // If range is specified, return just that chunk
+                if (startByte.HasValue)
+                {
+                    // Set default end byte if not specified
+                    if (!endByte.HasValue || endByte.Value >= fileSize)
+                        endByte = fileSize - 1;
+                    
+                    var length = endByte.Value - startByte.Value + 1;
+                    
+                    using (var fileStream = file.OpenReadStream())
+                    {
+                        fileStream.Seek(startByte.Value, SeekOrigin.Begin);
+                        
+                        byte[] buffer = new byte[length];
+                        await fileStream.ReadAsync(buffer, 0, (int)length);
+                        
+                        // If decompress is requested and this is a .zst file
+                        if (decompress && fileName.EndsWith(".zst"))
+                        {
+                            // Note: This approach only works for complete files, not for partial chunks
+                            // For partial chunks, you'd need a more sophisticated approach
+                            // This is why we're only decompressing if it's the full file
+                            if (startByte == 0 && endByte == fileSize - 1)
+                            {
+                                buffer = await paletteService.DecompressZstdAsync(buffer);
+                            }
+                            else
+                            {
+                                // We can't decompress partial chunks, so return an error
+                                return Results.BadRequest("Cannot decompress partial file chunks. Request the whole file or set decompress=false.");
+                            }
+                        }
+                        
+                        return Results.Bytes(
+                            contents: buffer,
+                            contentType: contentType,
+                            fileDownloadName: decompress ? originalFileName : fileName,
+                            enableRangeProcessing: true,
+                            lastModified: DateTimeOffset.UtcNow,
+                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
+                        );
+                    }
+                }
+                else
+                {
+                    // Return the whole file
+                    using (var fileStream = file.OpenReadStream())
+                    {
+                        var memoryStream = new MemoryStream();
+                        await fileStream.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+                        
+                        byte[] fileContents = memoryStream.ToArray();
+                        
+                        // If decompress is requested and this is a .zst file
+                        if (decompress && fileName.EndsWith(".zst"))
+                        {
+                            fileContents = await paletteService.DecompressZstdAsync(fileContents);
+                        }
+                        
+                        return Results.File(
+                            fileContents: fileContents,
+                            contentType: contentType,
+                            fileDownloadName: decompress ? originalFileName : fileName,
+                            enableRangeProcessing: true,
+                            lastModified: DateTimeOffset.UtcNow,
+                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred getting asset: {ex.Message}");
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
     }
 }

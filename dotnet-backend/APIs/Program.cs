@@ -16,6 +16,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(allowedOrigins)
+                  .AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .WithExposedHeaders("Content-Disposition");
@@ -40,6 +41,7 @@ builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
@@ -88,6 +90,7 @@ app.MapAdminEndpoints();
 app.MapPaletteEndpoints();
 app.MapSearchEndpoints();
 app.MapUserEndpoints();
+app.MapFileUploadEndpoints();
 
 // Create/migrate database
 if (app.Environment.IsDevelopment())
@@ -101,20 +104,8 @@ if (app.Environment.IsDevelopment())
         .CreateDbContext();
 
     await context.Database.EnsureCreatedAsync();
-} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
-{
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
-    
-    // Drop the database
-    dbContext.Database.EnsureDeleted();
-    
-    // Apply migrations to create a new database
-    dbContext.Database.Migrate();
-    await SeedDatabase(app);
-    
-    Console.WriteLine("Database was reset and migrations applied successfully");
-} else
+}
+else
 {
     try
     {
