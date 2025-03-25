@@ -9,7 +9,6 @@ import FileTable from "./components";
 import { 
   fetchPaletteAssets, 
   fetchBlobDetails, 
-  uploadFileZstd, 
   fetchProjects, 
   removeFile as removeFileApi, 
   submitAssets,
@@ -56,6 +55,10 @@ export default function PalettePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const didFetchRef = useRef(false);
+  
+  // Upload status for drag and drop
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Helper function to get file dimensions from image/video and add to state
   const processFileMetadata = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
@@ -87,41 +90,31 @@ export default function PalettePage() {
     });
   }, [setFiles]);
 
-  // Helper function to upload file and update blobId
-  const uploadAndUpdateBlobId = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
-    try {
-      const blobId = await uploadFileZstd(fileMeta);
-      if (blobId) {
-        setFiles((prevFiles) =>
-          prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId } : f
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error);
-    }
-  }, [setFiles]);
-
   // Helper function to fetch blob details
-  const fetchAndUpdateBlobDetails = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
-    if (!fileMeta.blobId) return;
+  const fetchAndUpdateBlobDetails = useCallback(async (blobId: string): Promise<void> => {
+    if (!blobId) return;
     
     try {
-      const details = await fetchBlobDetails(fileMeta.blobId);
-      if (details.project) {
-        fileMeta.project = details.project;
-      }
-      if (details.tags && details.tags.length > 0) {
-        fileMeta.tags = details.tags;
-        fileMeta.tagIds = details.tagIds || [];
-        fileMeta.description = details.description || "";
-        fileMeta.location = details.location || "";
-      }
+      const details = await fetchBlobDetails(blobId);
+      
+      // Update the file in our state with the details
+      setFiles(prevFiles => prevFiles.map(file => {
+        if (file.blobId === blobId) {
+          return {
+            ...file,
+            project: details.project,
+            tags: details.tags || [],
+            tagIds: details.tagIds || [],
+            description: details.description || "",
+            location: details.location || ""
+          };
+        }
+        return file;
+      }));
     } catch (error) {
       console.error("Error fetching blob details:", error);
     }
-  }, []);
+  }, [setFiles]);
 
   // Load assets on initial mount
   useEffect(() => {
@@ -135,7 +128,9 @@ export default function PalettePage() {
       // Process each file for additional metadata
       for (const fileMeta of fetchedFiles) {
         await processFileMetadata(fileMeta);
-        await fetchAndUpdateBlobDetails(fileMeta);
+        if (fileMeta.blobId) {
+          await fetchAndUpdateBlobDetails(fileMeta.blobId);
+        }
       }
     };
     
@@ -182,16 +177,60 @@ export default function PalettePage() {
     };
   }, []);
 
-  // Handle file drop
+  // Create callbacks for the chunked upload
+  const createUploadCallbacks = useCallback((file: File): UploadProgressCallbacks => ({
+    onProgress: (progress: number, status: string) => {
+      setUploadStatus(`Uploading ${file.name}: ${status}`);
+      setUploadProgress(progress);
+    },
+    onSuccess: async () => {
+      setUploadStatus(`File ${file.name} uploaded successfully`);
+      setUploadProgress(100);
+      
+      // Clear status after a delay
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+      }, 3000);
+      
+      // Refresh the palette assets list to show the newly uploaded file
+      const fetchedFiles = await fetchPaletteAssets();
+      
+      // Find the newly uploaded file and get its blobId
+      const newFile = fetchedFiles.find(f => f.file.name === file.name);
+      if (newFile && newFile.blobId) {
+        await fetchAndUpdateBlobDetails(newFile.blobId);
+      }
+    },
+    onError: (error: string) => {
+      setUploadStatus(`Error uploading ${file.name}: ${error}`);
+      
+      // Clear error after a delay
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+      }, 5000);
+    }
+  }), [fetchAndUpdateBlobDetails]);
+
+  // Handle file drop with chunked upload
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       for (const file of acceptedFiles) {
+        // Create file metadata
         const fileMeta = createFileMetadata(file);
+        
+        // Process file metadata (dimensions, etc.)
         await processFileMetadata(fileMeta);
-        await uploadAndUpdateBlobId(fileMeta);
+        
+        // Upload file in chunks
+        setUploadStatus(`Starting upload of ${file.name}...`);
+        setUploadProgress(0);
+        
+        await uploadFileChunked(file, createUploadCallbacks(file));
       }
     },
-    [createFileMetadata, processFileMetadata, uploadAndUpdateBlobId]
+    [createFileMetadata, processFileMetadata, createUploadCallbacks]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -264,86 +303,6 @@ export default function PalettePage() {
     }
   }, [files, selectedIndices, setFiles]);
 
-  // File upload component for large files
-  const FileUpload = () => {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [status, setStatus] = useState("");
-    const [progress, setProgress] = useState(0);
-  
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] || null;
-      setSelectedFile(file);
-    };
-  
-    // Create callbacks for the chunked upload
-    const createUploadCallbacks = (): UploadProgressCallbacks => ({
-      onProgress: (progress: number, status: string) => {
-        setStatus(status);
-        setProgress(progress);
-      },
-      onSuccess: () => {
-        setStatus("File upload completed successfully");
-        setProgress(100);
-        
-        // Reset file selection
-        setSelectedFile(null);
-        
-        // Refresh the palette assets list to show the newly uploaded file
-        const loadAssets = async () => {
-          setFiles([]);
-          const fetchedFiles = await fetchPaletteAssets();
-          setFiles(fetchedFiles);
-        };
-        loadAssets();
-      },
-      onError: (error: string) => {
-        setStatus(`Error: ${error}`);
-      }
-    });
-    
-    const handleFileUpload = async () => {
-      if (!selectedFile) {
-        alert("Please select a file to upload.");
-        return;
-      }
-  
-      // Start the upload process
-      setStatus("Starting upload...");
-      setProgress(0);
-      await uploadFileChunked(selectedFile, createUploadCallbacks());
-    };
-
-    return (
-      <div className="mt-6 p-4 border rounded bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">Large File Upload</h2>
-        <p className="text-sm text-gray-600 mb-3">Upload large files in chunks for better reliability</p>
-        
-        {status && (
-          <div className="mb-3">
-            <p className="text-sm text-gray-700">{status}</p>
-            {progress > 0 && <Progress value={progress} />}
-          </div>
-        )}
-        
-        <div className="flex items-center space-x-4">
-          <input 
-            type="file" 
-            onChange={handleFileChange} 
-            className="block w-full text-sm text-gray-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-indigo-50 file:text-indigo-700
-                      hover:file:bg-indigo-100"
-          />
-          <Button onClick={handleFileUpload}>
-            Upload File
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="p-6 min-h-screen">
       <FileTable
@@ -381,14 +340,20 @@ export default function PalettePage() {
           )}
         </div>
 
+        {/* Display upload progress and status */}
+        {uploadStatus && (
+          <div className="mt-4 w-full max-w-md">
+            <p className="text-sm text-gray-700">{uploadStatus}</p>
+            {uploadProgress > 0 && <Progress value={uploadProgress} />}
+          </div>
+        )}
+
         <button
           onClick={handleSubmitAssets}
           className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           Submit Assets
         </button>
-
-        <FileUpload />
       </div>
     </div>
   );
