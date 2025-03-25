@@ -73,6 +73,8 @@ namespace Infrastructure.DataAccess
         
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
+            // assetIdNameTuples.Item2 e.g., "land_picture.webp"
+            
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
@@ -105,7 +107,7 @@ namespace Infrastructure.DataAccess
                     baseStreamOffset: 0,
                     length: memoryStream.Length,
                     name: "file", // Form field name
-                    fileName: Path.GetFileName(assetIdNameTuple.Item1) // "{asset.BlobID}.{asset.FileName}.zst"
+                    fileName: Path.GetFileName($"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst")
                 );
                 
                 // Set content type if needed
