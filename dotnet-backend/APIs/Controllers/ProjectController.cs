@@ -17,7 +17,7 @@ namespace APIs.Controllers
         private const int MOCKEDUSERID = 2;
 
         private static IActivityLogService _activityLogService;
-        public static void setUpActivityLogService(IActivityLogService activityLogService)
+        public static void Initialize(IActivityLogService activityLogService)
         {
             _activityLogService = activityLogService;
 
@@ -179,7 +179,7 @@ namespace APIs.Controllers
             {
                 // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
                 int submitterID = MOCKEDUSERID;
-                int? submittedID = AuthorizationHelper.GetUserIdFromToken(req);
+                // int? submittedID = AuthorizationHelper.GetUserIdFromToken(req);
                 if (submitterID == null) {
                     return Results.StatusCode(500);
                 }
@@ -188,9 +188,8 @@ namespace APIs.Controllers
                 if (_activityLogService == null) {
                     return Results.StatusCode(500);
                 }
-
                 foreach (var blobID in req.blobIDs) {
-                    await ActivityLogService.AddLogAsync(
+                    await _activityLogService.AddLogAsync(
                         submitterID,
                         "Added",
                         "",

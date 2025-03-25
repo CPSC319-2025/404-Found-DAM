@@ -44,6 +44,9 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>(); // sean added
 builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>(); // sean added
 
+
+
+
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
 // only developer working on this task. 
@@ -57,6 +60,13 @@ if (!builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
+
+// static dependency injection
+using (var scope = app.Services.CreateScope())
+{
+    var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
+    ProjectController.Initialize(activityLogService);
+}
 
 // 3) Make sure to call app.UseCors(...) BEFORE mapping endpoints
 app.UseCors("AllowReactApp");
