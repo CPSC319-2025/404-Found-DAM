@@ -17,7 +17,7 @@ namespace APIs.Controllers
     public static class ActivityLogController
     {
 
-        public static void MapActivityLogEndpoints(this WebApplication app)
+        public static async Task MapActivityLogEndpoints(this WebApplication app)
         {
             app.MapGet("/logs", async (HttpRequest request, [FromServices] IActivityLogService activityLogService) =>
             {
@@ -26,26 +26,13 @@ namespace APIs.Controllers
             .WithName("GetActivityLog")
             .WithOpenApi();
 
-            app.MapPost("/logs", async (HttpRequest request, [FromServices] IActivityLogService activityLogService) =>
-            {
-                return await AddActivityLog(request, activityLogService);
-            })
-            .WithName("AddActivityLog")
-            .WithOpenApi();
+            // app.MapPost("/addLog", async (HttpRequest request, [FromServices] IActivityLogService activityLogServuice) => )
+            // {
+            //     return await AddLogAsync(request, activityLogService);
+            // }
+
         }
-        // private readonly IActivityLogService _activityLogService;
-
-        // public ActivityLogController(IActivityLogService activityLogService)
-        // {
-        //     _activityLogService = activityLogService;
-        // }
-
-        // [HttpGet("retrieve")]
-        // public async Task<IActionResult> GetLogs(int userID, User user, string changeType, int projectID, int assetID, DateTime? fromDate, DateTime? toDate)
-        // {
-        //     var logs = await _activityLogService.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate);
-        //     return Ok(logs);
-        // }
+        
         public static async Task<IResult> GetActivityLog(HttpRequest request, [FromServices] IActivityLogService activityService)
         {
             var query = request.Query;
@@ -93,6 +80,11 @@ namespace APIs.Controllers
                 totalRecords = totalRecords,
                 data = paginatedLogs
             });
+        }
+
+        public static async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID, IActivityLogService service) {
+            // IActivityLogService service = new ActivityLogService();
+            return await service.AddLogAsync(userID, changeType, description, projectID, assetID);
         }
 
     }

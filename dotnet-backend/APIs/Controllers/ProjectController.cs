@@ -3,6 +3,7 @@ using Core.Dtos;
 using Infrastructure.Exceptions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Core.Services;
+using Infrastructure.DataAccess;
 
 // Use Task<T> or Task for async operations
 
@@ -14,6 +15,13 @@ namespace APIs.Controllers
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
         private const int MOCKEDUSERID = 2;
+
+        private static IActivityLogService _activityLogService;
+        public static void setUpActivityLogService(IActivityLogService activityLogService)
+        {
+            _activityLogService = activityLogService;
+
+        }
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -170,9 +178,26 @@ namespace APIs.Controllers
             try 
             {
                 // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
-                int submitterID = MOCKEDUSERID; 
+                int submitterID = MOCKEDUSERID;
+                int? submittedID = AuthorizationHelper.GetUserIdFromToken(req);
+                if (submitterID == null) {
+                    return Results.StatusCode(500);
+                }
                 AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
-                ActivityLogService.AddLogAsync(submitterID, "Added", )
+
+                if (_activityLogService == null) {
+                    return Results.StatusCode(500);
+                }
+
+                foreach (var blobID in req.blobIDs) {
+                    await ActivityLogService.AddLogAsync(
+                        submitterID,
+                        "Added",
+                        "",
+                        projectID,
+                        int.Parse(blobID)
+                    );
+                }
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex)

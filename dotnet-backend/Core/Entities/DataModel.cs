@@ -133,8 +133,8 @@ namespace Core.Entities
         public int UserID { get; set; }
         
         // Navigation property
-        [ForeignKey("UserID")]
-        public required virtual User User { get; set; }
+        // [ForeignKey("UserID")]
+        // public required virtual User User { get; set; }
     }
 
     // Junction table for many-to-many between Project and User.

@@ -6,6 +6,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Core.Services
+
+// I need the a function in ProjectController to call AddLog (either in ActivityLogController or ActivityLogService)
+// However, it seems like I am unable to make this call due to missing a context that I have no access to in ProjectController
+// SHould I use static dependency injection to do this? yes.
 {
     // test
     public class ActivityLogService : IActivityLogService
@@ -25,14 +29,14 @@ namespace Core.Services
             return changeID;
         }
 
-        public async Task<bool> AddLogAsync(int userID, User user, string changeType, string description, int projectID, int assetID)
+        public async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID)
         {
             var log = new Log
             {
                 ChangeID = getNextLogNumber(),
                 Timestamp = DateTime.UtcNow,
                 UserID = userID,
-                User = user,
+                // User = user, TODO
                 ChangeType = changeType,
                 Description = description,
                 ProjectID = projectID,
