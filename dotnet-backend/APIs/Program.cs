@@ -4,8 +4,15 @@ using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
 using MockedData;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// To increase request body size limit
+builder.Services.Configure<KestrelServerOptions>(options =>
+   {
+     options.Limits.MaxRequestBodySize = 1_000_000_000;
+   });
 
 // 1) Read from appsettings.json -> "AllowedOrigins": ["http://localhost:3000"]
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
