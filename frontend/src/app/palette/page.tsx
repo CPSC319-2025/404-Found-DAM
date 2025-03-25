@@ -649,46 +649,6 @@ export default function PalettePage() {
           // All chunks uploaded
           setProgress(100);
           setStatus("File upload completed successfully");
-
-          // If this was the last chunk and we have a blobId in the response
-          if (lastResponse && lastResponse.blobId) {
-            // Create a file metadata object for the uploaded file
-            const fileSize = (selectedFile.size / 1024).toFixed(2) + " KB";
-            const fileMeta: FileMetadata = {
-              file: selectedFile,
-              fileSize,
-              description: "",
-              location: "",
-              tags: [],
-              tagIds: [],
-              blobId: lastResponse.blobId
-            };
-
-            if (selectedFile.type.startsWith("image/")) {
-              const img = new Image();
-              img.onload = () => {
-                fileMeta.width = img.width;
-                fileMeta.height = img.height;
-                // Add metadata to state
-                setFiles(prev => [...prev, fileMeta]);
-              };
-              img.src = URL.createObjectURL(selectedFile);
-            } else if (selectedFile.type.startsWith("video/")) {
-              const video = document.createElement("video");
-              video.preload = "metadata";
-              video.onloadedmetadata = () => {
-                fileMeta.width = video.videoWidth;
-                fileMeta.height = video.videoHeight;
-                fileMeta.duration = Math.floor(video.duration);
-                // Add metadata to state
-                setFiles(prev => [...prev, fileMeta]);
-              };
-              video.src = URL.createObjectURL(selectedFile);
-            } else {
-              // Other file types
-              setFiles(prev => [...prev, fileMeta]);
-            }
-          }
           
           // Reset file selection
           setSelectedFile(null);
