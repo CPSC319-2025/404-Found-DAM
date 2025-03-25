@@ -201,6 +201,7 @@ namespace APIs.Controllers
         */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
+            Console.WriteLine("in UploadAssets");
             try {
                 // Check if the request has form data
                 if (!request.HasFormContentType || request.Form.Files.Count == 0)

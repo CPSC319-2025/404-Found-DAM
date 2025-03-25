@@ -98,8 +98,11 @@ namespace Core.Services
 
                 if (isRequesterProjectAdmin)
                 {
-                    List<Asset> assets = await _projRepository.GetProjectAssetsInDb(projectID);
+                    List<Asset> assets = await _projRepository.GetProjectAndAssetsInDb(projectID);
                     (string fileName, byte[] excelByteArray) = AdminServiceHelpers.GenerateProjectExportExcel(project, assets);
+                    
+
+                    // TODO: get the asset files to be retunr together
                     return (fileName, excelByteArray);
                 }
                 else
