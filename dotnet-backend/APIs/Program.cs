@@ -23,7 +23,6 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(allowedOrigins)
-                  .AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .WithExposedHeaders("Content-Disposition");
@@ -119,6 +118,7 @@ if (app.Environment.IsDevelopment())
     
     // Apply migrations to create a new database
     dbContext.Database.Migrate();
+    await SeedDatabase(app);
     
     Console.WriteLine("Database was reset and migrations applied successfully");
 } else

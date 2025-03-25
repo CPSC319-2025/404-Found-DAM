@@ -121,7 +121,7 @@ namespace Infrastructure.DataAccess {
                     catch (VipsException)
                     {
                         // TODO: Consider notifying users of failed conversion
-                        Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
+                        // Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
                         using (var ms = new MemoryStream())
                         {
                             await file.CopyToAsync(ms);
@@ -153,6 +153,12 @@ namespace Infrastructure.DataAccess {
                     LastUpdated = DateTime.UtcNow,
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
+
+                if (compressedData.Length / 1024.0 > 2000)
+                {
+                    throw new Exception();
+                }
+
                 string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
                 asset.BlobID = blobId;
                     // Add the asset to the database context and save changes
@@ -160,9 +166,9 @@ namespace Infrastructure.DataAccess {
                 int num = await _context.SaveChangesAsync();
                 return asset;
             }
-            catch (Exception ex) 
+            catch (Exception) 
             {
-                Console.WriteLine($"Error saving asset to database: {ex.Message}");
+                // Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 throw;
             }
         }

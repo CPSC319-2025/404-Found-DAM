@@ -24,11 +24,17 @@ SOFTWARE.
 
 -----------------------------------------------------------------------------
 */
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Core.Interfaces;
 using Core.Dtos;
 using Core.Entities;
+using ClosedXML.Excel;
 using Infrastructure.Exceptions;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
 
 
@@ -380,6 +386,54 @@ namespace Core.Services
         public async Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req)
         {
             return await _repository.UpdateProjectInDb(projectID, req);
+        }
+        
+
+        public async Task<List<GetProjectRes>> GetMyProjects(int userId)
+        {
+            List<Project> projects = await _repository.GetProjectsForUserInDb(userId);
+
+            List<GetProjectRes> result = projects.Select(p => new GetProjectRes
+            {
+                projectID = p.ProjectID,
+                name = p.Name,
+                description = p.Description,
+                location = p.Location,
+                active = p.Active,
+                archivedAt = p.ArchivedAt,
+                admins = p.ProjectMemberships?
+                    .Where(pm => pm.User != null && pm.UserRole == ProjectMembership.UserRoleType.Admin)
+                    .Select(pm => new UserCustomInfo
+                    {
+                        userID = pm.User.UserID,
+                        name = pm.User.Name,
+                        email = pm.User.Email
+                    }).ToList() ?? new List<UserCustomInfo>(),
+                regularUsers = p.ProjectMemberships?
+                    .Where(pm => pm.User != null && pm.UserRole == ProjectMembership.UserRoleType.Regular)
+                    .Select(pm => new UserCustomInfo
+                    {
+                        userID = pm.User.UserID,
+                        name = pm.User.Name,
+                        email = pm.User.Email
+                    }).ToList() ?? new List<UserCustomInfo>(),
+                tags = p.ProjectTags?
+                    .Select(pt => new TagCustomInfo
+                    {
+                        tagID = pt.Tag.TagID,
+                        name = pt.Tag.Name
+                    }).ToList() ?? new List<TagCustomInfo>(),
+                metadataFields = p.ProjectMetadataFields?
+                    .Select(pmf => new ProjectMetadataCustomInfo
+                    {
+                        FieldID = pmf.FieldID,
+                        FieldName = pmf.FieldName,
+                        FieldType = pmf.FieldType.ToString(),
+                        IsEnabled = pmf.IsEnabled
+                    }).ToList() ?? new List<ProjectMetadataCustomInfo>()
+            }).ToList();
+
+            return result;
         }
 
         public async Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID)
