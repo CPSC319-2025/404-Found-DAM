@@ -8,7 +8,7 @@ namespace Core.Interfaces
     public interface IPaletteService
     {
         Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp);
-        Task<UploadAssetsRes[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp);
+        Task<ProcessedAsset[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp);
 
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);
         Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);

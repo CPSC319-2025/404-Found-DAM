@@ -16,5 +16,7 @@ namespace Core.Interfaces
         Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
         Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req);
         Task<bool> CheckProjectAssetExistence(int projectID, string blobId, int userID);
+        Task<List<Project>> GetProjectsForUserInDb(int userId);
+
     }
 }

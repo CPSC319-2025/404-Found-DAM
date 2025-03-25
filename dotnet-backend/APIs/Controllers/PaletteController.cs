@@ -194,7 +194,11 @@ namespace APIs.Controllers
         }
 
 
-        // TODO: Bring back ITestService projectService
+        /*
+            UploadAssets supports batch uploading, but FE currently will only send 1 asset per call.
+            This endpoint allows partial success. That is, the result contains two lists, one for assets 
+            uploaded successfully, and the other for failed ones.
+        */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
             Console.WriteLine("in UploadAssets");
@@ -250,10 +254,44 @@ namespace APIs.Controllers
             };
 
                 // Create a task for each file
-                var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
+                ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
             
-                // Return combined results
-                return Results.Ok(results);
+                List<ProcessedAsset> SuccessfulUploads = new List<ProcessedAsset>();
+                List<ProcessedAsset> FailedUploads = new List<ProcessedAsset>();
+
+                foreach (var result in results)
+                {
+                    if (result.Success == true)
+                    {
+                        SuccessfulUploads.Add(result);
+                    } 
+                    else 
+                    {
+                        FailedUploads.Add(result);
+                    }
+                }
+
+                UploadAssetsRes res = new UploadAssetsRes
+                {
+                    SuccessfulUploads = SuccessfulUploads,
+                    FailedUploads = FailedUploads
+                };
+
+                if (SuccessfulUploads.Count == 0)
+                {
+                    // If all upload tasks failed, return status code 500 with message
+                    return Results.Problem
+                    (
+                        detail: "Server failed to upload all assets",
+                        statusCode: 500,
+                        title: "Internal Server Error"
+                    );
+                } 
+                else 
+                {
+                    Console.WriteLine($"res: {res}");
+                    return Results.Ok(res);
+                }
             } catch (Exception ex) {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return Results.Problem

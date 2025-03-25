@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 1;
+        private const int MOCKEDUSERID = 2;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -29,6 +29,10 @@ namespace APIs.Controllers
 
             // Update project details endpoint
             app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();
+
+            app.MapGet("/projects/my", GetMyProjects)
+               .WithName("GetMyProjects")
+               .WithOpenApi();
 
 
         }
@@ -227,5 +231,12 @@ namespace APIs.Controllers
                 );
             }
         }        
+        private static async Task<IResult> GetMyProjects(IProjectService projectService)
+        {
+            int userId = MOCKEDUSERID;
+            List<GetProjectRes> result = await projectService.GetMyProjects(userId);
+            return Results.Ok(result);
+        }
+        
     }
 }
