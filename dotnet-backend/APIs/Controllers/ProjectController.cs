@@ -156,9 +156,21 @@ namespace APIs.Controllers
             try 
             {
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
+
+                int submitterID = MOCKEDUSERID;
+
+                if (_activityLogService == null) {
+                    return Results.StatusCode(500);
+                }
+
+
+                foreach (var projectID in req.projectIDs) {
+                    await _activityLogService.AddLogAsync(submitterID, "Archived", "", projectID, 0) // assetID is 0, but it should be ignored.
+                }
                 return Results.Ok(result);
+
             }
-            catch (PartialSuccessException ex)
+            catch (PartialSuccessException ex) // sean todo: what to do here?
             {
                 return Results.Ok(ex.Message);
             }
@@ -215,6 +227,54 @@ namespace APIs.Controllers
             try
             {
                 var result = await projectService.UpdateProject(projectID, req);
+
+                int submitterID = MOCKEDUSERID;
+
+                if (_activityLogService == null) {
+                    return Results.StatusCode(500);
+                }
+
+                var updateDescription = new StringBuilder();
+                if (!string.IsNullOrEmpty(req.Location))
+                {
+                    updateDescription.AppendLine($"Location: {req.Location}");
+                }
+
+                if (req.Memberships != null && req.Memberships.Any())
+                {
+                    updateDescription.AppendLine("Memberships: ");
+                    foreach (var membership in req.Memberships)
+                    {
+                        updateDescription.AppendLine($"- {membership.MemberName} ({membership.Role})");
+                    }
+                }
+
+                if (req.Tags != null && req.Tags.Any())
+                {
+                    updateDescription.AppendLine("Tags: ");
+                    foreach (var tag in req.Tags)
+                    {
+                        updateDescription.AppendLine($"- {tag.Name}");
+                    }
+                }
+
+                if (req.CustomMetadata != null && req.CustomMetadata.Any())
+                {
+                    updateDescription.AppendLine("Custom Metadata: ");
+                    foreach (var metadata in req.CustomMetadata)
+                    {
+                        updateDescription.AppendLine($"- {metadata.Key}: {metadata.Value}");
+                    }
+                }
+
+                await _activityLogService.AddLogAsync(
+                    submitterID,
+                    "Updated",
+                    updateDescription.ToString(),
+                    projectID,
+                    0 // No assetID for project update
+                );
+
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex)
@@ -230,6 +290,7 @@ namespace APIs.Controllers
                 );
             }
         }
+
 
         private static async Task<IResult> GetMyProjects(IProjectService projectService)
         {

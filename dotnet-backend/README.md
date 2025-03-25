@@ -76,4 +76,4 @@ Interfaces: go into the Core/Interfaces folder
 - IActivityLogRepository
 - IActivityLogService
 
-
+Additionally, we are using DTO, e.g. CreateActivityLogDto.cs

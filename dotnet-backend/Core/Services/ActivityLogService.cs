@@ -29,18 +29,18 @@ namespace Core.Services
             return changeID;
         }
 
-        public async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID)
+        public async Task<bool> AddLogAsync(CreateActivityLogDto logDto)
         {
             var log = new Log
             {
                 ChangeID = getNextLogNumber(),
                 Timestamp = DateTime.UtcNow,
-                UserID = userID,
+                UserID = logDto.userID,
                 // User = user, TODO
-                ChangeType = changeType,
-                Description = description,
-                ProjectID = projectID,
-                AssetID = assetID
+                ChangeType = logDto.changeType,
+                Description = logDto.description,
+                ProjectID = logDto.projectID,
+                AssetID = logDto.assetID
             };
 
             return await _repository.AddLogAsync(log);
