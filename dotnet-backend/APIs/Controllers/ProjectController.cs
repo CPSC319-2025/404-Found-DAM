@@ -25,7 +25,7 @@ namespace APIs.Controllers
             app.MapGet("/project/{projectID}/asset-files/storage/{blobID}/{filename}", GetAssetFileFromStorage).WithName("GetAssetFileFromStorageReq").WithOpenApi();
 
             // TODO: Return mocked data currently
-            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+            // app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
 
             // Update project details endpoint
             app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();

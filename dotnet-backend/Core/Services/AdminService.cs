@@ -40,44 +40,29 @@ namespace Core.Services
             
             // Get the xlsx file 
             var xlsxEntry = archive.Entries
-                .FirstOrDefault(entry => entry.FullName.StartsWith("excel/") && entry.FullName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(entry => entry.FullName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase));
 
-            // Get the collection of assets
-            var assetEntries = archive.Entries
-                .Where(entry => entry.FullName.StartsWith("assets/"))
-                .ToList();            
+            // // Get the collection of assets
+            // var assetEntries = archive.Entries
+            //     .Where(entry => entry.FullName.StartsWith("assets/"))
+            //     .ToList();            
 
             // Create Project-relavant elements for inserting into DB
-            if (xlsxEntry != null && assetEntries != null) 
+            if (xlsxEntry != null) 
             {
                 (
                     List<Project> projectList,
                     List<ProjectTag> projectTagList,
                     List<Tag> tagList,
-                    List<Asset> assetList,
-                    List<AssetTag> assetTagList,
-                    List<User> userList,
-                    List<ProjectMembership> projectMembershipList
+                    List<ImportUserProfile> importUserProfileList
                 ) = AdminServiceHelpers.CreateProjectForImport(xlsxEntry);
 
-                int importedProjectID = await _adminRepository.ImportProjectInDB
-                (
-                    projectList,
-                    projectTagList,
-                    tagList,
-                    assetList,
-                    assetTagList,
-                    userList,
-                    projectMembershipList
-                );
+                (int importedProjectID, List<UserCustomInfo> nonExistentUsers) 
+                    = await _adminRepository.ImportProjectInDB(projectList, projectTagList, tagList, importUserProfileList);
 
-                // TODO: Store assets to blob and get blobIDs in order to add them to assets
-                // foreach (var entry in assetEntries)
-                // {
-                //         Console.WriteLine($"asset name is: {entry.FullName}");
-                // }
+               
                 GetProjectRes importedProjectInfo = await _projectService.GetProject(importedProjectID);
-                ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow, importedProjectInfo = importedProjectInfo };
+                ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow, importedProjectInfo = importedProjectInfo, nonExistentUsers = nonExistentUsers };
                 return res;
             }
             else 
