@@ -156,14 +156,13 @@ namespace Infrastructure.DataAccess
             }   
         }
 
-        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int requesterID)
+        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb()
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
             // Get projectmemberhips associated with the requester
             var requesterProjectMemberships = await _context.ProjectMemberships
                 .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
-                .Where(pm => pm.UserID == requesterID) // Filter by requesterID first
                 .Include(pm => pm.Project)
                     .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
                 .ToListAsync();
