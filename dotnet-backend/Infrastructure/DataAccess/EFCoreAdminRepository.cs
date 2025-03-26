@@ -121,7 +121,7 @@ namespace Infrastructure.DataAccess
                                     else
                                     {
                                         // FE should guard this already, so in BE this case will be ignored for now.
-                                         Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                        //  Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
                                     }
                                 }
                             } 
@@ -155,7 +155,7 @@ namespace Infrastructure.DataAccess
                                     else 
                                     {
                                         // FE should guard this already, so in BE this case will be ignored for now.
-                                        Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                        // Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
                                     }
                                 }
                             } 
@@ -511,7 +511,7 @@ namespace Infrastructure.DataAccess
 
                 }
                 // Insert in batch
-                Console.WriteLine("start inserting");
+                // Console.WriteLine("start inserting");
                 await _context.Projects.AddRangeAsync(projectList);
                 await _context.Tags.AddRangeAsync(tagList);
                 await _context.ProjectTags.AddRangeAsync(projectTagList);
@@ -519,12 +519,12 @@ namespace Infrastructure.DataAccess
                 await _context.SaveChangesAsync(); // Save change in the database
                 
                 await transaction.CommitAsync(); // Commit transaction for data persistence
-                Console.WriteLine("done");
+                // Console.WriteLine("done");
                 return projectList;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex.Message);
+                // Console.WriteLine(ex.Message);
                 await transaction.RollbackAsync(); // Undo any changes made within a database transaction
                 throw new Exception("Failed to create projects");
             }

@@ -9,15 +9,20 @@ using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http;
+
 
 namespace Infrastructure.DataAccess
 {
     public class EFCoreProjectRepository : IProjectRepository
     {
         private IDbContextFactory<DAMDbContext> _contextFactory;
-        public EFCoreProjectRepository(IDbContextFactory<DAMDbContext> contextFactory)
+        private readonly IBlobStorageService _blobStorageService;
+
+        public EFCoreProjectRepository(IDbContextFactory<DAMDbContext> contextFactory, IBlobStorageService blobStorageService)
         {
             _contextFactory = contextFactory;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<(List<string>, List<string>)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID)
@@ -26,16 +31,24 @@ namespace Infrastructure.DataAccess
 
             List<string> successfulAssociations = new List<string>();
 
-            // check project exist & if submitter is a member
-            var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
-            if (isProjectFound) 
+            // Get the project to be associated with & check if submitter is a member
+            var projectToBeAssociated = await _context.Projects
+                .Where(p => p.ProjectID == projectID)
+                .Include(p => p.ProjectTags)
+                    .ThenInclude(pt => pt.Tag) // Eagerly load the Tag entities
+                .Include(p => p.ProjectMetadataFields)
+                .FirstOrDefaultAsync();
+
+            if (projectToBeAssociated != null) 
             {
                 var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
                 if (isSubmitterMember) 
                 {
                     // Retrieve assets using blobIDs
                     var assetsToBeAssociated = await _context.Assets
-                        .Where(a => blobIDs.Contains(a.BlobID))
+                        .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID != projectID) // Avoid including assets already in the projectToBeAssociated.
+                        .Include(a => a.AssetTags)
+                        .Include(a => a.AssetMetadata)
                         .ToListAsync();
                     
                     if (assetsToBeAssociated == null || assetsToBeAssociated.Count == 0) 
@@ -45,11 +58,23 @@ namespace Infrastructure.DataAccess
                     }
                     else 
                     {
-                        // Assign projectID t0 each asset and add to successfulAssociations
+                        // Take away association with the current project, assign new association with the new project, and add to successfulAssociations
                         foreach (Asset a in assetsToBeAssociated)
                         {
-                            a.ProjectID = projectID;
+                            // Remove current assoication
+                            _context.AssetTags.RemoveRange(a.AssetTags);
+                            _context.AssetMetadata.RemoveRange(a.AssetMetadata);
+
+                            // Create new association
                             a.LastUpdated = DateTime.UtcNow;
+                            a.Project = projectToBeAssociated;
+
+                            foreach (ProjectTag pt in projectToBeAssociated.ProjectTags)
+                            {
+                                AssetTag at = new AssetTag { Asset = a, Tag = pt.Tag };
+                                _context.AssetTags.Add(at);
+                            }
+
                             successfulAssociations.Add(a.BlobID);
                         }
                         await _context.SaveChangesAsync();
@@ -66,6 +91,7 @@ namespace Infrastructure.DataAccess
                 throw new DataNotFoundException($"Project ${projectID} not found");
             }            
         }
+
 
         public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
          {
@@ -205,13 +231,15 @@ namespace Infrastructure.DataAccess
         }
 
         // Get ALL assets of a project from database
-        public async Task<List<Asset>> GetProjectAssetsInDb(int projectID)
+        public async Task<List<Asset>> GetProjectAndAssetsInDb(int projectID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
             var project = await _context.Projects
+                .Include(p => p.ProjectMetadataFields)
                 .Include(p => p.Assets)
                     .ThenInclude(a => a.AssetTags)
+                        .ThenInclude(at => at.Tag)
                 .Include(p => p.Assets)
                     .ThenInclude(a => a.AssetMetadata)
                 .AsNoTracking() // Improve performance for Read-only operations
@@ -284,8 +312,8 @@ namespace Infrastructure.DataAccess
                     .Take(req.assetsPerPage)
                     .Include(a => a.User)
                     .ToListAsync();
-
-                    return (assets,totalFilteredAssetCount);
+                    
+                    return (assets, totalFilteredAssetCount);
                 }
             }
             else 
@@ -443,6 +471,24 @@ namespace Infrastructure.DataAccess
             
         }
 
+        public async Task<bool> CheckProjectAssetExistence(int projectID, string blobID, int userID)
+        {
+            try
+            {
+                using var _context = _contextFactory.CreateDbContext();
+
+                return await _context.Projects.AnyAsync(project =>
+                    project.ProjectID == projectID &&
+                    project.ProjectMemberships.Any(membership => membership.UserID == userID) &&
+                    project.Assets.Any(asset => asset.BlobID == blobID)
+                );
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        
         public async Task<List<Project>> GetProjectsForUserInDb(int userId)
         {
             using var context = _contextFactory.CreateDbContext();
@@ -452,7 +498,6 @@ namespace Infrastructure.DataAccess
                 .Include(p => p.ProjectMetadataFields)
                 .Where(p => p.ProjectMemberships.Any(pm => pm.UserID == userId))
                 .ToListAsync();
-        }
-        
+        }   
     }
 }
