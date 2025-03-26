@@ -53,7 +53,7 @@ namespace APIs.Controllers
                 //     : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
 
                 if (excelData == null) {
-                    return Results.NotFound("No project is found to be exported")
+                    return Results.NotFound("No project is found to be exported");
                 } else {
                     // add log (done)
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto

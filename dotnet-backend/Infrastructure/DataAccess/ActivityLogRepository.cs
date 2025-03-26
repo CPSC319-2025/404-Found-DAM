@@ -48,7 +48,7 @@ namespace Infrastructure.DataAccess;
             if (projectID.HasValue)
                 query = query.Where(log => log.ProjectID == projectID.Value);
 
-            if (assetID.HasValue)
+            if (!string.IsNullOrEmpty(assetID))
                 query = query.Where(log => log.AssetID.Equals(assetID));
 
             if (fromDate.HasValue)

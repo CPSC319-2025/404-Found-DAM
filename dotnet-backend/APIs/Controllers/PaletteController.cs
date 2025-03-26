@@ -368,7 +368,7 @@ namespace APIs.Controllers
 
 
                  // add log (done)
-                 foreach (blobID in req.blobIDs)
+                 foreach (var blobID in req.blobIDs)
                  {
                     var logDto = new CreateActivityLogDto
                     {
