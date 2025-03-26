@@ -12,6 +12,8 @@ namespace Core.Interfaces
 
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);
         Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
+        Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId);
+        Task<byte[]> DecompressZstdAsync(byte[] compressedData);
         Task<List<string>> GetProjectTagsAsync(int projectId);
         Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID);   
         Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds);     

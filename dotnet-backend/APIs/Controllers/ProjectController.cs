@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 2;
+        private const int MOCKEDUSERID = 1;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
