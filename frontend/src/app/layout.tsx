@@ -97,6 +97,7 @@ export default function RootLayout({
         >
           <div className="flex min-h-screen items-center justify-center">
             <Login setUser={setUser} />
+            <ToastContainer autoClose={5000} position="top-center" />
           </div>
         </body>
       </html>

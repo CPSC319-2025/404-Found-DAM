@@ -22,9 +22,10 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
             app.MapPatch("/projects/{projectID}/associate-assets", AssociateAssetsWithProject).WithName("AssociateAssetsWithProject").WithOpenApi();
+            app.MapGet("/project/{projectID}/asset-files/storage/{blobID}/{filename}", GetAssetFileFromStorage).WithName("GetAssetFileFromStorageReq").WithOpenApi();
 
             // TODO: Return mocked data currently
-            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+            // app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
 
             // Update project details endpoint
             app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();
@@ -164,14 +165,28 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsReq req, IProjectService projectService)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsWithProjectReq request, IProjectService projectService, ILogger<Program> logger)
         {
-            try 
+            try
             {
-                // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
-                int submitterID = MOCKEDUSERID; 
-                AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
-                return Results.Ok(result);
+                // Ensure the projectID in the route matches the one in the request.
+                if (projectID != request.ProjectID)
+                {
+                    return Results.BadRequest("Project ID mismatch between route and request body.");
+                }
+
+                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
+
+                AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
+
+                return Results.Ok(new
+                {
+                    status = "success",
+                    projectId = result.ProjectID,
+                    updatedImages = result.UpdatedImages,
+                    failedAssociations = result.FailedAssociations,
+                    message = result.Message
+                });
             }
             catch (DataNotFoundException ex)
             {
@@ -179,7 +194,7 @@ namespace APIs.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
+                logger.LogError($"Error in AssociateAssetsWithProject: {ex.Message}");
                 return Results.StatusCode(500);
             }
         }
@@ -205,6 +220,31 @@ namespace APIs.Controllers
             }
         }
 
+        private static async Task<IResult> GetAssetFileFromStorage(int projectID, string blobID, string filename, IProjectService projectService)
+        {
+            int requesterID = MOCKEDUSERID;
+            try 
+            {
+                (byte[] fileContent, string fileDownloadName) = await projectService.GetAssetFileFromStorage(projectID, blobID, filename, requesterID);
+                return Results.File(
+                    fileContents: fileContent,
+                    contentType: "application/zstd", 
+                    fileDownloadName: fileDownloadName
+                );
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                detail: ex.Message,
+                statusCode: 500,
+                title: "Internal Server Error"
+                );
+            }
+        }        
         private static async Task<IResult> GetMyProjects(IProjectService projectService)
         {
             int userId = MOCKEDUSERID;

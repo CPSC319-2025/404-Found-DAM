@@ -4,12 +4,12 @@ import { UploadProgressCallbacks } from './types';
  * Uploads a file in chunks for better reliability with large files
  * @param file The file to upload
  * @param callbacks Callbacks for progress updates
- * @returns Promise resolving to success status
+ * @returns Promise resolving to the blobId if successful, undefined otherwise
  */
 export async function uploadFileChunked(
   file: File,
   callbacks: UploadProgressCallbacks
-): Promise<boolean> {
+): Promise<string | undefined> {
   const { onProgress, onSuccess, onError } = callbacks;
   
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
@@ -67,12 +67,16 @@ export async function uploadFileChunked(
     
     // All chunks uploaded
     onProgress(100, "File upload completed successfully");
-    onSuccess();
-    return true;
+    
+    // Extract blobId from the last response
+    const blobId = lastResponse?.blobId;
+    
+    onSuccess(blobId); // Pass blobId to onSuccess callback
+    return blobId;
   } catch (error) {
     const errorMessage = `Error uploading chunk ${chunkNumber + 1}: ${error instanceof Error ? error.message : String(error)}`;
     console.error(errorMessage);
     onError(errorMessage);
-    return false;
+    return undefined;
   }
 } 

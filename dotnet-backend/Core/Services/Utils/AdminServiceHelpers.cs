@@ -4,7 +4,7 @@ using System.IO.Compression;
 using ClosedXML.Excel;
 using System.Data; // For using DataTable
 using Core.Entities;
-using ZstdSharp.Unsafe;
+using Core.Dtos;
 
 namespace Core.Services.Utils
 {
@@ -12,6 +12,7 @@ namespace Core.Services.Utils
     {  
         private const int _startRow = 1;
         private const int _startColumn = 1;
+        private const int _assetStartColumn = 7;
 
 
         /*
@@ -69,7 +70,26 @@ namespace Core.Services.Utils
                 projectTagNameStr
             );
 
-            // TODO: Create an OrderedDictionary and make the project's matadatafields as keys with null values
+            List<int> orderedProjectMetadatafieldList = new List<int>(); // Keep track projectMetadatafield's order for inserting 
+
+            // Create a dictionary for tracking project metadata info and the value in assetmetadata
+            // Dictionary<projectMetadatafield, ExportProjectDto>
+            Dictionary<int, ExportProjectDto> projectMetadatafiledDict = new Dictionary<int, ExportProjectDto>();
+            foreach (ProjectMetadataField pmf in project.ProjectMetadataFields)
+            {
+                if (!projectMetadatafiledDict.ContainsKey(pmf.FieldID)) 
+                {
+                    ExportProjectDto val = new ExportProjectDto
+                    {
+                        fieldName = pmf.FieldName,
+                        fieldDataType = pmf.FieldType,
+                        assetMetadataVal = null
+                    };
+                    projectMetadatafiledDict[pmf.FieldID] = val; 
+                    orderedProjectMetadatafieldList.Add(pmf.FieldID);
+                }
+            }
+
 
             // Add Columns for asset details
             var assetDataTable = new DataTable();
@@ -79,7 +99,24 @@ namespace Core.Services.Utils
             assetDataTable.Columns.Add("File Size (KB)", typeof(double));
             assetDataTable.Columns.Add("Last Updated (UTC)", typeof(string));
             assetDataTable.Columns.Add("Tags", typeof(string));
-            // TODO: insert project's matadatafields using that OrderedDictionary
+             
+            // Insert project's matadatafields using the dictionary
+            if (projectMetadatafiledDict.Count > 0)
+            {         
+                foreach (int pmf in orderedProjectMetadatafieldList)
+                {
+                    ExportProjectDto val = projectMetadatafiledDict[pmf];
+                    ProjectMetadataField.FieldDataType fieldType = val.fieldDataType;
+                    Type type = fieldType == ProjectMetadataField.FieldDataType.Number 
+                        ? typeof(double)
+                        :  fieldType == ProjectMetadataField.FieldDataType.Boolean 
+                            ? typeof(bool)
+                            : typeof(string);
+
+                    assetDataTable.Columns.Add(val.fieldName, type);
+                }
+            }
+   
 
             // Insert asset details
             for (int i = 0; i < assets.Count; i++)
@@ -99,19 +136,45 @@ namespace Core.Services.Utils
                     }
                 }
 
-                // TODO: retrieve the asset's metadata values, match them with the OrderedDictionary's keys and insert the values
+                // Fill assetMetadata field value 
+                List<AssetMetadata> amList = a.AssetMetadata.ToList();
+                foreach (AssetMetadata am in amList)
+                {
+                    if (projectMetadatafiledDict.ContainsKey(am.FieldID))
+                    {
+                        ExportProjectDto val = projectMetadatafiledDict[am.FieldID];
+                        val.assetMetadataVal = am.FieldValue;
+                        projectMetadatafiledDict[am.FieldID] = val;
+                    }
+                }
 
-                assetDataTable.Rows.Add
-                (
-                    a.BlobID,
-                    a.FileName,
-                    a.MimeType,
-                    a.FileSizeInKB,
-                    a.LastUpdated.ToString(),
-                    assetTagNameStr
+                DataRow assetDataRow = assetDataTable.NewRow(); // Create a new row
 
-                    // TODO: Add all values in the OrderedDictionary
-                );
+                assetDataRow["Blob ID"] = a.BlobID;
+                assetDataRow["File Name"] = a.FileName;
+                assetDataRow["Mime Type"] = a.MimeType;
+                assetDataRow["File Size (KB)"] = a.FileSizeInKB;
+                assetDataRow["Last Updated (UTC)"] = a.LastUpdated.ToString();
+                assetDataRow["Tags"] = assetTagNameStr; 
+
+                foreach (int pmf in orderedProjectMetadatafieldList) // Continue to add to existing row
+                {
+                    ExportProjectDto val = projectMetadatafiledDict[pmf];
+                    if (val.assetMetadataVal != null)
+                    {
+                        assetDataRow[val.fieldName] = val.assetMetadataVal; 
+                    }
+                }
+
+                assetDataTable.Rows.Add(assetDataRow); // Add the finalized assetDataRow to assetDataTable
+
+                // Clear the dictionary values
+                foreach (var key in projectMetadatafiledDict.Keys)
+                {
+                    ExportProjectDto val = projectMetadatafiledDict[key];
+                    val.assetMetadataVal = null;
+                    projectMetadatafiledDict[key] = val;
+                }
             } 
   
             // Create & add another worksheet/tab for including project's members
@@ -194,15 +257,7 @@ namespace Core.Services.Utils
             }
         }
 
-        public static (
-            List<Project> Projects,
-            List<ProjectTag> ProjectTags,
-            List<Tag> Tags,
-            List<Asset> Assets,
-            List<AssetTag> AssetTags,
-            List<User> Users,
-            List<ProjectMembership> ProjectMemberships
-        ) CreateProjectForImport(ZipArchiveEntry entry) 
+        public static (List<Project>, List<ProjectTag>, List<Tag>, List<ImportUserProfile>) CreateProjectForImport(ZipArchiveEntry entry) 
         {
             // Console.WriteLine($"zipArchive entry full name: {entry.FullName}");
             using Stream entryStream = entry.Open();
@@ -213,19 +268,13 @@ namespace Core.Services.Utils
             using var workbook = new XLWorkbook(entryStream); // Create an Excel workbook instance
 
             var wsProject = workbook.Worksheet(1); 
-            var wsMembers = workbook.Worksheet(2);
             var nonEmptyProjectSheetRows = wsProject.RowsUsed(); 
-            var nonEmptyMemberSheetRows = wsMembers.RowsUsed(); 
             
             List<Project> projectList = new List<Project>();
             List<ProjectTag> projectTagList = new List<ProjectTag>();
             List<Tag> tagList = new List<Tag>();
-            List<Asset> assetList = new List<Asset>();
-            List<AssetTag> assetTagList = new List<AssetTag>();
-            List<User> userList = new List<User>();
-            List<ProjectMembership> projectMembershipList = new List<ProjectMembership>();
+            List<ImportUserProfile> importUserProfileList = new List<ImportUserProfile>();
 
-            // TODO: May add metadatafield and AssetMetadata if needed later. 
 
             int projectSheetRowCount = 1;
 
@@ -236,18 +285,19 @@ namespace Core.Services.Utils
                     // Create project
                     Project p = new Project 
                     {
-                        Name = projectSheetRow.Cell(2).GetValue<string>(),
-                        Version = projectSheetRow.Cell(3).GetValue<string>(),
-                        Location = projectSheetRow.Cell(4).GetValue<string>(),
-                        Description = projectSheetRow.Cell(5).GetValue<string>(),
-                        CreationTime =  DateTimeOffset.Parse(projectSheetRow.Cell(6).GetValue<string>()).UtcDateTime,
-                        Active = projectSheetRow.Cell(7).GetValue<bool>(),
-                        ArchivedAt = projectSheetRow.Cell(7).GetValue<bool>() ? null : DateTimeOffset.Parse(projectSheetRow.Cell(8).GetValue<string>()).UtcDateTime
+                        Name = projectSheetRow.Cell(1).GetValue<string>(),
+                        Version = "0.0",
+                        Location = projectSheetRow.Cell(2).GetValue<string>(),
+                        Description = projectSheetRow.Cell(3).GetValue<string>(),
+                        // CreationTime =  DateTimeOffset.Parse(projectSheetRow.Cell(6).GetValue<string>()).UtcDateTime,
+                        CreationTime = DateTime.UtcNow,
+                        Active = true
+                        // ArchivedAt = projectSheetRow.Cell(7).GetValue<bool>() ? null : DateTimeOffset.Parse(projectSheetRow.Cell(8).GetValue<string>()).UtcDateTime
                     };
                     projectList.Add(p);
 
                     // Create ProjectTags and Tags
-                    string extractedProjectTagString = projectSheetRow.Cell(9).GetValue<string>();
+                    string extractedProjectTagString = projectSheetRow.Cell(4).GetValue<string>();
                     List<string> tagNames = extractedProjectTagString.Split(',').Select(tag => tag.Trim()).ToList();
                     foreach (string tagName in tagNames)
                     {
@@ -263,69 +313,24 @@ namespace Core.Services.Utils
                 }
                 else if (projectSheetRowCount >= 4) 
                 {
-                    // Create assets
-                    Asset a = new Asset
+                    // Collect user profiles
+                    ImportUserProfile importUserProfile = new ImportUserProfile
                     {
-                        FileName = projectSheetRow.Cell(2).GetValue<string>(),
-                        MimeType = projectSheetRow.Cell(3).GetValue<string>(),
-                        FileSizeInKB = projectSheetRow.Cell(4).GetValue<double>(),
-                        LastUpdated =  DateTimeOffset.Parse(projectSheetRow.Cell(5).GetValue<string>()).UtcDateTime,
-                        assetState = Asset.AssetStateType.SubmittedToProject,
-                        Project = projectList[0]
+                        userID = projectSheetRow.Cell(1).GetValue<int>(),
+                        userName = projectSheetRow.Cell(2).GetValue<string>(),
+                        userEmail = projectSheetRow.Cell(3).GetValue<string>(),
+                        userIsSuperAdmin = projectSheetRow.Cell(4).GetValue<bool>(),
+                        userRole = projectSheetRow.Cell(5).GetValue<string>().ToLower() == "admin" ? ProjectMembership.UserRoleType.Admin : ProjectMembership.UserRoleType.Regular
                     };
 
-                    // Create AssetTags and Tags
-                    string extractedAssetTagString = projectSheetRow.Cell(6).GetValue<string>();
-                    List<string> tagNames = extractedAssetTagString.Split(',').Select(tag => tag.Trim()).ToList();
-                    foreach (string tagName in tagNames)
-                    {
-                        Tag t = new Tag { Name = tagName };
-                        AssetTag at = new AssetTag 
-                        {
-                            Asset = a,
-                            Tag = t
-                        };
-                        assetTagList.Add(at);
-                        tagList.Add(t);
-                    }
-
-                    // TODO: May create metadatafield and AssetMetadata if needed later.
+                    importUserProfileList.Add(importUserProfile);
                 }
                 projectSheetRowCount++;
             }
-
-            // Create users & relations
-            int memberSheetRowCount = 1;
-            foreach (var memberSheetRow in nonEmptyMemberSheetRows)
-            {
-                if (memberSheetRowCount >= 2) {
-                    User u = new User 
-                    {
-                        Name = memberSheetRow.Cell(2).GetValue<string>(),
-                        Email = memberSheetRow.Cell(3).GetValue<string>(),
-                        IsSuperAdmin = memberSheetRow.Cell(4).GetValue<bool>(),
-                        LastUpdated = DateTimeOffset.Parse(memberSheetRow.Cell(5).GetValue<string>()).UtcDateTime,
-                    };
-                    userList.Add(u);
-
-                    // Create ProjectMembership
-                    ProjectMembership pm = new ProjectMembership {
-                        Project = projectList[0],
-                        User = u,
-                        UserRole = memberSheetRow.Cell(6).GetValue<string>() == "admin" ? ProjectMembership.UserRoleType.Admin : ProjectMembership.UserRoleType.Regular
-                    };
-                    projectMembershipList.Add(pm);
-                }
-                memberSheetRowCount++;
-            } 
-
-            return (projectList, projectTagList, tagList, assetList, assetTagList, userList, projectMembershipList);
+            return (projectList, projectTagList, tagList, importUserProfileList);
         }
 
-
-
-
-
+     
         // A method to compress byte array
         public static byte[] CompressByteArray(byte[] data)
         {

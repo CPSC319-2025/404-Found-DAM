@@ -113,6 +113,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
       
       // Get the file content
       const blob = await fileResponse.blob();
+
       
       // Create a File object
       const file = new File(

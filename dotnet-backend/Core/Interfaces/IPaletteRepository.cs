@@ -6,8 +6,6 @@ namespace Core.Interfaces  {
     public interface IPaletteRepository {
         public Task<List<string>> GetProjectTagsAsync(int projectId);
 
-        public Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags);
-
         public Task<bool> DeleteAsset(DeletePaletteAssetReq request);
 
         public Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService);

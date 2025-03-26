@@ -33,44 +33,6 @@ namespace Infrastructure.DataAccess {
 
             return projectTags ?? new List<string>();
         }
-
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags) {
-            using var _context = _contextFactory.CreateDbContext();
-
-            var assets = await _context.Assets
-            .Where(a => imageIds
-            .Contains(a.BlobID))
-            .Include(a => a.AssetTags)
-            .ThenInclude(at => at.Tag)
-            .ToListAsync();
-
-            if (!assets.Any()) {
-                return false; 
-            }
-
-            foreach (var asset in assets) {
-
-                var existingTags = asset.AssetTags.Select(at => at.Tag.Name).ToHashSet();
-
-                foreach (var tagName in tags) {
-                    if (!existingTags.Contains(tagName)) {
-                        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
-                        if (tag == null) {
-                            tag = new Tag { Name = tagName };
-                            await _context.Tags.AddAsync(tag);
-                            await _context.SaveChangesAsync();
-                        } 
-                        asset.AssetTags.Add(new AssetTag {
-                            BlobID = asset.BlobID,
-                            Asset = asset,
-                            TagID = tag.TagID,
-                            Tag = tag
-                        });
-                    }
-                }
-            }
-            return await _context.SaveChangesAsync() > 0;
-        }
         
         public async Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
@@ -208,7 +170,21 @@ namespace Infrastructure.DataAccess {
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
-            return await _blobStorageService.DownloadAsync("palette-assets", assets);
+
+            if (assets == null || assets.Count == 0) 
+            {
+                return new List<IFormFile>(); // Return an empty list
+            }
+            else 
+            {
+                            
+                // Construct tuple list to be passed into DownloadAsync
+                List<(string, string)> assetIdNameTupleList = assets
+                    .Select(a => (a.BlobID, a.FileName))
+                    .ToList();
+
+                return await _blobStorageService.DownloadAsync("palette-assets", assetIdNameTupleList);
+            }
         }
 
         public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
@@ -217,7 +193,10 @@ namespace Infrastructure.DataAccess {
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == request.UserId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
-            return await _blobStorageService.DownloadAsync("palette-assets", assets);
+            
+            // Convert assets to list of tuples (BlobID, FileName)
+            var assetTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+            return await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
         }
 
         public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId) {
@@ -230,9 +209,9 @@ namespace Infrastructure.DataAccess {
                 return null;
             }
             
-            // Download the single asset
-            var assets = new List<Asset> { asset };
-            var files = await _blobStorageService.DownloadAsync("palette-assets", assets);
+            // Download the single asset - convert to tuple list
+            var assetTuples = new List<(string, string)> { (asset.BlobID, asset.FileName) };
+            var files = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
             
             // Return the first (and only) file, or null if no files were downloaded
             return files.FirstOrDefault();

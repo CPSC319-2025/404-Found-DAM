@@ -1,76 +1,33 @@
-import { SignJWT, jwtVerify } from "jose";
-
-// TODO: this will all be done by backend
-const secret = new TextEncoder().encode("your-secret-key");
-
-// enum Role {
-//   Admin,
-//   User,
-// }
+import { fetchWithAuth } from "./api";
 
 interface ProjectMembership {
-  project: string;
+  project: number;
   role: string;
 }
 
 export interface User {
+  userID: number;
   email: string;
   superadmin: boolean;
   projectMemberships: ProjectMembership[];
 }
 
-export const users: User[] = [
-  {
-    email: "superadmin@example.com",
-    superadmin: true,
-    projectMemberships: [],
-  },
-  {
-    email: "admin@example.com",
-    superadmin: false,
-    projectMemberships: [
-      { project: "project-1", role: "admin" },
-      { project: "project-2", role: "admin" },
-      { project: "project-3", role: "admin" },
-    ],
-  },
-  {
-    email: "user@example.com",
-    superadmin: false,
-    projectMemberships: [
-      { project: "project-1", role: "user" },
-      { project: "project-2", role: "user" },
-      { project: "project-3", role: "user" },
-    ],
-  },
-];
-
-export async function login(email: string): Promise<unknown> {
-  return new Promise((resolve, _reject) => {
-    const user = users.find((u) => u.email === email);
-    if (!user) {
-      resolve(null);
-      return;
-    }
-
-    setTimeout(async () => {
-      try {
-        const token = await new SignJWT({
-          email: user.email,
-          superadmin: user.superadmin,
-          projectMemberships: user.projectMemberships,
-        })
-          .setProtectedHeader({ alg: "HS256" })
-          .sign(secret);
-
-        localStorage.setItem("token", token);
-        resolve(token);
-      } catch (error) {
-        console.error("Error signing the token:", error);
-        resolve(null);
-      }
-    }, 500);
+export async function login(email: string, password: string) {
+  const response = await fetchWithAuth("auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
   });
+
+  if (!response.ok) {
+    throw new Error("Failed to login. Invalid password or email.");
+  }
+
+  const data = await response.json();
+
+  localStorage.setItem("token", data.token);
 }
 
 export async function getUserFromToken() {
@@ -87,7 +44,19 @@ export async function getUserFromToken() {
       return null;
     }
 
-    return payload as User;
+    const parsedProjectMemberships: ProjectMembership[] = JSON.parse(payload.projectMemberships).map(
+      (membership: { ProjectID: number; Role: string }) => ({
+        project: membership.ProjectID,
+        role: membership.Role,
+      })
+    );
+
+    return {
+      userID: Number(payload.userId),
+      email: payload.email,
+      superadmin: payload.isSuperAdmin === "True",
+      projectMemberships: parsedProjectMemberships
+    } as User;
   } catch (error) {
     console.error("Invalid token:", error);
     logout();

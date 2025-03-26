@@ -24,7 +24,6 @@ SOFTWARE.
 
 -----------------------------------------------------------------------------
 */
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +35,7 @@ using Core.Entities;
 using ClosedXML.Excel;
 using Infrastructure.Exceptions;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
 
 
 namespace Core.Services
@@ -45,32 +45,35 @@ namespace Core.Services
         private const string DateTimeFormatUTC = "yyyy-MM-ddTHH:mm:ss.fffZ";
 
         private readonly IProjectRepository _repository;
-        public ProjectService(IProjectRepository repository)
+        private readonly IBlobStorageService _blobStorageService;
+
+        public ProjectService(IProjectRepository repository, IBlobStorageService blobStorageService)
         {
             _repository = repository;
+            _blobStorageService = blobStorageService;
         }
-
-        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<string> blobIDs, int submitterID)
+        
+        public async Task<AssociateAssetsWithProjectRes> AssociateAssetsWithProject(AssociateAssetsWithProjectReq request, int submitterID)
         {
-            try 
+            (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectInDb(request.ProjectID, request.BlobIDs, submitterID);
+            foreach (string blobId in successfulAssociations)
             {
-                (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
-                AssociateAssetsRes result = new AssociateAssetsRes
+                foreach (int tagId in request.TagIDs)
                 {
-                    projectID = projectID,
-                    success = successfulAssociations,
-                    fail = failedAssociations,
-                };
-                return result;
+                    await _repository.AddAssetTagAssociationAsync(blobId, tagId);
+                }
+                foreach (var metadata in request.MetadataEntries)
+                {
+                    await _repository.UpsertAssetMetadataAsync(blobId, metadata.FieldId, metadata.FieldValue);
+                }
             }
-            catch (DataNotFoundException)
+            return new AssociateAssetsWithProjectRes
             {
-                throw;
-            }
-            catch (Exception) 
-            {
-                throw;
-            }
+                ProjectID = request.ProjectID,
+                UpdatedImages = successfulAssociations,
+                FailedAssociations = failedAssociations,
+                Message = "Assets associated with project along with tags and metadata successfully."
+            };
         }
 
         public async Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs)
@@ -322,11 +325,14 @@ namespace Core.Services
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
-            //TODO: May need to retrive actual assets from Blob to return together.
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
-                (List<Asset> retrievedAssets, int totalFilteredAssetCount) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
+                (
+                    List<Asset> retrievedAssets, 
+                    int totalFilteredAssetCount
+                ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
+                
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
 
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination
@@ -338,20 +344,31 @@ namespace Core.Services
                 };
                 
                 List<PaginatedProjectAsset> paginatedProjectAssets = retrievedAssets.Select(a => new PaginatedProjectAsset
+                {
+                    blobID = a.BlobID,
+                    filename = a.FileName,
+                    uploadedBy = new PaginatedProjectAssetUploadedBy
                     {
-                        blobID = a.BlobID,
-                        filename = a.FileName,
-                        uploadedBy = new PaginatedProjectAssetUploadedBy
-                        {
-                            userID = a.User?.UserID ?? -1,
-                            name = a.User?.Name ?? "Unknown"
-                        },
-                        date = a.LastUpdated,
-                        filesizeInKB = a.FileSizeInKB,
-                        tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
-                    }).ToList();
-                
-                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes{projectID = req.projectID, assets = paginatedProjectAssets, pagination = pagination};
+                        userID = a.User?.UserID ?? -1,
+                        name = a.User?.Name ?? "Unknown"
+                    },
+                    date = a.LastUpdated,
+                    filesizeInKB = a.FileSizeInKB,
+                    tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
+                }).ToList();
+
+
+                List<GetAssetFileFromStorageReq> assetIdNameList = retrievedAssets
+                    .Select(a => new GetAssetFileFromStorageReq { blobID = a.BlobID, filename = a.FileName })
+                    .ToList();
+
+                GetPaginatedProjectAssetsRes result = new GetPaginatedProjectAssetsRes
+                {  
+                    projectID = req.projectID, 
+                    assets = paginatedProjectAssets, 
+                    pagination = pagination,
+                    assetIdNameList = assetIdNameList
+                };
 
                 return result;
             }
@@ -370,6 +387,7 @@ namespace Core.Services
         {
             return await _repository.UpdateProjectInDb(projectID, req);
         }
+        
 
         public async Task<List<GetProjectRes>> GetMyProjects(int userId)
         {
@@ -418,5 +436,54 @@ namespace Core.Services
             return result;
         }
 
+        public async Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID)
+        {
+            List<(string, string)> assetIdNameTuples = new List<(string, string)>();
+            assetIdNameTuples.Add((blobID, filename));
+            string containerName = "project-" + projectID.ToString() + "-assets";
+
+            try
+            {
+                // Check if the requester has access to the project
+                bool areFound = await _repository.CheckProjectAssetExistence(projectID, blobID, requesterID);
+
+                if (areFound)
+                {
+                    // Get the asset file(s) from storage
+                    List<IFormFile> assetFiles = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+                    if (assetFiles.Count == 0) 
+                    {
+                        throw new DataNotFoundException("No asset file found");
+                    }
+                    else 
+                    {
+                        IFormFile assetFile = assetFiles[0];
+                        if (assetFile == null || assetFile.Length == 0)
+                        {
+                            throw new DataNotFoundException("No asset file retrieved");
+                        }
+
+                        // Have valid .zst asset file data; process it and save as byte[] 
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            await assetFile.CopyToAsync(memoryStream);
+                            return (memoryStream.ToArray(), assetFile.FileName);
+                        }
+                    }
+                }
+                else 
+                {
+                    throw new DataNotFoundException("Project not found");
+                }
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

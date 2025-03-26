@@ -13,7 +13,7 @@ export async function uploadFileZstd(fileMeta: FileMetadata): Promise<string | u
 
     // Use native FormData
     const formData = new FormData();
-    formData.append("userId", "001"); // or dynamic
+    formData.append("userId", "1"); // Use consistent userId
     formData.append("name", fileMeta.file.name);
     formData.append("mimeType", fileMeta.file.type); // Use the file's actual MIME type dynamically
     formData.append("files", compressedFile);

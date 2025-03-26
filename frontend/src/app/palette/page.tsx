@@ -178,12 +178,12 @@ export default function PalettePage() {
   }, []);
 
   // Create callbacks for the chunked upload
-  const createUploadCallbacks = useCallback((file: File): UploadProgressCallbacks => ({
+  const createUploadCallbacks = useCallback((file: File, fileMeta: FileMetadata): UploadProgressCallbacks => ({
     onProgress: (progress: number, status: string) => {
       setUploadStatus(`Uploading ${file.name}: ${status}`);
       setUploadProgress(progress);
     },
-    onSuccess: async () => {
+    onSuccess: async (blobId?: string) => {
       setUploadStatus(`File ${file.name} uploaded successfully`);
       setUploadProgress(100);
       
@@ -191,15 +191,30 @@ export default function PalettePage() {
       setTimeout(() => {
         setUploadStatus("");
         setUploadProgress(0);
-      }, 3000);
+      }, 500);
       
-      // Refresh the palette assets list to show the newly uploaded file
-      const fetchedFiles = await fetchPaletteAssets();
-      
-      // Find the newly uploaded file and get its blobId
-      const newFile = fetchedFiles.find(f => f.file.name === file.name);
-      if (newFile && newFile.blobId) {
-        await fetchAndUpdateBlobDetails(newFile.blobId);
+      if (blobId) {
+        // Update the file metadata with the blobId
+        setFiles(prevFiles => {
+          return prevFiles.map(f => {
+            if (f.file === file) {
+              return { ...f, blobId };
+            }
+            return f;
+          });
+        });
+        
+        // Fetch and update blob details
+        await fetchAndUpdateBlobDetails(blobId);
+      } else {
+        // Fallback to old method if no blobId is returned
+        const fetchedFiles = await fetchPaletteAssets();
+        
+        // Find the newly uploaded file and get its blobId
+        const newFile = fetchedFiles.find(f => f.file.name === file.name);
+        if (newFile && newFile.blobId) {
+          await fetchAndUpdateBlobDetails(newFile.blobId);
+        }
       }
     },
     onError: (error: string) => {
@@ -211,7 +226,7 @@ export default function PalettePage() {
         setUploadProgress(0);
       }, 5000);
     }
-  }), [fetchAndUpdateBlobDetails]);
+  }), [fetchAndUpdateBlobDetails, setFiles]);
 
   // Handle file drop with chunked upload
   const onDrop = useCallback(
@@ -227,10 +242,22 @@ export default function PalettePage() {
         setUploadStatus(`Starting upload of ${file.name}...`);
         setUploadProgress(0);
         
-        await uploadFileChunked(file, createUploadCallbacks(file));
+        const blobId = await uploadFileChunked(file, createUploadCallbacks(file, fileMeta));
+        
+        // If we got a blobId directly, update the file metadata
+        if (blobId) {
+          setFiles(prevFiles => {
+            return prevFiles.map(f => {
+              if (f.file === file) {
+                return { ...f, blobId };
+              }
+              return f;
+            });
+          });
+        }
       }
     },
-    [createFileMetadata, processFileMetadata, createUploadCallbacks]
+    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
