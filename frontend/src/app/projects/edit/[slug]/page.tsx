@@ -9,6 +9,8 @@ import GenericForm, {
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { User, Project, Tag, ProjectMetadataField } from "@/app/types";
+import { useRouter } from "next/navigation";
+import PopupModal from "@/app/components/ConfirmModal";
 
 interface ProjectWithMetadata extends Project {
   tags: Tag[];
@@ -57,6 +59,11 @@ const editProjectFormFields: FormFieldType[] = [
 ];
 
 export default function ProjectPage({ params }: ProjectPageProps) {
+  const router = useRouter();
+
+  const [confirmPopup, setConfirmPopup] = useState<boolean>(false);
+  const [confirmMessage, setConfirmMessage] = useState<string>("");
+
   const [loading, setLoading] = useState(true);
 
   const [formDisabled, setFormDisabled] = useState(true);
@@ -67,6 +74,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
+
+  const [projectName, setProjectName] = useState<string>("");
+
+  const [formData, setFormData] = useState<FormData>({});
 
   const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
     if (fieldName === "admins") {
@@ -88,6 +99,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         setAdminOptions((prev) => [...prev, userToAddBack!]);
       }
     }
+  }
+
+  const onSubmit = (updatedFormData: FormData) => {
+    // check form data + add warning message
+    setConfirmMessage("TODO!!!")
+    setConfirmPopup(true);
+    setFormData(updatedFormData);
+  }
+
+  const onConfirmSubmit = () => {
+    handleEditProject(formData)
   }
 
   const handleEditProject = async (updatedFormData: FormData) => {
@@ -145,9 +167,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
     toast.success("Successfully updated the project's metadata");
 
-    setLoading(true);
-
-    onLoad();
+    router.push("/projects");
   };
 
   const fetchUsers = async () => {
@@ -191,6 +211,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     })
       .then((project) => {
         const updatedFormFields = [...editProjectFormFields];
+
+        setProjectName(project.name!)
 
         updatedFormFields.forEach((field) => {
           if (field.name === 'location') {
@@ -271,13 +293,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }, [adminOptions, regularUserOptions]);
 
   const onCancel = () => {
-    window.location.reload();
+    router.push("/projects");
   };
 
   return (
     <div className="sm:p-6 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">
-        {"Edit Project: " + params.slug}
+        {"Edit Project: " + projectName}
       </h1>
 
       {loading && (
@@ -292,12 +314,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           title=""
           isModal={false}
           fields={formFields}
-          onSubmit={handleEditProject}
+          onSubmit={onSubmit}
           onCancel={onCancel}
           submitButtonText="Save"
           disabled={formDisabled}
         />
       )}
+
+      <PopupModal
+        title="Are you sure you want to update this project?"
+        isOpen={confirmPopup}
+        onClose={() => setConfirmPopup(false)}
+        onConfirm={onConfirmSubmit}
+        message={confirmMessage}
+      />
     </div>
   );
 }
