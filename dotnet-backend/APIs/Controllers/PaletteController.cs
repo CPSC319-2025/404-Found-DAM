@@ -35,6 +35,45 @@ namespace APIs.Controllers
         })
         .WithName("DeletePaletteAsset")
         .WithOpenApi();
+        // update the images in the palette with the selected project tags
+        app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
+        {
+            var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
+            if (result) {
+                return Results.Ok(new {
+                    status = "success",
+                    projectId = request.ProjectId,
+                    updatedImages = request.ImageIds,
+                    message = "Tags successfully added to selected images in the palette."
+                });
+            } else {
+                Console.WriteLine($"Failed to assign project tags to images for ProjectId {result}.");
+                return Results.NotFound("Failed to assign project tags to images");
+            }
+        })
+        .WithName("ModifyTags")
+        .WithOpenApi();
+
+        // Get project and tags by blob id
+        app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobProjectAndTagsAsync(blobId); //also returns tag id in the same order a s tag
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob details: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobProjectAndTags")
+        .WithOpenApi();
 
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
@@ -43,6 +82,35 @@ namespace APIs.Controllers
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
         app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
+
+         app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
+               .WithName("RemoveTagsFromAssets")
+               .WithOpenApi();
+
+        // Add single tag to asset
+        app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                AssignTagResult result = await paletteService.AssignTagToAssetAsync(request.BlobId, request.TagId);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignTagToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignTagToAsset")
+        .WithOpenApi();
 
         }
 
@@ -125,9 +193,14 @@ namespace APIs.Controllers
         }
 
 
-        // TODO: Bring back ITestService projectService
+        /*
+            UploadAssets supports batch uploading, but FE currently will only send 1 asset per call.
+            This endpoint allows partial success. That is, the result contains two lists, one for assets 
+            uploaded successfully, and the other for failed ones.
+        */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
+            Console.WriteLine("in UploadAssets");
             try {
                 // Check if the request has form data
                 if (!request.HasFormContentType || request.Form.Files.Count == 0)
@@ -135,29 +208,89 @@ namespace APIs.Controllers
                     return Results.BadRequest("No files uploaded");
                 }
 
-                // Get the form fields that match your DTO
-                string name = request.Form["Name"].ToString();
-                string type = request.Form["Type"].ToString();
-                int userId = int.Parse(request.Form["UserId"].ToString());
+            // Get the form fields that match your DTO
+            string uploadTaskName = request.Form["name"].ToString();
+            string asasetMimeType = request.Form["mimeType"].ToString().ToLower();
+            int userId = int.Parse(request.Form["userId"].ToString());
+            string? toWebpParam = request.Query["toWebp"];
 
-                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(type))
+            bool convertToWebp = true; // set webp conversion default to true 
+
+
+            if (string.IsNullOrEmpty(uploadTaskName))
+            {
+                return Results.BadRequest("Name of batch upload is required");
+            }
+
+            if (string.IsNullOrEmpty(asasetMimeType))
+            {
+                return Results.BadRequest("mimeType is required");
+            }
+            else if (!asasetMimeType.Contains("/")) 
+            {
+                return Results.BadRequest("incorrect mimeType format");
+            }
+            
+            // Get convertToWebp's actual value if supplied by user
+            if (!string.IsNullOrEmpty(toWebpParam))
+            {
+                if (bool.TryParse(toWebpParam, out bool parsedToWebp))
                 {
-                    return Results.BadRequest("Name and Type are required");
+                    convertToWebp = parsedToWebp;
                 }
-
-                // Create your DTO
-                var uploadRequest = new UploadAssetsReq
+                else 
                 {
-                    Name = name,
-                    Type = type,
-                    UserId = userId
-                };
+                    return Results.BadRequest("Invalid value for toWebp query param");
+                }
+            }
+
+            // Create your DTO
+            var uploadRequest = new UploadAssetsReq
+            {
+                UploadTaskName = uploadTaskName,
+                AssetMimeType = asasetMimeType,
+                UserId = userId
+            };
 
                 // Create a task for each file
-                var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest);
+                ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
             
-                // Return combined results
-                return Results.Ok(results);
+                List<ProcessedAsset> SuccessfulUploads = new List<ProcessedAsset>();
+                List<ProcessedAsset> FailedUploads = new List<ProcessedAsset>();
+
+                foreach (var result in results)
+                {
+                    if (result.Success == true)
+                    {
+                        SuccessfulUploads.Add(result);
+                    } 
+                    else 
+                    {
+                        FailedUploads.Add(result);
+                    }
+                }
+
+                UploadAssetsRes res = new UploadAssetsRes
+                {
+                    SuccessfulUploads = SuccessfulUploads,
+                    FailedUploads = FailedUploads
+                };
+
+                if (SuccessfulUploads.Count == 0)
+                {
+                    // If all upload tasks failed, return status code 500 with message
+                    return Results.Problem
+                    (
+                        detail: "Server failed to upload all assets",
+                        statusCode: 500,
+                        title: "Internal Server Error"
+                    );
+                } 
+                else 
+                {
+                    Console.WriteLine($"res: {res}");
+                    return Results.Ok(res);
+                }
             } catch (Exception ex) {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return Results.Problem
@@ -229,6 +362,49 @@ namespace APIs.Controllers
                  return Results.StatusCode(500);
              }
          }
+
+        private static async Task<IResult> RemoveTagsFromAssets(RemoveTagsFromPaletteReq request, IPaletteService paletteService)
+        {
+            try
+            {
+                RemoveTagsResult result = await paletteService.RemoveTagsFromAssetsAsync(request.BlobIds, request.TagIds);
+                
+                if (result.RemovedAssociations.Count == 0 && result.NotFoundAssociations.Count > 0)
+                {
+                    return Results.BadRequest(new
+                    {
+                        message = "No associations were found for the specified BlobIds and TagIds. Nothing was removed.",
+                        notFoundAssociations = result.NotFoundAssociations
+                    });
+                }
+                else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)
+                {
+                    return Results.Ok(new
+                    {
+                        message = "Some associations were removed, but some were not found.",
+                        removedAssociations = result.RemovedAssociations,
+                        notFoundAssociations = result.NotFoundAssociations
+                    });
+                }
+                else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)
+                {
+                    return Results.Ok(new
+                    {
+                        message = "All specified associations were successfully removed.",
+                        removedAssociations = result.RemovedAssociations
+                    });
+                }
+                else
+                {
+                    return Results.BadRequest(new { message = "No associations were specified in the request." });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in RemoveTagsFromAssets: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        }
         
     }
 }

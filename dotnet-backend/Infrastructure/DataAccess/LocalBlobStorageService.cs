@@ -16,8 +16,8 @@ namespace Infrastructure.DataAccess
             }
             // Create an Asset instance with the file path
             // Generate a unique blob name
-            string fileName = assetMetaData.FileName;
-            string uniqueBlobName = $"{Guid.NewGuid()}-{fileName}";
+            // string fileName = assetMetaData.FileName;
+            string uniqueBlobName = $"{Guid.NewGuid()}";
             
             // TODO keeping this for Dennnis to review
             await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}.zst"), file);
@@ -42,8 +42,8 @@ namespace Infrastructure.DataAccess
 
             return true;
         }
-        
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
+
+        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
             var compressedFiles = new List<IFormFile>();
             
@@ -54,11 +54,11 @@ namespace Infrastructure.DataAccess
             }
                 
             // Create tasks for parallel file reading
-            var readTasks = assets.Select(async asset => {
-            var filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
+            var readTasks = assetIdNameTuples.Select(async assetIdNameTuple => {
+                var filePath = Path.Combine(storageDirectory, $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst");
                 var bytes = await File.ReadAllBytesAsync(filePath);
                 
-                string fileName = $"{asset.BlobID}.{asset.FileName}.zst";
+                string fileName = $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst";
                 
                 // Convert byte array to IFormFile
                 var stream = new MemoryStream(bytes);
@@ -78,7 +78,6 @@ namespace Infrastructure.DataAccess
             
             compressedFiles.AddRange(files);
             return compressedFiles;
-        }
-        
+        }  
     }
 }

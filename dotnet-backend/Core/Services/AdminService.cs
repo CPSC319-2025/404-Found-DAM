@@ -72,10 +72,10 @@ namespace Core.Services
                 );
 
                 // TODO: Store assets to blob and get blobIDs in order to add them to assets
-                foreach (var entry in assetEntries)
-                {
-                        Console.WriteLine($"asset name is: {entry.FullName}");
-                }
+                // foreach (var entry in assetEntries)
+                // {
+                //         Console.WriteLine($"asset name is: {entry.FullName}");
+                // }
                 GetProjectRes importedProjectInfo = await _projectService.GetProject(importedProjectID);
                 ImportProjectRes res = new ImportProjectRes { importedDate = DateTime.UtcNow, importedProjectInfo = importedProjectInfo };
                 return res;
@@ -98,8 +98,11 @@ namespace Core.Services
 
                 if (isRequesterProjectAdmin)
                 {
-                    List<Asset> assets = await _projRepository.GetProjectAssetsInDb(projectID);
+                    List<Asset> assets = await _projRepository.GetProjectAndAssetsInDb(projectID);
                     (string fileName, byte[] excelByteArray) = AdminServiceHelpers.GenerateProjectExportExcel(project, assets);
+                    
+
+                    // TODO: get the asset files to be retunr together
                     return (fileName, excelByteArray);
                 }
                 else

@@ -6,7 +6,7 @@ namespace Core.Interfaces
     {
         void rotate90();
         void toWebpImageSharp();
-        void toWebpNetVips();
+        byte[] toWebpNetVips(byte[] decompressedBuffer, bool lossless);
         void pHashCompare();
     }
 }

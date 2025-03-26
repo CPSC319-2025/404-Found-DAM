@@ -7,7 +7,7 @@ namespace Core.Interfaces
     public interface IProjectRepository
     {
         // Suffixing InDb to differentiate from service operations.  
-        Task<(List<string> successfulAssociations, List<string> failedAssociation)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID);
+        Task<(List<string> successfulAssociations, List<string> failedAssociation)> AssociateAssetsWithProjectInDb(int projectID, List<string> blobIDs, int submitterID);
         Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs);
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<Project> GetProjectInDb(int projectID);
@@ -16,6 +16,9 @@ namespace Core.Interfaces
         Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
         Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req);
         Task AddAssetTagAssociationAsync(string imageId, int tagId);
+        Task<bool> CheckProjectAssetExistence(int projectID, string blobId, int userID);
         Task UpsertAssetMetadataAsync(string imageId, int fieldId, JsonElement fieldValueElement);
+        Task<List<Project>> GetProjectsForUserInDb(int userId);
     }
+
 }

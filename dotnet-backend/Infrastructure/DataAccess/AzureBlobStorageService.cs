@@ -31,8 +31,8 @@ namespace Infrastructure.DataAccess
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
             
             // Generate a unique blob name
-            string fileName = assetMetaData.FileName;
-            string uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
+            // string fileName = assetMetaData.FileName;
+            string uniqueFileName = $"{Guid.NewGuid()}";
             
             // Get blob client and upload file
             var blobClient = containerClient.GetBlobClient(uniqueFileName);
@@ -53,6 +53,7 @@ namespace Infrastructure.DataAccess
             }
             
             // Return blob ID (full path)
+            Console.WriteLine(blobClient.Name);
             return blobClient.Name;
             
         }
@@ -62,13 +63,15 @@ namespace Infrastructure.DataAccess
             // Create blob client and container
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-            var blobClient = containerClient.GetBlobClient(asset.BlobID);
+            
+            // Use the same blob naming convention as in upload
+            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}");
             
             // Delete the blob
             return await blobClient.DeleteIfExistsAsync();
         }
         
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
+        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
@@ -83,10 +86,10 @@ namespace Infrastructure.DataAccess
             List<IFormFile> formFiles = new List<IFormFile>();
             
             // Create a list of tasks for parallel execution
-            var downloadTasks = assets.Select(async asset =>
+            var downloadTasks = assetIdNameTuples.Select(async assetIdNameTuple =>
             {
                 // Get a client for this specific blob
-                var blobClient = containerClient.GetBlobClient(asset.BlobID);
+                var blobClient = containerClient.GetBlobClient(assetIdNameTuple.Item1);
                 
                 // Download the blob
                 var response = await blobClient.DownloadAsync();
@@ -102,7 +105,7 @@ namespace Infrastructure.DataAccess
                     baseStreamOffset: 0,
                     length: memoryStream.Length,
                     name: "file", // Form field name
-                    fileName: Path.GetFileName(asset.BlobID)
+                    fileName: Path.GetFileName(assetIdNameTuple.Item1) // "{asset.BlobID}.{asset.FileName}.zst"
                 );
                 
                 // Set content type if needed
@@ -119,7 +122,6 @@ namespace Infrastructure.DataAccess
             
             // Return the list of form files
             return formFiles;
-        }
-        
+        }  
     }
 }

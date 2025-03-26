@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
 using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
+using Core.Entities;
 
 
 namespace Core.Services
@@ -11,50 +12,62 @@ namespace Core.Services
     public class PaletteService : IPaletteService
     {
         private readonly IPaletteRepository _paletteRepository;
-        
-        public PaletteService(IPaletteRepository paletteRepository)
+        private readonly IImageService _imageService;
+   
+        // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
+        public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
         {
             _paletteRepository = paletteRepository;
+            _imageService = imageService;
         }
 
-        public async Task<string> ProcessUploadAsync(IFormFile file, UploadAssetsReq request)
+        public async Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
         {
-            return await _paletteRepository.UploadAssets(file, request);
+            try {
+                return await _paletteRepository.UploadAssets(file, request, convertToWebp, _imageService);
+            }
+            catch (Exception) {
+                // Console.WriteLine($"Error uploading assets: {ex.Message}");
+                return null;
+            }
         }
 
-        public async Task<object[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request)
+        public async Task<ProcessedAsset[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp)
         {
             // Create a list of tasks with explicit return type
-            var uploadTasks = new List<Task<object>>();
+            var uploadTasks = new List<Task<ProcessedAsset>>();
             
             foreach (var file in files)
             {
                 // Use Task.Run with explicit Function<Task<object>> signature
-                uploadTasks.Add(Task.Run<object>(async () => 
+                uploadTasks.Add(Task.Run<ProcessedAsset>(async () => 
                 {
-                    var res = await ProcessUploadAsync(file, request);
-                    if (!string.IsNullOrEmpty(res))
+                    var asset = await ProcessUploadAsync(file, request, convertToWebp);
+                    if (asset != null) 
                     {
-                        return new {
-                            BlobID = res, 
-                            Success = true, 
-                            FileName = file.FileName, 
-                            Size = file.Length
+                        ProcessedAsset res = new ProcessedAsset
+                        {
+                            BlobID = asset.BlobID, 
+                            FileName = asset.FileName, 
+                            SizeInKB = asset.FileSizeInKB,
+                            Success = true
                         };
+                        return res;
                     }
                     else 
                     {
-                        return new {
-                            BlobID = "",
-                            Success = false, 
+                        ProcessedAsset res = new ProcessedAsset
+                        {
                             FileName = file.FileName, 
-                            Size = file.Length
+                            SizeInKB = file.Length / 1024.0,
+                            Success = false
                         };
+                        return res;
                     }
                 }));
             }
 
-            // Wait for all tasks to complete and return results
+            // Wait for all tasks to complete and return results of successful and failed cases
             return await Task.WhenAll(uploadTasks);
         }
 
@@ -94,5 +107,76 @@ namespace Core.Services
             }
         }
 
+        public async Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds)
+        {
+            var result = new RemoveTagsResult();
+            
+            foreach (string blobId in blobIds)
+            {
+                foreach (int tagId in tagIds)
+                {
+                    bool exists = await _paletteRepository.AssetTagAssociationExistsAsync(blobId, tagId);
+                    if (exists)
+                    {
+                        bool removed = await _paletteRepository.RemoveAssetTagsFromDb(blobId, tagId);
+                        if (removed)
+                        {
+                            result.RemovedAssociations.Add(new AssetTagAssociationDto
+                            {
+                                BlobId = blobId,
+                                TagId = tagId
+                            });
+                        }
+                        else
+                        {
+                            result.NotFoundAssociations.Add(new AssetTagAssociationDto
+                            {
+                                BlobId = blobId,
+                                TagId = tagId
+                            });
+                        }
+                    }
+                    else
+                    {
+                        result.NotFoundAssociations.Add(new AssetTagAssociationDto
+                        {
+                            BlobId = blobId,
+                            TagId = tagId
+                        });
+                    }
+                }
+            }
+            return result;
+        }
+
+        public async Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId)
+        {
+            try
+            {
+                return await _paletteRepository.GetBlobProjectAndTagsAsync(blobId);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error retrieving blob project and tags: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId)
+        {
+            try
+            {
+                return await _paletteRepository.AssignTagToAssetAsync(blobId, tagId);
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

@@ -15,13 +15,25 @@ namespace Core.Services
             // image = image.Rot90();
         }
 
-        public void toWebpNetVips()
+        // Consider making toWebpNetVips async
+        public byte[] toWebpNetVips(byte[] decompressedBuffer, bool lossless)
         {
-            var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");
-            Console.WriteLine("converting...");
-            image.Webpsave("SamplePNGImage_20mbmb.webp", null, false); // Webpsave(string filenameToSaveTo, int qFactor, bool lossless)
-            Console.WriteLine("done...");
+            // var image = NetVips.Image.NewFromFile("SamplePNGImage_20mbmb.png");            
+            try
+            {
+                using (var image = NetVips.Image.NewFromBuffer(decompressedBuffer))
+                {
+                    MemoryStream webpLossyStream = new MemoryStream();                    
+                    byte[] webpLossyBuffer = image.WebpsaveBuffer(null, lossless); // WebpsaveBuffer(int? qFactor, bool lossless)
+                    return webpLossyBuffer;
+                } 
+            }
+            catch (VipsException)
+            {
+                throw;
+            }
         }
+
         
         public void toWebpImageSharp()
         {
@@ -45,9 +57,9 @@ namespace Core.Services
             ulong hash1 = hashAlgorithm.Hash(imageStream1);
             ulong hash2 = hashAlgorithm.Hash(imageStream2);
             double percentageImageSimilarity = CompareHash.Similarity(hash1, hash2);
-            Console.WriteLine($"hash1: ${hash1}");
-            Console.WriteLine($"hash2: ${hash2}");
-            Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
+            // Console.WriteLine($"hash1: ${hash1}");
+            // Console.WriteLine($"hash2: ${hash2}");
+            // Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
         }
     }
 }
