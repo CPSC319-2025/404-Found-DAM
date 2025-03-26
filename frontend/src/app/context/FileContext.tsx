@@ -10,8 +10,9 @@ import React, {
 } from "react";
 
 export type FileMetadata = {
-  file: File; // The raw file object
-  fileName?: string; // Optional custom name
+  file?: File; // Optional raw file object (used during upload only)
+  filePath: string; // Path to the file in storage
+  fileName: string; // Display name of the file
   fileSize: string;
   description: string;
   location: string;
@@ -22,6 +23,7 @@ export type FileMetadata = {
   duration?: number; // For videos
   project?: string; // Each file can store its own project name
   blobId?: string;
+  mimeType: string; // Store the file type
 };
 
 type FileContextType = {

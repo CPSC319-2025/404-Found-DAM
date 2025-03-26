@@ -21,5 +21,8 @@ namespace Core.Interfaces
         Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds);     
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
+        
+        // New methods for chunked file retrieval
+        Task<FileMetadataResponse> GetFileMetadataAsync(string blobId, int userId);
     }
 }

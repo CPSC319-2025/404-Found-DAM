@@ -12,7 +12,7 @@ export default function EditMetadataPage() {
   const fileName = searchParams.get("file");
 
   // Find file by comparing file.name
-  const fileIndex = files.findIndex((f) => f.file.name === fileName);
+  const fileIndex = files.findIndex((f) => f.fileName === fileName);
   const fileData = files[fileIndex];
 
   // Always call hooks at the top level, even if fileData is undefined.
@@ -277,7 +277,7 @@ export default function EditMetadataPage() {
             Editing file:
           </p>
           <div className="bg-gray-100 p-3 rounded">
-            <p className="text-gray-800 font-semibold">{fileData.file.name}</p>
+            <p className="text-gray-800 font-semibold">{fileData.fileName}</p>
           </div>
         </div>
 

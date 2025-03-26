@@ -14,7 +14,7 @@ export async function removeFile(fileMeta: FileMetadata): Promise<boolean> {
   if (fileMeta.blobId !== undefined) {
     formData.append("Name", fileMeta.blobId);
   } else {
-    console.warn("No blobId found for file:", fileMeta.file.name);
+    console.warn("No blobId found for file:", fileMeta.fileName);
     return false;
   }
 

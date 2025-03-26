@@ -22,6 +22,12 @@ export default function UploadPage() {
   // 2a) Helper function: compress + upload 
   async function uploadFileZstd(fileMeta: FileMetadata) {
     try {
+      // Check if file exists
+      if (!fileMeta.file) {
+        console.error("File object is missing in metadata");
+        return;
+      }
+
       // Compress file with Zstandard
       const compressedFile = await compressFileZstd(fileMeta.file);
 
@@ -78,8 +84,11 @@ export default function UploadPage() {
       acceptedFiles.forEach((file) => {
         const fileSize = (file.size / 1024).toFixed(2) + " KB";
         const fileMeta: FileMetadata = {
-          file,
+          file, 
+          filePath: URL.createObjectURL(file),
+          fileName: file.name,
           fileSize,
+          mimeType: file.type,
           description: "",
           location: "",
           tags: [],
@@ -101,7 +110,26 @@ export default function UploadPage() {
         } else if (file.type.startsWith("video/")) {
           const video = document.createElement("video");
           video.preload = "metadata";
+          
+          // Add timeout for video metadata loading
+          const timeoutId = setTimeout(() => {
+            console.error(`Timed out loading video metadata for ${file.name}`);
+            
+            // Use default values for width/height/duration if metadata load fails
+            fileMeta.width = 640;
+            fileMeta.height = 480;
+            fileMeta.duration = 0;
+            
+            // Add metadata to state
+            setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            if (fileMeta.file) {
+              uploadFileZstd(fileMeta).catch(console.error);
+            }
+          }, 10000); // 10 second timeout
+          
           video.onloadedmetadata = () => {
+            clearTimeout(timeoutId);
             fileMeta.width = video.videoWidth;
             fileMeta.height = video.videoHeight;
             fileMeta.duration = Math.floor(video.duration);
@@ -111,6 +139,24 @@ export default function UploadPage() {
             // Immediately upload
             uploadFileZstd(fileMeta).catch(console.error);
           };
+          
+          video.onerror = () => {
+            clearTimeout(timeoutId);
+            console.error(`Failed to load video metadata for ${file.name}`);
+            
+            // Use default values for width/height/duration if metadata load fails
+            fileMeta.width = 640;
+            fileMeta.height = 480;
+            fileMeta.duration = 0;
+            
+            // Add metadata to state
+            setFiles((prev) => [...prev, fileMeta]);
+            // Immediately upload
+            if (fileMeta.file) {
+              uploadFileZstd(fileMeta).catch(console.error);
+            }
+          };
+          
           video.src = URL.createObjectURL(file);
         } else {
           // Other file types:
@@ -168,7 +214,7 @@ export default function UploadPage() {
               <ul className="space-y-2">
                 {files.map((meta, i) => (
                   <li key={i} className="border p-2 rounded">
-                    {meta.file.name} - {meta.fileSize}
+                    {meta.fileName} - {meta.fileSize}
                   </li>
                 ))}
               </ul>

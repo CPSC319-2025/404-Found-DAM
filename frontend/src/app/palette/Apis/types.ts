@@ -28,6 +28,6 @@ export interface BlobDetails {
  */
 export interface UploadProgressCallbacks {
   onProgress: (progress: number, status: string) => void;
-  onSuccess: () => void;
+  onSuccess: (blobId?: string, url?: string) => void;
   onError: (error: string) => void;
 } 

@@ -47,6 +47,14 @@ const Progress = ({
   </div>
 );
 
+// Utility to format file size
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+};
+
 export default function PalettePage() {
   const router = useRouter();
   const { files, setFiles } = useFileContext();
@@ -63,7 +71,7 @@ export default function PalettePage() {
   // Helper function to get file dimensions from image/video and add to state
   const processFileMetadata = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
     return new Promise((resolve) => {
-      if (fileMeta.file.type.startsWith("image/")) {
+      if (fileMeta.mimeType.startsWith("image/")) {
         const img = new Image();
         img.onload = () => {
           fileMeta.width = img.width;
@@ -71,18 +79,40 @@ export default function PalettePage() {
           setFiles((prev) => [...prev, fileMeta]);
           resolve();
         };
-        img.src = URL.createObjectURL(fileMeta.file);
-      } else if (fileMeta.file.type.startsWith("video/")) {
+        img.onerror = () => {
+          console.error(`Failed to load image metadata for ${fileMeta.fileName}`);
+          setFiles((prev) => [...prev, fileMeta]);
+          resolve();
+        };
+        img.src = fileMeta.filePath;
+      } else if (fileMeta.mimeType.startsWith("video/")) {
         const video = document.createElement("video");
         video.preload = "metadata";
+        
+        // Add timeout for video metadata loading
+        const timeoutId = setTimeout(() => {
+          console.error(`Timed out loading video metadata for ${fileMeta.fileName}`);
+          setFiles((prev) => [...prev, fileMeta]);
+          resolve();
+        }, 10000); // 10 second timeout
+        
         video.onloadedmetadata = () => {
+          clearTimeout(timeoutId);
           fileMeta.width = video.videoWidth;
           fileMeta.height = video.videoHeight;
           fileMeta.duration = Math.floor(video.duration);
           setFiles((prev) => [...prev, fileMeta]);
           resolve();
         };
-        video.src = URL.createObjectURL(fileMeta.file);
+        
+        video.onerror = () => {
+          clearTimeout(timeoutId);
+          console.error(`Failed to load video metadata for ${fileMeta.fileName}`);
+          setFiles((prev) => [...prev, fileMeta]);
+          resolve();
+        };
+        
+        video.src = fileMeta.filePath;
       } else {
         setFiles((prev) => [...prev, fileMeta]);
         resolve();
@@ -116,7 +146,7 @@ export default function PalettePage() {
     }
   }, [setFiles]);
 
-  // Load assets on initial mount
+  // Load assets on initial mount and clean up on unmount
   useEffect(() => {
     if (didFetchRef.current) return;
     didFetchRef.current = true;
@@ -125,9 +155,12 @@ export default function PalettePage() {
       setFiles([]);
       const fetchedFiles = await fetchPaletteAssets();
       
-      // Process each file for additional metadata
+      // Add each file to the state directly
       for (const fileMeta of fetchedFiles) {
-        await processFileMetadata(fileMeta);
+        // No need to process file metadata separately - the server URLs are already set up
+        setFiles(prev => [...prev, fileMeta]);
+        
+        // Fetch additional details if needed
         if (fileMeta.blobId) {
           await fetchAndUpdateBlobDetails(fileMeta.blobId);
         }
@@ -135,7 +168,22 @@ export default function PalettePage() {
     };
     
     loadAssets();
-  }, [setFiles, processFileMetadata, fetchAndUpdateBlobDetails]);
+
+    // Cleanup function to revoke any object URLs created for files
+    return () => {
+      // Get the current files at cleanup time
+      const currentFiles = files; // Capture current value of files
+      currentFiles.forEach(fileMeta => {
+        if (fileMeta.file && fileMeta.filePath) {
+          try {
+            URL.revokeObjectURL(fileMeta.filePath);
+          } catch (err) {
+            console.error(`Failed to revoke object URL for ${fileMeta.fileName}:`, err);
+          }
+        }
+      });
+    };
+  }, [setFiles, fetchAndUpdateBlobDetails]);
 
   // Fetch projects once on mount
   useEffect(() => {
@@ -168,39 +216,63 @@ export default function PalettePage() {
   const createFileMetadata = useCallback((file: File): FileMetadata => {
     const fileSize = (file.size / 1024).toFixed(2) + " KB";
     return {
-      file,
+      file, // Keep temporarily for upload
+      filePath: URL.createObjectURL(file), // Temporary URL during upload
+      fileName: file.name,
       fileSize,
       description: "",
       location: "",
       tags: [],
       tagIds: [],
+      mimeType: file.type,
     };
   }, []);
 
   // Create callbacks for the chunked upload
-  const createUploadCallbacks = useCallback((file: File): UploadProgressCallbacks => ({
+  const createUploadCallbacks = useCallback((file: File, fileMeta: FileMetadata): UploadProgressCallbacks => ({
     onProgress: (progress: number, status: string) => {
-      setUploadStatus(`Uploading ${file.name}: ${status}`);
+      setUploadStatus(status || `Uploading ${file.name}: ${progress}%`);
       setUploadProgress(progress);
     },
-    onSuccess: async () => {
+    onSuccess: (blobId?: string, url?: string) => {
       setUploadStatus(`File ${file.name} uploaded successfully`);
       setUploadProgress(100);
       
-      // Clear status after a delay
-      setTimeout(() => {
-        setUploadStatus("");
-        setUploadProgress(0);
-      }, 3000);
+      // Update file metadata with permanent URL and blobId
+      const updatedMeta: FileMetadata = {
+        ...fileMeta,
+        file: undefined, // Remove the file object to save memory
+        filePath: url || fileMeta.filePath, // Use permanent URL from server or keep existing
+        blobId: blobId || fileMeta.blobId // Use new blobId or keep existing
+      };
       
-      // Refresh the palette assets list to show the newly uploaded file
-      const fetchedFiles = await fetchPaletteAssets();
-      
-      // Find the newly uploaded file and get its blobId
-      const newFile = fetchedFiles.find(f => f.file.name === file.name);
-      if (newFile && newFile.blobId) {
-        await fetchAndUpdateBlobDetails(newFile.blobId);
+      // If we had a temporary object URL, revoke it
+      if (fileMeta.file) {
+        try {
+          URL.revokeObjectURL(fileMeta.filePath);
+        } catch (err) {
+          console.error("Failed to revoke object URL:", err);
+        }
       }
+      
+      // Now process the file metadata to get dimensions, etc.
+      processFileMetadata(updatedMeta)
+        .then(() => {
+          // After processing and adding to state, fetch additional blob details
+          if (blobId) {
+            return fetchAndUpdateBlobDetails(blobId);
+          }
+        })
+        .catch(err => {
+          console.error("Error processing file metadata:", err);
+        })
+        .finally(() => {
+          // Clear status after a delay
+          setTimeout(() => {
+            setUploadStatus("");
+            setUploadProgress(0);
+          }, 50);
+        });
     },
     onError: (error: string) => {
       setUploadStatus(`Error uploading ${file.name}: ${error}`);
@@ -211,30 +283,115 @@ export default function PalettePage() {
         setUploadProgress(0);
       }, 5000);
     }
-  }), [fetchAndUpdateBlobDetails]);
+  }), [setUploadStatus, setUploadProgress, processFileMetadata, fetchAndUpdateBlobDetails]);
 
   // Handle file drop with chunked upload
-  const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      for (const file of acceptedFiles) {
-        // Create file metadata
-        const fileMeta = createFileMetadata(file);
+  const onDropFiles = useCallback(async (acceptedFiles: File[]) => {
+    setUploadStatus("Uploading files...");
+    setUploadProgress(0);
+    
+    // Create an array to store successfully uploaded files
+    const uploadedFiles: FileMetadata[] = [];
+    
+    // Process each file in sequence to avoid overwhelming the server
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
+      const fileNumber = i + 1;
+      const totalFiles = acceptedFiles.length;
+      
+      try {
+        setUploadStatus(`Uploading file ${fileNumber} of ${totalFiles}: ${file.name}`);
         
-        // Process file metadata (dimensions, etc.)
-        await processFileMetadata(fileMeta);
+        // Calculate file size string
+        const fileSizeString = formatFileSize(file.size);
         
-        // Upload file in chunks
-        setUploadStatus(`Starting upload of ${file.name}...`);
-        setUploadProgress(0);
+        // Create a temporary object URL for the file (for preview during upload)
+        const objectUrl = URL.createObjectURL(file);
         
-        await uploadFileChunked(file, createUploadCallbacks(file));
+        // Prepare the file metadata (temporary, will be updated after upload)
+        const tempMetadata: FileMetadata = {
+          file: file,
+          filePath: objectUrl,
+          fileName: file.name,
+          fileSize: fileSizeString,
+          description: "",
+          location: "",
+          tags: [],
+          tagIds: [],
+          mimeType: file.type || "application/octet-stream"
+        };
+        
+        // For large files, use chunked upload
+        const isLargeFile = file.size > 5 * 1024 * 1024; // 5MB threshold
+        
+        // Setup progress callbacks
+        const progressCallbacks: UploadProgressCallbacks = {
+          onProgress: (progress: number, status: string) => {
+            setUploadProgress(progress);
+            setUploadStatus(status || `Uploading ${file.name}: ${progress}%`);
+          },
+          onSuccess: (blobId?: string, url?: string) => {
+            setUploadStatus(`File ${file.name} uploaded successfully`);
+            setUploadProgress(100);
+          },
+          onError: (error: string) => {
+            console.error(`Upload error: ${error}`);
+            setUploadStatus(`Error uploading ${file.name}: ${error}`);
+          }
+        };
+        
+        // Upload the file
+        const uploadResult = await uploadFileChunked(
+          file, 
+          isLargeFile,
+          progressCallbacks
+        );
+        
+        // Check upload success
+        if (uploadResult.success && uploadResult.data) {
+          const { blobId, url } = uploadResult.data;
+          
+          // Update metadata with the server response
+          const updatedMetadata: FileMetadata = {
+            ...tempMetadata,
+            blobId: blobId,
+            filePath: url || objectUrl,
+          };
+          
+          // Add to our array of uploaded files
+          uploadedFiles.push(updatedMetadata);
+          
+          // Process metadata like dimensions if it's a media file
+          await processFileMetadata(updatedMetadata);
+        } else {
+          console.error("Upload failed:", uploadResult.error || "Unknown error");
+          setUploadStatus(`Failed to upload ${file.name}`);
+        }
+      } catch (err) {
+        console.error(`Error uploading ${file.name}:`, err);
+        setUploadStatus(`Error uploading ${file.name}`);
       }
-    },
-    [createFileMetadata, processFileMetadata, createUploadCallbacks]
-  );
+      
+      // Update progress for the whole batch
+      setUploadProgress((fileNumber / totalFiles) * 100);
+    }
+    
+    // All uploads completed
+    if (uploadedFiles.length > 0) {
+      setUploadStatus(`Successfully uploaded ${uploadedFiles.length} file(s)`);
+    } else {
+      setUploadStatus("No files were uploaded successfully");
+    }
+    
+    // Reset progress after a delay
+    setTimeout(() => {
+      setUploadStatus("");
+      setUploadProgress(0);
+    }, 3000);
+  }, [processFileMetadata]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: onDropFiles,
     accept: { "image/*": [], "video/*": [] },
   });
 
@@ -260,7 +417,7 @@ export default function PalettePage() {
 
       // Make sure this file has both a blobId and a project ID
       if (!fileMeta.blobId || !fileMeta.project) {
-        console.warn(`File missing blobId or project ID: ${fileMeta.file.name}`);
+        console.warn(`File missing blobId or project ID: ${fileMeta.fileName}`);
         return;
       }
 

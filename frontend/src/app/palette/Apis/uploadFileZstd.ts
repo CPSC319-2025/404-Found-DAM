@@ -8,14 +8,20 @@ import { compressFileZstd } from "@/app/palette/compressFileZstd";
  */
 export async function uploadFileZstd(fileMeta: FileMetadata): Promise<string | undefined> {
   try {
+    // Check if file exists
+    if (!fileMeta.file) {
+      console.error("File object is missing in metadata");
+      return undefined;
+    }
+    
     // Compress file with Zstandard
     const compressedFile = await compressFileZstd(fileMeta.file);
 
     // Use native FormData
     const formData = new FormData();
     formData.append("userId", "001"); // or dynamic
-    formData.append("name", fileMeta.file.name);
-    formData.append("mimeType", fileMeta.file.type); // Use the file's actual MIME type dynamically
+    formData.append("name", fileMeta.fileName);
+    formData.append("mimeType", fileMeta.mimeType);
     formData.append("files", compressedFile);
 
     // Send the request

@@ -81,7 +81,8 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
       return [];
     }
 
-    const filePromises = data.files.map(async (fileInfo: any) => {
+    // Process each file metadata without downloading the full file
+    const fileDataArray = data.files.map((fileInfo: any) => {
       // Handle case-insensitive property names
       console.log("Processing file:", fileInfo);
       const blobId = fileInfo.blobId;
@@ -95,51 +96,38 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
       // Extract the original filename
       const originalFilename = extractOriginalFilename(fileName);
       
-      // Download each file individually with decompression done on the server
-      const fileResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/${blobId}?decompress=true`, 
-        {
-          method: "GET",
-          headers: {
-            Authorization: "Bearer MY_TOKEN",
-          }
-        }
-      );
+      // Determine the MIME type
+      const mimeType = getMimeTypeFromFileName(originalFilename);
       
-      if (!fileResponse.ok) {
-        console.error(`Failed to fetch file ${blobId}:`, fileResponse.status);
-        return null;
-      }
+      // Generate file URL (will be loaded on-demand when viewed)
+      // Don't use decompress=true for videos since they use range requests
+      const filePath = `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/${blobId}?decompress=true`;
       
-      // Get the file content
-      const blob = await fileResponse.blob();
+      // Estimate file size if available, otherwise use placeholder
+      const fileSize = fileInfo.size ? 
+        `${(fileInfo.size / 1024).toFixed(2)} KB` : 
+        "Size unknown";
       
-      // Create a File object
-      const file = new File(
-        [blob],
-        originalFilename,
-        { type: getMimeTypeFromFileName(originalFilename) }
-      );
-
-      const fileSize = (file.size / 1024).toFixed(2) + " KB";
+      // Create metadata without loading the actual file
       const fileMeta: FileMetadata = {
-        file,
+        fileName: originalFilename,
+        filePath,
         fileSize,
         description: "",
         location: "",
         tags: [],
         tagIds: [],
-        blobId
+        blobId,
+        mimeType
       };
 
       return fileMeta;
     });
 
-    // Wait for all promises to resolve
-    const fetchedFiles = await Promise.all(filePromises);
-    
     // Filter out null values and return
-    return fetchedFiles.filter(file => file !== null) as FileMetadata[];
+    return fileDataArray.filter((file: unknown): file is FileMetadata => 
+      file !== null && typeof file === 'object'
+    );
   } catch (err) {
     console.error("Error fetching palette assets:", err);
     return [];

@@ -438,26 +438,6 @@ namespace APIs.Controllers
                 bool decompress = request.Query.ContainsKey("decompress") && 
                     bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
 
-                // Get range headers for chunked download
-                var rangeHeader = request.Headers.Range.FirstOrDefault();
-                long? startByte = null;
-                long? endByte = null;
-
-                if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
-                {
-                    var rangeValue = rangeHeader.Substring("bytes=".Length);
-                    var rangeParts = rangeValue.Split('-');
-                    
-                    if (rangeParts.Length == 2)
-                    {
-                        if (!string.IsNullOrEmpty(rangeParts[0]))
-                            startByte = Convert.ToInt64(rangeParts[0]);
-                        
-                        if (!string.IsNullOrEmpty(rangeParts[1]))
-                            endByte = Convert.ToInt64(rangeParts[1]);
-                    }
-                }
-
                 // Get the specific file by blobId
                 var file = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
                 
@@ -488,6 +468,58 @@ namespace APIs.Controllers
                 var contentType = decompress
                     ? GetMimeTypeFromFileName(originalFileName)
                     : "application/zstd";
+
+                // For videos, always deliver the entire file when decompression is requested
+                var isVideo = contentType.StartsWith("video/");
+                
+                // Return the whole file for video files when decompress=true
+                if (decompress && isVideo)
+                {
+                    using (var fileStream = file.OpenReadStream())
+                    {
+                        var memoryStream = new MemoryStream();
+                        await fileStream.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+                        
+                        byte[] fileContents = memoryStream.ToArray();
+                        
+                        // If decompress is requested and this is a .zst file
+                        if (fileName.EndsWith(".zst"))
+                        {
+                            fileContents = await paletteService.DecompressZstdAsync(fileContents);
+                        }
+                        
+                        return Results.File(
+                            fileContents: fileContents,
+                            contentType: contentType,
+                            fileDownloadName: decompress ? originalFileName : fileName,
+                            enableRangeProcessing: true,
+                            lastModified: DateTimeOffset.UtcNow,
+                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
+                        );
+                    }
+                }
+                
+                // Proceed with normal processing including range requests for other cases
+                // Get range headers for chunked download
+                var rangeHeader = request.Headers.Range.FirstOrDefault();
+                long? startByte = null;
+                long? endByte = null;
+
+                if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
+                {
+                    var rangeValue = rangeHeader.Substring("bytes=".Length);
+                    var rangeParts = rangeValue.Split('-');
+                    
+                    if (rangeParts.Length == 2)
+                    {
+                        if (!string.IsNullOrEmpty(rangeParts[0]))
+                            startByte = Convert.ToInt64(rangeParts[0]);
+                        
+                        if (!string.IsNullOrEmpty(rangeParts[1]))
+                            endByte = Convert.ToInt64(rangeParts[1]);
+                    }
+                }
 
                 // If range is specified, return just that chunk
                 if (startByte.HasValue)
