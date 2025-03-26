@@ -36,23 +36,6 @@ namespace APIs.Controllers
         .WithName("DeletePaletteAsset")
         .WithOpenApi();
         // update the images in the palette with the selected project tags
-        app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
-        {
-            var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
-            if (result) {
-                return Results.Ok(new {
-                    status = "success",
-                    projectId = request.ProjectId,
-                    updatedImages = request.ImageIds,
-                    message = "Tags successfully added to selected images in the palette."
-                });
-            } else {
-                Console.WriteLine($"Failed to assign project tags to images for ProjectId {result}.");
-                return Results.NotFound("Failed to assign project tags to images");
-            }
-        })
-        .WithName("ModifyTags")
-        .WithOpenApi();
 
         // Get project and tags by blob id
         app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
