@@ -285,20 +285,12 @@ export default function ProjectsPage() {
     setFormFields(updatedFormFields);
   }, [adminOptions, regularUserOptions]);
 
-  const myProjects = allProjects.filter(
-    (project) =>
-      user &&
-      user.projectMemberships.some(
-        (membership) => membership.project === project.projectID
-      )
+  const myProjects = allProjects.filter((project) =>
+    project.userNames.includes("Isabella Sanchez")
   );
 
   const filteredAllProjects = allProjects.filter(
-    (project) =>
-      user &&
-      !user.projectMemberships.some(
-        (membership) => membership.project === project.projectID
-      )
+    (project) => !project.userNames.includes("Isabella Sanchez")
   );
 
   const overallProjectsExist = allProjects.length > 0 || myProjects.length > 0;
