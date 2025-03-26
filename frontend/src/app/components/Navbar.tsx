@@ -38,13 +38,13 @@ const pages: Page[] = [
   },
   ...(isSuperAdmin
     ? [
-      {
-        path: "users",
-        title: "Users",
-        mobileTitle: "Users",
-        icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
+        {
+          path: "users",
+          title: "Users",
+          mobileTitle: "Users",
+          icon: <UsersIcon className="w-8 h-8 sm:w-6 sm:h-6" />,
         },
-    ]
+      ]
     : []),
 ];
 
@@ -68,7 +68,13 @@ export default function Navbar() {
       </div>
 
       <div className="hidden sm:block">
-        <h2 className="text-xl font-bold mb-4">AE</h2>
+        <h2 className="flex justify-center mb-4">
+          <img
+            src="/images/ae_logo_blue.svg"
+            alt="Associated Engineering"
+            className="w-32 h-32"
+          />
+        </h2>
         <ul className="space-y-2">
           {pages.map((page) => (
             <li key={page.path}>
