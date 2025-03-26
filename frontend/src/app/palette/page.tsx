@@ -9,7 +9,6 @@ import FileTable from "./components";
 import { ZstdCodec } from "zstd-codec";
 import { compressFileZstd } from "@/app/palette/compressFileZstd";
 import JSZip from "jszip";
-import { decompressSync } from "zstd.ts";
 
 interface Project {
   projectID: number;

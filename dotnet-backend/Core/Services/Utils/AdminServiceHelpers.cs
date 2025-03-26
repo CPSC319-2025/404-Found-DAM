@@ -327,14 +327,10 @@ namespace Core.Services.Utils
                 }
                 projectSheetRowCount++;
             }
-
             return (projectList, projectTagList, tagList, importUserProfileList);
         }
 
-
-
-
-
+     
         // A method to compress byte array
         public static byte[] CompressByteArray(byte[] data)
         {
