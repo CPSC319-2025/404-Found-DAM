@@ -92,7 +92,7 @@ export default function ProjectCard({
               ))}
               {userNames.length > 4 && (
                 <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                  +(userNames.length - 4)
+                  +{userNames.length - 4}
                 </div>
               )}
             </div>
