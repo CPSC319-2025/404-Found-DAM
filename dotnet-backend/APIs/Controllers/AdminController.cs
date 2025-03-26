@@ -88,6 +88,17 @@ namespace APIs.Controllers
                     await file.CopyToAsync(memoryStream);
                     memoryStream.Seek(0, SeekOrigin.Begin); // Reset the memory stream's position.
                     ImportProjectRes result = await adminService.ImportProject(memoryStream);
+
+                    // add log
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = MOCKEDUSERID, // Replace with actual authenticated user ID
+                        ChangeType = "Import",
+                        Description = "",
+                        ProjectID = 0,
+                        AssetID = ""
+                        
+                    });
                     return Results.Ok(result);
                 }
             }
@@ -117,8 +128,19 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = MOCKEDUSERID;
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
+                    string removedUsers = string.Join(", ", 
+                        (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
+                    string description = $"Removed users: {removedUsers}";
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = reqeusterID,
+                        ChangeType = "Remove Users",
+                        Description = desciption,
+                        ProjectID = projectID,
+                        AssetID = ""
+                    });
                     return Results.Ok(result);
                 }
             }
@@ -146,6 +168,18 @@ namespace APIs.Controllers
                 {
                     int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
+
+                    string addedUsers = string.Join(", ", 
+                        (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
+                    string description = $"Added users: {addedUsers}";
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = reqeusterID,
+                        ChangeType = "Add Users",
+                        Description = description,
+                        ProjectID = projectID,
+                        AssetID = ""
+                    });
                     return Results.Ok(result);
                 }
             }

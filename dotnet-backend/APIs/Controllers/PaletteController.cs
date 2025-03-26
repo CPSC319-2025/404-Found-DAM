@@ -41,6 +41,16 @@ namespace APIs.Controllers
         {
             var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
             if (result) {
+
+                // add log (todo, half done):
+                int userID = MOCKEDUSERID;
+
+
+
+                foreach (imageID in request.ImageIds) {
+                    await _activityLogService.AddLogAsync(userID, "Added", "DESCRIPTION TO BE UPDATED TODO - Tags", request.projectId, imageID) 
+                }
+
                 return Results.Ok(new {
                     status = "success",
                     projectId = request.ProjectId,
@@ -97,6 +107,10 @@ namespace APIs.Controllers
                 
                 if (result.Success)
                 {
+                    // add log (todo - asked on Discord)
+                    int userID = MOCKEDUSERID;
+
+                    await _activityLogService.AddLogAsync(userID, "Assigned", request.TagId, BlobId, )
                     return Results.Ok(result);
                 }
                 else
@@ -250,6 +264,8 @@ namespace APIs.Controllers
 
                 // Create a task for each file
                 var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
+
+                // add log (todo)
             
                 // Return combined results
                 return Results.Ok(results);
@@ -287,6 +303,8 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
+                // add log (asked on Discord, unclear if Name === BlobID or not)
+
                 return Results.Ok(new {
                     fileName = deleteRequest.Name,
                 });
@@ -311,6 +329,21 @@ namespace APIs.Controllers
                  int submitterID = MOCKEDUSERID; 
                  Console.WriteLine(req.blobIDs);
                  SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+
+
+                 // add log (done)
+                 foreach (blobID in req.blobIDs)
+                 {
+                    var logDto = new CreateActivityLogDto
+                    {
+                        UserID = submitterID,
+                        ChangeType = "Added",
+                        Description = "",
+                        ProjectID = projectID,
+                        AssetID = blobID
+                    };
+                 }
+                 await _activityLogService.AddLogAsync(logDto);
                  return Results.Ok(result);
              }
 
@@ -341,6 +374,21 @@ namespace APIs.Controllers
                 }
                 else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)
                 {
+
+
+                    // add log (done)
+                    foreach (var blobId in request.BlobIds)
+                    {
+                        var logDto = new CreateActivityLogDto
+                        {
+                            UserID = MOCKEDUSERID,
+                            ChangeType = "Removed",
+                            Description = $"Tags [{string.Join(", ", request.TagIds)}] have been removed from BlobId {blobId}.",
+                            ProjectID = 0, // no project
+                            AssetID = blobId
+                        };
+                        await _activityLogService.AddLogAsync(logDto);
+                    }
                     return Results.Ok(new
                     {
                         message = "Some associations were removed, but some were not found.",
@@ -350,6 +398,20 @@ namespace APIs.Controllers
                 }
                 else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)
                 {
+
+                    // add log (done)
+                    foreach (var blobId in request.BlobIds)
+                    {
+                        var logDto = new CreateActivityLogDto
+                        {
+                            UserID = MOCKEDUSERID,
+                            ChangeType = "Removed",
+                            Description = $"Tags [{string.Join(", ", request.TagIds)}] have been removed from BlobId {blobId}.",
+                            ProjectID = 0, // no project
+                            AssetID = blobId
+                        };
+                        await _activityLogService.AddLogAsync(logDto);
+                    }
                     return Results.Ok(new
                     {
                         message = "All specified associations were successfully removed.",

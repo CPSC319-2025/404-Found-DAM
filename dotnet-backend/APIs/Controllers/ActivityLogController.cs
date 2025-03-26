@@ -82,10 +82,10 @@ namespace APIs.Controllers
             });
         }
 
-        public static async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID, IActivityLogService service) {
-            // IActivityLogService service = new ActivityLogService();
-            return await service.AddLogAsync(userID, changeType, description, projectID, assetID);
-        }
+        // public static async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID, IActivityLogService service) {
+        //     // IActivityLogService service = new ActivityLogService();
+        //     return await service.AddLogAsync(userID, changeType, description, projectID, assetID);
+        // }
 
     }
 }

@@ -34,7 +34,7 @@ namespace Infrastructure.DataAccess;
             }
         }
 
-        public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, string? assetID, DateTime? fromDate, DateTime? toDate)
         {
             using var _context = _contextFactory.CreateDbContext();
             var query = _context.Logs.AsQueryable();
@@ -49,7 +49,7 @@ namespace Infrastructure.DataAccess;
                 query = query.Where(log => log.ProjectID == projectID.Value);
 
             if (assetID.HasValue)
-                query = query.Where(log => log.AssetID == assetID.Value);
+                query = query.Where(log => log.AssetID.Equals(assetID));
 
             if (fromDate.HasValue)
                 query = query.Where(log => log.Timestamp >= fromDate.Value);
