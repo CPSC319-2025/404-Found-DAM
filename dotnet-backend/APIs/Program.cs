@@ -7,8 +7,16 @@ using MockedData;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+//// To increase request body size limit to 1 GB; Unblock and adjust if needed 
+// builder.Services.Configure<KestrelServerOptions>(options =>
+//    {
+//      options.Limits.MaxRequestBodySize = 1_000_000_000;
+//    });
 
 //Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
