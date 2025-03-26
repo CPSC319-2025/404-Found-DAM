@@ -79,7 +79,8 @@ namespace APIs.Controllers
             ImportProject Assumes:
                 - Assume users are in the system (throw errors if some are not)
                 - No need to import assets (i.e., a project with users only, no assets included yet), so just need to establish projectmemberships
-                - The imported excel file extension is .xlsx
+                - The imported excel file extension is .xlsx, which is zipped.
+                - The project Excel file must adhere to the format seen in the provided example, or the operation will fail and return an error to the user                       -  
         */
         private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
