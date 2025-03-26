@@ -34,7 +34,7 @@ namespace Infrastructure.DataAccess;
             }
         }
 
-        public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, string? assetID, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, string? assetID, DateTime? fromDate, DateTime? toDate, bool isAdminAction)
         {
             using var _context = _contextFactory.CreateDbContext();
             var query = _context.Logs.AsQueryable();

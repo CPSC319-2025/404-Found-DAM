@@ -4,6 +4,7 @@ using Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Core.Dtos;
 
 namespace Core.Services
 
@@ -47,9 +48,9 @@ namespace Core.Services
             return await _repository.AddLogAsync(log);
         }
 
-        public async Task<IEnumerable<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, int? assetID, DateTime? fromDate, DateTime? toDate)
+        public async Task<IEnumerable<Log>> GetLogsAsync(int? userID, string? changeType, int? projectID, string? assetID, DateTime? fromDate, DateTime? toDate, bool isAdminAction)
         {
-            return await _repository.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate);
+            return await _repository.GetLogsAsync(userID, changeType, projectID, assetID, fromDate, toDate, isAdminAction);
         }
 
     }

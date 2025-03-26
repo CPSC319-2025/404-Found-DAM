@@ -420,12 +420,13 @@ namespace Core.Services
 
         public async Task<string> GetProjectNameById(int projectID)
         {
-            var project = await _dbContext.Projects.FindAsync(projectID);
-            if (project == null)
-            {
-                throw new DataNotFoundException($"Project with ID {projectID} not found.");
-            }
-            return project.Name;
+            // var project = await _dbContext.Projects.FindAsync(projectID);
+            // if (project == null)
+            // {
+            //     throw new DataNotFoundException($"Project with ID {projectID} not found.");
+            // }
+            // return project.Name;
+            return "name (todo)";
         }
 
     }
