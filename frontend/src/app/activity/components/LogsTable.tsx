@@ -4,6 +4,11 @@ import React, { useState, useEffect } from "react";
 // import Image from "next/image";
 // import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 // import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import {
+  ArrowUpOnSquareIcon,
+  ArrowDownOnSquareIcon,
+  PencilSquareIcon,
+} from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
 
 interface Log {
@@ -201,23 +206,102 @@ interface ItemsProps {
 
 function Items({ currentItems }: ItemsProps) {
   return (
-    <div className="items min-h-[55vh] overflow-y-auto mt-4 rounded-lg p-4">
+    <div className="grid bg-gray-50 overflow-y-auto mt-4 p-4">
       {currentItems &&
-        currentItems.map((log: any) => (
-          <div
-            key={log.id}
-            className="p-2 mb-2 bg-white rounded-md shadow-sm border border-gray-200"
-          >
-            <p className="text-gray-800">
-              <strong>{log.user?.name || "Unknown User"}</strong> {log.action}{" "}
-              {log.project?.name ? `on ${log.project.name}` : ""}
-              {log.asset ? ` (Asset: ${log.asset.filename})` : ""} -{" "}
-              <span className="text-gray-500 text-sm">
-                {new Date(log.timestamp).toLocaleString()}
-              </span>
-            </p>
-          </div>
-        ))}
+        currentItems.map((log: Log) => {
+          let IconComponent;
+          if (log.action === "Uploaded") {
+            IconComponent = ArrowUpOnSquareIcon;
+          } else if (log.action === "Downloaded") {
+            IconComponent = ArrowUpOnSquareIcon;
+          } else if (log.action === "Modified tags") {
+            IconComponent = PencilSquareIcon;
+          } else {
+            IconComponent = ArrowUpOnSquareIcon;
+          }
+
+          let renderedText;
+          if (log.action === "Downloaded") {
+            renderedText = (
+              <p className="text-gray-800">
+                <strong className="text-blue-500">
+                  {log.user?.name || "Unknown User"}
+                </strong>{" "}
+                Downloaded{" "}
+                {log.asset ? (
+                  <span className="font-semibold">{log.asset.filename}</span>
+                ) : null}{" "}
+                from{" "}
+                {log.project?.name ? (
+                  <span className="font-semibold text-blue-500">
+                    {log.project.name}
+                  </span>
+                ) : null}
+              </p>
+            );
+          } else if (log.action === "Uploaded") {
+            renderedText = (
+              <p className="text-gray-800">
+                <strong className="text-blue-500">
+                  {log.user?.name || "Unknown User"}
+                </strong>{" "}
+                Uploaded{" "}
+                {log.asset ? (
+                  <span className="font-semibold">{log.asset.filename}</span>
+                ) : null}{" "}
+                to{" "}
+                {log.project?.name ? (
+                  <span className="font-semibold text-blue-500">
+                    {log.project.name}
+                  </span>
+                ) : null}
+              </p>
+            );
+          } else if (log.action === "Modified tags") {
+            renderedText = (
+              <p className="text-gray-800">
+                <strong className="text-blue-500">
+                  {log.user?.name || "Unknown User"}
+                </strong>{" "}
+                Modified Tags in{" "}
+                {log.project?.name ? (
+                  <span className="font-semibold text-blue-500">
+                    {log.project.name}
+                  </span>
+                ) : null}
+              </p>
+            );
+          } else {
+            renderedText = (
+              <p className="text-gray-800">
+                <strong className="text-blue-500">
+                  {log.user?.name || "Unknown User"}
+                </strong>{" "}
+                {log.action}{" "}
+                {log.project?.name ? (
+                  <span className="text-blue-500">{log.project.name}</span>
+                ) : null}
+              </p>
+            );
+          }
+
+          return (
+            <div
+              key={log.id}
+              className="flex items-center p-2 m-1 border-b border-gray-200 last:border-0"
+            >
+              <div className="mr-3">
+                <IconComponent className="w-8 h-8 text-blue-400" />
+              </div>
+              <div className="flex flex-col items-start p-2">
+                {renderedText}
+                <span className="text-gray-400 text-sm">
+                  {new Date(log.timestamp).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          );
+        })}
     </div>
   );
 }
