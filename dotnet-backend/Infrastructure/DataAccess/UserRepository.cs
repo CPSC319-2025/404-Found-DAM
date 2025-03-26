@@ -28,6 +28,5 @@ namespace Infrastructure.DataAccess
                 .FirstOrDefaultAsync(u => u.UserID == userID) ?? throw new DataNotFoundException($"User with id {userID} not found.");
             return user;
         }
-
     }
 }
