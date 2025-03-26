@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +8,7 @@ using Core.Entities;
 using Infrastructure.Exceptions;
 using System.Reflection.Metadata.Ecma335;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Runtime.CompilerServices;
 
 namespace Infrastructure.DataAccess
 {
@@ -19,11 +20,11 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<(List<int>, List<int>)> AssociateAssetsWithProjectinDb(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<(List<string>, List<string>)> AssociateAssetsWithProjectinDb(int projectID, List<string> blobIDs, int submitterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            List<int> successfulAssociations = new List<int>();
+            List<string> successfulAssociations = new List<string>();
 
             // check project exist & if submitter is a member
             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
@@ -134,6 +135,7 @@ namespace Infrastructure.DataAccess
                     .ThenInclude(pt => pt.Tag)
                 .Include(p => p.ProjectMemberships) // Include ProjectMemberships
                     .ThenInclude(pm => pm.User) // Include User
+                .Include(p => p.ProjectMetadataFields)
                 .AsSplitQuery() // Use split queries instead of a single query when loading multiple collections
                 .FirstOrDefaultAsync(p => p.ProjectID == projectID);
 
@@ -291,5 +293,166 @@ namespace Infrastructure.DataAccess
                 throw new DataNotFoundException("Requester not a member of the project.");
             }
         }
+
+        public async Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req) {
+            using var _context = _contextFactory.CreateDbContext();
+
+            var project = await _context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.ProjectTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMetadataFields)
+                .FirstOrDefaultAsync(p => p.ProjectID == projectID);
+            
+            if (project == null) {
+                throw new DataNotFoundException($"Project with ID {projectID} not found.");
+            }
+
+            if (!string.IsNullOrEmpty(req.Location)) project.Location = req.Location;
+
+            if (req.Memberships != null) {
+                var currentMemberships = project.ProjectMemberships.ToList();
+                var reqUserIds = req.Memberships.Select(m => m.UserID).ToHashSet();
+
+                foreach (var membership in currentMemberships) {
+                    if (!reqUserIds.Contains(membership.UserID)) _context.ProjectMemberships.Remove(membership);
+                }
+
+                foreach (var dto in req.Memberships) {
+                    var existing = currentMemberships.FirstOrDefault(m => m.UserID == dto.UserID);
+                    if (existing != null) {
+                        if (Enum.TryParse(dto.Role, true, out ProjectMembership.UserRoleType newRole)) existing.UserRole = newRole;
+                    }
+                    else {
+                        var user = await _context.Users.FindAsync(dto.UserID);
+                         if (user != null && Enum.TryParse(dto.Role, true, out ProjectMembership.UserRoleType role)) {
+                            _context.ProjectMemberships.Add(new ProjectMembership {
+                                ProjectID = projectID,
+                                UserID = user.UserID,
+                                UserRole = role,
+                                User = user,
+                                Project = project
+                            });
+                         }
+                    }
+                }
+            }
+
+            if (req.Tags != null) {
+                var currentTags = project.ProjectTags.ToList();
+                var reqTagNames = req.Tags.Select(t => t.Name.ToLower()).ToHashSet();
+
+
+                foreach (var pt in currentTags) {
+                    if (!reqTagNames.Contains(pt.Tag.Name.ToLower())) {
+                        _context.ProjectTags.Remove(pt);
+                        foreach (var asset in project.Assets) {
+                            var assetTag = asset.AssetTags.FirstOrDefault(at => at.TagID == pt.TagID);
+                            if (assetTag != null)
+                                _context.AssetTags.Remove(assetTag);
+                        }
+                        _context.Tags.Remove(pt.Tag);
+                    }
+                }
+
+                foreach (var tagDto in req.Tags) {
+                    var existingTag = await _context.Tags.FirstOrDefaultAsync(t => t.Name.ToLower() == tagDto.Name.ToLower());
+                    if (existingTag == null) {
+                        existingTag = new Core.Entities.Tag { Name = tagDto.Name };
+                        _context.Tags.Add(existingTag);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    if (!currentTags.Any(pt => pt.TagID == existingTag.TagID)) {
+                        _context.ProjectTags.Add(new ProjectTag {
+                            ProjectID = projectID,
+                            TagID = existingTag.TagID,
+                            Project = project,
+                            Tag = existingTag
+                        });
+                    }
+                }
+
+            }
+
+            if (req.CustomMetadata != null) {
+                var currentMetadata = project.ProjectMetadataFields.ToList();
+                var reqMetadataNames = req.CustomMetadata
+                                        .Select(cm => cm.FieldName.ToLower())
+                                        .ToHashSet();
+
+                // Remove metadata that are not in the request.
+                foreach (var pm in currentMetadata) {
+                    if (!reqMetadataNames.Contains(pm.FieldName.ToLower())) {
+                        foreach (var asset in project.Assets) {
+                            var am = asset.AssetMetadata.FirstOrDefault(a => a.FieldID == pm.FieldID);
+                            if (am != null)
+                                _context.AssetMetadata.Remove(am);
+                        }
+                        _context.ProjectMetadataFields.Remove(pm);
+                    }
+                }
+
+                // Process each custom metadata from the request.
+                foreach (var cm in req.CustomMetadata) {
+                    // Check if the metadata already exists (update if found).
+                    var existing = currentMetadata.FirstOrDefault(pm => pm.FieldName.ToLower() == cm.FieldName.ToLower());
+                    if (existing != null) {
+                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType newFieldType)) {
+                            if (existing.FieldType != newFieldType && existing.AssetMetadata.Any()) {
+                                throw new InvalidOperationException("Cannot change the metadatafield type because it is currently in use by one or more assets.");
+                            }
+                            existing.IsEnabled = cm.IsEnabled;
+                            existing.FieldType = newFieldType;
+                        }
+                    } else {
+                        // Add new metadata field.
+                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType fieldType)) {
+                            var newField = new ProjectMetadataField {
+                                ProjectID = projectID,
+                                FieldName = cm.FieldName,
+                                FieldType = fieldType,
+                                IsEnabled = cm.IsEnabled,
+                                Project = project
+                            };
+                            _context.ProjectMetadataFields.Add(newField);
+                            // Add related AssetMetadata for each asset.
+                            foreach (var asset in project.Assets) {
+                                _context.AssetMetadata.Add(new AssetMetadata {
+                                    BlobID = asset.BlobID,
+                                    FieldID = newField.FieldID,
+                                    FieldValue = null,
+                                    Asset = asset,
+                                    ProjectMetadataField = newField
+                                });
+                            }
+                            // Optionally update the local collection to avoid duplicates.
+                            currentMetadata.Add(newField);
+                        }
+                    }
+                }
+            }
+            await _context.SaveChangesAsync();
+
+            await _context.SaveChangesAsync();
+
+            return new UpdateProjectRes {
+                Success = true,
+                Message = "Project updated successfully."
+            };
+            
+        }
+
+        public async Task<List<Project>> GetProjectsForUserInDb(int userId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            return await context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.ProjectTags).ThenInclude(pt => pt.Tag)
+                .Include(p => p.ProjectMetadataFields)
+                .Where(p => p.ProjectMemberships.Any(pm => pm.UserID == userId))
+                .ToListAsync();
+        }
+        
     }
 }

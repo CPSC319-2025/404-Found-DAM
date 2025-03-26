@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 1;
+        private const int MOCKEDUSERID = 2;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -25,6 +25,15 @@ namespace APIs.Controllers
 
             // TODO: Return mocked data currently
             app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+
+            // Update project details endpoint
+            app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();
+
+            app.MapGet("/projects/my", GetMyProjects)
+               .WithName("GetMyProjects")
+               .WithOpenApi();
+
+
         }
 
         private static async Task<IResult> GetPaginatedProjectAssets
@@ -174,5 +183,34 @@ namespace APIs.Controllers
                 return Results.StatusCode(500);
             }
         }
+
+        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService)
+        {
+            try
+            {
+                var result = await projectService.UpdateProject(projectID, req);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+
+        private static async Task<IResult> GetMyProjects(IProjectService projectService)
+        {
+            int userId = MOCKEDUSERID;
+            List<GetProjectRes> result = await projectService.GetMyProjects(userId);
+            return Results.Ok(result);
+        }
+        
     }
 }

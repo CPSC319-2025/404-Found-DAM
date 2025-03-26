@@ -1,4 +1,4 @@
-﻿/*
+/*
 This file uses the ClosedXML library, which is licensed under the MIT License.
 ------------------------------------------------------------------------------
 
@@ -50,11 +50,11 @@ namespace Core.Services
             _repository = repository;
         }
 
-        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<int> blobIDs, int submitterID)
+        public async Task<AssociateAssetsRes> AssociateAssetsWithProject(int projectID, List<string> blobIDs, int submitterID)
         {
             try 
             {
-                (List<int> successfulAssociations, List<int> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
+                (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectinDb(projectID, blobIDs, submitterID);
                 AssociateAssetsRes result = new AssociateAssetsRes
                 {
                     projectID = projectID,
@@ -193,8 +193,6 @@ namespace Core.Services
                     })
                     .ToList();
 
-                // TODO: Check if the user is admin or regular. If user is regular and if project is archived, throw ArchivedException 
-
                 GetProjectRes result = new GetProjectRes
                 {
                     projectID = project.ProjectID,
@@ -205,7 +203,14 @@ namespace Core.Services
                     archivedAt = project.ArchivedAt,
                     admins = adminList,
                     regularUsers = regularUserList,
-                    tags = tags
+                    tags = tags,
+                    metadataFields = project.ProjectMetadataFields.Select(field => new ProjectMetadataCustomInfo
+                    {
+                        FieldName = field.FieldName,
+                        FieldID = field.FieldID,
+                        IsEnabled = field.IsEnabled,
+                        FieldType = Enum.GetName(typeof(ProjectMetadataField.FieldDataType), field.FieldType)
+                    }).ToList()
                 };
 
                 return result;
@@ -359,5 +364,59 @@ namespace Core.Services
                 throw;
             }
         }
+
+
+        public async Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req)
+        {
+            return await _repository.UpdateProjectInDb(projectID, req);
+        }
+
+        public async Task<List<GetProjectRes>> GetMyProjects(int userId)
+        {
+            List<Project> projects = await _repository.GetProjectsForUserInDb(userId);
+
+            List<GetProjectRes> result = projects.Select(p => new GetProjectRes
+            {
+                projectID = p.ProjectID,
+                name = p.Name,
+                description = p.Description,
+                location = p.Location,
+                active = p.Active,
+                archivedAt = p.ArchivedAt,
+                admins = p.ProjectMemberships?
+                    .Where(pm => pm.User != null && pm.UserRole == ProjectMembership.UserRoleType.Admin)
+                    .Select(pm => new UserCustomInfo
+                    {
+                        userID = pm.User.UserID,
+                        name = pm.User.Name,
+                        email = pm.User.Email
+                    }).ToList() ?? new List<UserCustomInfo>(),
+                regularUsers = p.ProjectMemberships?
+                    .Where(pm => pm.User != null && pm.UserRole == ProjectMembership.UserRoleType.Regular)
+                    .Select(pm => new UserCustomInfo
+                    {
+                        userID = pm.User.UserID,
+                        name = pm.User.Name,
+                        email = pm.User.Email
+                    }).ToList() ?? new List<UserCustomInfo>(),
+                tags = p.ProjectTags?
+                    .Select(pt => new TagCustomInfo
+                    {
+                        tagID = pt.Tag.TagID,
+                        name = pt.Tag.Name
+                    }).ToList() ?? new List<TagCustomInfo>(),
+                metadataFields = p.ProjectMetadataFields?
+                    .Select(pmf => new ProjectMetadataCustomInfo
+                    {
+                        FieldID = pmf.FieldID,
+                        FieldName = pmf.FieldName,
+                        FieldType = pmf.FieldType.ToString(),
+                        IsEnabled = pmf.IsEnabled
+                    }).ToList() ?? new List<ProjectMetadataCustomInfo>()
+            }).ToList();
+
+            return result;
+        }
+
     }
 }

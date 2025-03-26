@@ -12,6 +12,13 @@ export interface Tag {
   name: string;
 }
 
+export interface ProjectMetadataField {
+  fieldID: number;
+  fieldName: string;
+  isEnabled: boolean;
+  fieldType: string;
+}
+
 // What is returned from /projects
 export interface Project {
   projectID: number;
@@ -27,7 +34,7 @@ export interface Project {
 }
 
 export interface Asset {
-  blobID: number;
+  blobID: string;
   filename: string;
   uploadedBy: {
     userID: number;
