@@ -42,14 +42,14 @@ namespace APIs.Controllers
             var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
             if (result) {
 
-                // add log (todo, half done):
-                int userID = MOCKEDUSERID;
+                // // add log (todo, half done): NO LONGER BEING DONE AS PER CONVERSATION OVER DISCORD
+                // int userID = MOCKEDUSERID;
 
 
 
-                foreach (imageID in request.ImageIds) {
-                    await _activityLogService.AddLogAsync(userID, "Added", "DESCRIPTION TO BE UPDATED TODO - Tags", request.projectId, imageID) 
-                }
+                // foreach (imageID in request.ImageIds) {
+                //     await _activityLogService.AddLogAsync(userID, "Added", "DESCRIPTION TO BE UPDATED TODO - Tags", request.projectId, imageID) 
+                // }
 
                 return Results.Ok(new {
                     status = "success",
@@ -107,10 +107,10 @@ namespace APIs.Controllers
                 
                 if (result.Success)
                 {
-                    // add log (todo - asked on Discord)
+                    // add log (DONE)
                     int userID = MOCKEDUSERID;
 
-                    await _activityLogService.AddLogAsync(userID, "Assigned", request.TagId, BlobId, )
+                    await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
                     return Results.Ok(result);
                 }
                 else
@@ -266,6 +266,18 @@ namespace APIs.Controllers
                 var results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
 
                 // add log (todo)
+                foreach (var file in request.Form.Files)
+                {
+                    var logDto = new CreateActivityLogDto
+                    {
+                        UserID = MOCKEDUSERID,
+                        ChangeType = "Uploaded",
+                        Description = file.fileName,
+                        ProjectID = 0, // Assuming no specific project is associated here
+                        AssetID = file.FileName
+                    };
+                    await _activityLogService.AddLogAsync(logDto);
+                }
             
                 // Return combined results
                 return Results.Ok(results);
@@ -303,7 +315,18 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
-                // add log (asked on Discord, unclear if Name === BlobID or not)
+                // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
+                var logDto = new CreateActivityLogDto
+                {
+                    UserID = MOCKEDUSERID,
+                    ChangeType = "Deleted",
+                    Description = "" // $"Asset {deleteRequest.Name} was deleted.",
+                    ProjectID = 0, // Assuming no specific project is associated here
+                    AssetID = deleteRequest.Name
+                };
+                await _activityLogService.AddLogAsync(logDto);
+
+
 
                 return Results.Ok(new {
                     fileName = deleteRequest.Name,

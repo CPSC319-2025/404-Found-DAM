@@ -165,7 +165,7 @@ namespace APIs.Controllers
 
 
                 foreach (var projectID in req.projectIDs) {
-                    await _activityLogService.AddLogAsync(submitterID, "Archived", "", projectID, 0) // assetID is 0, but it should be ignored.
+                    await _activityLogService.AddLogAsync(submitterID, "Archived", "", projectID, "") // assetID is empty string, but it should be ignored.
                 }
                 return Results.Ok(result);
 
@@ -272,7 +272,7 @@ namespace APIs.Controllers
                     "Updated",
                     updateDescription.ToString(),
                     projectID,
-                    0 // No assetID for project update
+                    "" // Project ID is empty string, but it should be ignored. No assetID for project update
                 );
 
                 return Results.Ok(result);

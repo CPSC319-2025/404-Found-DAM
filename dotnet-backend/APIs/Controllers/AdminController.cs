@@ -46,9 +46,26 @@ namespace APIs.Controllers
 
                 // Get binary data of the Excel file containing details of the exported project
                 (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
-                return excelData == null 
-                    ? Results.NotFound("No project is found to be exported") 
-                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
+                // return excelData == null 
+                //     ? Results.NotFound("No project is found to be exported") 
+                //     : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
+
+                if (excelData == null) {
+                    return Results.NotFound("No project is found to be exported")
+                } else {
+                    // add log (done)
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = requestorID,
+                        ChangeType = "Export",
+                        Description = "",
+                        ProjectID = projectID,
+                        AssetID = ""
+                        
+                    });
+                    return Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
+                }
+                    
             }
             catch (DataNotFoundException ex)
             {
@@ -92,7 +109,7 @@ namespace APIs.Controllers
                     // add log
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = MOCKEDUSERID, // Replace with actual authenticated user ID
+                        UserId = MOCKEDUSERID,
                         ChangeType = "Import",
                         Description = "",
                         ProjectID = 0,
@@ -130,6 +147,8 @@ namespace APIs.Controllers
                 {
                     int reqeusterID = MOCKEDUSERID;
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
+
+                    // add log (done)
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
                     string description = $"Removed users: {removedUsers}";
@@ -168,6 +187,8 @@ namespace APIs.Controllers
                 {
                     int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
                     AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
+
+                    // add log (done)
 
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
@@ -217,6 +238,22 @@ namespace APIs.Controllers
             {
                 int userID = MOCKEDUSERID;
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, userID);
+
+                // add log (done)
+                string addedAdmins = string.Join(", ", req.SelectMany(r => r.admins ?? new List<int>()));
+                string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
+                string description = $"Created projects with admins: {addedAdmins}, users: {addedUsers}";
+                foreach (var project in result)
+                {
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = userID,
+                        ChangeType = "Create",
+                        Description = description,
+                        ProjectID = project.createdProjectID,
+                        AssetID = ""
+                    });
+                }
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 
@@ -239,6 +276,17 @@ namespace APIs.Controllers
             try 
             {
                 List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(projectID, req);
+                // add log (done)
+                string metadataDescriptions = string.Join(", ", req.Select(r => r.metadataName));
+                // string description = $"Added metadata fields: {metadataDescriptions}";
+                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                {
+                    UserId = MOCKEDUSERID,
+                    ChangeType = "Add Metadata",
+                    Description = metadataDescriptions,
+                    ProjectID = projectID,
+                    AssetID = ""
+                });
                 return Results.Ok(result); 
             }
             catch (ArgumentException ex) 
@@ -252,7 +300,8 @@ namespace APIs.Controllers
             catch (Exception) 
             {
                 return Results.StatusCode(500);
-            }          }
+            }         
+        }
 
         private static async Task<IResult> ModifyRole(int projectID, int userID, ModifyRoleReq req, IAdminService adminService)
         { 
@@ -263,6 +312,15 @@ namespace APIs.Controllers
                 try 
                 {
                     ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
+                    // add log (done)
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserId = MOCKEDUSERID,
+                        ChangeType = "Modify Role",
+                        Description = $"Changed role of user {userID} to {normalizedRoleString}",
+                        ProjectID = projectID,
+                        AssetID = ""
+                    });
                     return Results.Ok(result);
                 }
                 catch (DataNotFoundException ex) 
@@ -285,6 +343,16 @@ namespace APIs.Controllers
             try 
             {
                 ToggleMetadataStateRes result = await adminService.ToggleMetadataCategoryActivation(projectID, fieldID, req.enabled);
+                // add log (done)
+                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                {
+                    UserId = MOCKEDUSERID,
+                    ChangeType = "Toggle Metadata Activation",
+                    Description = $"Toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")}",
+                    ProjectID = projectID,
+                    AssetID = ""
+                });
+
                 return Results.Ok(result);
             }
            catch (DataNotFoundException ex) 

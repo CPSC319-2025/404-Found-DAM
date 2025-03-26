@@ -125,7 +125,7 @@ namespace Core.Entities
 
         public int ProjectID { get; set; }
 
-        public int AssetID { get; set; }
+        public string AssetID { get; set; }
         
         public DateTime Timestamp { get; set; }
         
