@@ -423,17 +423,28 @@ namespace APIs.Controllers
                     // add log (done)
                     foreach (var blobId in request.BlobIds)
                     {
+                        var tagNames = new List<string>();
+                        foreach (var tagId in request.TagIds)
+                        {
+                            var tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                            tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                        }
+                    
+                        var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
+
                         var logDto = new CreateActivityLogDto
                         {
                             userID = MOCKEDUSERID,
                             changeType = "Removed",
-                            description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
+                            description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", tagNames)}] from Blob {assetName} (Blob ID: {blobId}).",
                             projectID = 0, // no project
                             assetID = blobId,
                             isAdminAction = !AdminActionTrue
                         };
+
                         await _activityLogService.AddLogAsync(logDto);
                     }
+
                     return Results.Ok(new
                     {
                         message = "Some associations were removed, but some were not found.",

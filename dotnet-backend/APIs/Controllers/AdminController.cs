@@ -23,10 +23,13 @@ namespace APIs.Controllers
         private static IActivityLogService _activityLogService;
         private static IProjectService _projectService;
 
-        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService)
+        private static IUserService _userService;
+
+        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
         {
             _activityLogService = activityLogService;
             _projectService = projectService;
+            _userService = userService;
         }
         public static void MapAdminEndpoints(this WebApplication app)
         {
@@ -117,13 +120,19 @@ namespace APIs.Controllers
                     memoryStream.Seek(0, SeekOrigin.Begin); // Reset the memory stream's position.
                     ImportProjectRes result = await adminService.ImportProject(memoryStream);
 
+                    GetProjectRes project = result.importedProjectInfo;
+
+                    var projectName = project.name;
+
+                    var theProjectID = project.projectID;
+
                     // add log
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Import",
-                        description = $"User {MOCKEDUSERID} imported project {result.ProjectName} (project ID: {result.ProjectID})",
-                        projectID = result.ProjectID,
+                        description = $"User {MOCKEDUSERID} imported project {projectName} (project ID: {theProjectID})",
+                        projectID = theProjectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
                     });
@@ -259,7 +268,7 @@ namespace APIs.Controllers
                 string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
                 foreach (var project in result)
                 {
-                    string theDescription = $"User {userID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
+                    string theDescription = $"User {theUserID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = theUserID,
@@ -306,7 +315,7 @@ namespace APIs.Controllers
             {
                 List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(theProjectID, req);
                 // add log (done)
-                string metadataDescriptions = string.Join(", ", req.Select(r => r.metadataName));
+                string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
@@ -341,14 +350,17 @@ namespace APIs.Controllers
             {
                 try 
                 {
-                    ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
+                    ModifyRoleRes result = await adminService.ModifyRole(theProjectID, userID, normalizedRoleString);
                     // add log (done)
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
+
+                    var user = await _userService.GetUser(userID);
+                    var username = user.name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Modify Role",
-                        description = $"User {MOCKEDUSERID} changed role of user {result.UserName} (ID: {userID}) to {normalizedRoleString}",
+                        description = $"User {MOCKEDUSERID} changed role of user {username} (ID: {userID}) to {normalizedRoleString}",
                         projectID = theProjectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
