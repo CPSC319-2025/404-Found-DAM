@@ -6,4 +6,6 @@ public class CreateActivityLogDto
     public string Description { get; set; }
     public int ProjectID { get; set; }
     public string AssetID { get; set; }
+
+    public bool isAdminAction { get; set; }
 }

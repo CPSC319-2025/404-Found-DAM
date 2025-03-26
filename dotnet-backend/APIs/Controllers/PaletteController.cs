@@ -8,6 +8,8 @@ namespace APIs.Controllers
     {
         private const int MOCKEDUSERID = 1;
 
+        private const bool AdminActionTrue = true;
+
         // PUT /palette/assets/{assetId} edit asset in the pallete
         // DELETE /projects/assign-assets  delete an asset from palette
 
@@ -110,7 +112,16 @@ namespace APIs.Controllers
                     // add log (DONE)
                     int userID = MOCKEDUSERID;
 
-                    await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
+                    // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        UserID = userID,
+                        ChangeType = "Assigned",
+                        Description = $"User {userID} assigned tag {request.TagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
+                        ProjectID = 0, // Assuming no specific project is associated here
+                        AssetID = request.BlobId,
+                        IsAdminAction = AdminActionTrue
+                    });
                     return Results.Ok(result);
                 }
                 else
@@ -272,9 +283,10 @@ namespace APIs.Controllers
                     {
                         UserID = MOCKEDUSERID,
                         ChangeType = "Uploaded",
-                        Description = file.fileName,
+                        Description = $"User {MOCKEDUSERID} uploaded asset {file.FileName} (Asset ID: {file.FileName})",
                         ProjectID = 0, // Assuming no specific project is associated here
-                        AssetID = file.FileName
+                        AssetID = file.FileName,
+                        IsAdminAction = !AdminActionTrue
                     };
                     await _activityLogService.AddLogAsync(logDto);
                 }
@@ -320,9 +332,10 @@ namespace APIs.Controllers
                 {
                     UserID = MOCKEDUSERID,
                     ChangeType = "Deleted",
-                    Description = "" // $"Asset {deleteRequest.Name} was deleted.",
+                    Description = $"User {MOCKEDUSERID} deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
                     ProjectID = 0, // Assuming no specific project is associated here
-                    AssetID = deleteRequest.Name
+                    AssetID = deleteRequest.Name,
+                    IsAdminAction = !AdminActionTrue
                 };
                 await _activityLogService.AddLogAsync(logDto);
 
@@ -361,9 +374,10 @@ namespace APIs.Controllers
                     {
                         UserID = submitterID,
                         ChangeType = "Added",
-                        Description = "",
+                        Description = $"User {submitterID} added blob {await paletteService.GetAssetNameByBlobIdAsync(blobID)} (Blob ID: {blobID}) into project {await paletteService.GetProjectNameByIdAsync(projectID)} (Project ID: {projectID}).",
                         ProjectID = projectID,
-                        AssetID = blobID
+                        AssetID = blobID,
+                        IsAdminAction = !AdminActionTrue
                     };
                  }
                  await _activityLogService.AddLogAsync(logDto);
@@ -406,9 +420,10 @@ namespace APIs.Controllers
                         {
                             UserID = MOCKEDUSERID,
                             ChangeType = "Removed",
-                            Description = $"Tags [{string.Join(", ", request.TagIds)}] have been removed from BlobId {blobId}.",
+                            Description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
                             ProjectID = 0, // no project
-                            AssetID = blobId
+                            AssetID = blobId,
+                            IsAdminAction = !AdminActionTrue
                         };
                         await _activityLogService.AddLogAsync(logDto);
                     }
@@ -429,9 +444,10 @@ namespace APIs.Controllers
                         {
                             UserID = MOCKEDUSERID,
                             ChangeType = "Removed",
-                            Description = $"Tags [{string.Join(", ", request.TagIds)}] have been removed from BlobId {blobId}.",
+                            Description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
                             ProjectID = 0, // no project
-                            AssetID = blobId
+                            AssetID = blobId,
+                            IsAdminAction = !AdminActionTrue
                         };
                         await _activityLogService.AddLogAsync(logDto);
                     }

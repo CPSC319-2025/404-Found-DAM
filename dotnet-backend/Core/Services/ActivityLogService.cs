@@ -40,7 +40,8 @@ namespace Core.Services
                 ChangeType = logDto.changeType,
                 Description = logDto.description,
                 ProjectID = logDto.projectID,
-                AssetID = logDto.assetID
+                AssetID = logDto.assetID,
+                IsAdminAction = logDto.isAdminAction
             };
 
             return await _repository.AddLogAsync(log);

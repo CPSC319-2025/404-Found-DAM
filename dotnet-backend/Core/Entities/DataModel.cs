@@ -131,6 +131,8 @@ namespace Core.Entities
         
         // Foreign key
         public int UserID { get; set; }
+
+        public bool IsAdminAction { get; set; }
         
         // Navigation property
         // [ForeignKey("UserID")]

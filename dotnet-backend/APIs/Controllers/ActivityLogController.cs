@@ -39,13 +39,15 @@ namespace APIs.Controllers
 
             int? projectID = query.ContainsKey("projectID") ? int.Parse(query["projectID"]) : null;
             int? assetID = query.ContainsKey("assetID") ? int.Parse(query["assetID"]) : null;
-            int? userID = query.ContainsKey("userID") ? int.Parse(query["userID"]) : null;
+            string? assetID = query.ContainsKey("assetID") ? query["assetID"].ToString() : null;
             string? changeType = query.ContainsKey("changeType") ? query["changeType"].ToString() : null;
             DateTime? start = query.ContainsKey("start") ? DateTime.Parse(query["start"]) : null;
             DateTime? end = query.ContainsKey("end") ? DateTime.Parse(query["end"]) : null;
+            bool? isAdminAction = query.ContainsKey("isAdminAction") ? bool.Parse(query["isAdminAction"]) : null;
 
             int pageNumber = query.ContainsKey("pageNumber") ? int.Parse(query["pageNumber"]) : 1;
             int pageSize = query.ContainsKey("pageSize") ? int.Parse(query["pageSize"]) : 10; // todo
+            
 
             if (pageNumber <= 0 || pageSize <= 0)
             {
@@ -65,7 +67,8 @@ namespace APIs.Controllers
                     description = log.Description,
                     change_type = log.ChangeType,
                     asset_id = log.AssetID,
-                    project_id = log.ProjectID
+                    project_id = log.ProjectID,
+                    isAdminAction = log.IsAdminAction
                 })
                 .ToList();
 

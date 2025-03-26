@@ -17,6 +17,8 @@ namespace APIs.Controllers
 
         // TODO: replace mocked userID with authenticated userID
         private const int MOCKEDUSERID = 1;
+
+        private const bool AdminActionTrue = true;
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -56,12 +58,12 @@ namespace APIs.Controllers
                     // add log (done)
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = requestorID,
+                        UserId = requesterID,
                         ChangeType = "Export",
-                        Description = "",
+                        Description = $"User {requesterID} exported project {fileName} (project id: {projectID})",
                         ProjectID = projectID,
-                        AssetID = ""
-                        
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                     return Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
                 }
@@ -111,10 +113,10 @@ namespace APIs.Controllers
                     {
                         UserId = MOCKEDUSERID,
                         ChangeType = "Import",
-                        Description = "",
-                        ProjectID = 0,
-                        AssetID = ""
-                        
+                        Description = $"User {MOCKEDUSERID} imported project {result.ProjectName} (project ID: {result.ProjectID})",
+                        ProjectID = result.ProjectID,
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -151,14 +153,16 @@ namespace APIs.Controllers
                     // add log (done)
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
-                    string description = $"Removed users: {removedUsers}";
+                    string description = $"User {reqeusterID} removed users ({removedUsers}) from project {result.ProjectName} (project ID: {projectID})";
+                    // string description = $"Removed users: {removedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         UserId = reqeusterID,
                         ChangeType = "Remove Users",
                         Description = desciption,
                         ProjectID = projectID,
-                        AssetID = ""
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -192,6 +196,7 @@ namespace APIs.Controllers
 
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
+                    string description = $"User {reqeusterID} added users ({addedUsers}) into project {result.ProjectName} (project ID: {projectID})";
                     string description = $"Added users: {addedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -199,7 +204,8 @@ namespace APIs.Controllers
                         ChangeType = "Add Users",
                         Description = description,
                         ProjectID = projectID,
-                        AssetID = ""
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -242,18 +248,32 @@ namespace APIs.Controllers
                 // add log (done)
                 string addedAdmins = string.Join(", ", req.SelectMany(r => r.admins ?? new List<int>()));
                 string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
-                string description = $"Created projects with admins: {addedAdmins}, users: {addedUsers}";
                 foreach (var project in result)
                 {
+                    string description = $"User {userID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         UserId = userID,
                         ChangeType = "Create",
                         Description = description,
                         ProjectID = project.createdProjectID,
-                        AssetID = ""
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                 }
+                // string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
+                // string description = $"Created projects with admins: {addedAdmins}, users: {addedUsers}";
+                // foreach (var project in result)
+                // {
+                //     await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                //     {
+                //         UserId = userID,
+                //         ChangeType = "Create",
+                //         Description = description,
+                //         ProjectID = project.createdProjectID,
+                //         AssetID = ""
+                //     });
+                // }
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 
@@ -283,9 +303,10 @@ namespace APIs.Controllers
                 {
                     UserId = MOCKEDUSERID,
                     ChangeType = "Add Metadata",
-                    Description = metadataDescriptions,
+                    Description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {projectID}",
                     ProjectID = projectID,
-                    AssetID = ""
+                    AssetID = "",
+                    IsAdminAction = AdminActionTrue
                 });
                 return Results.Ok(result); 
             }
@@ -313,13 +334,15 @@ namespace APIs.Controllers
                 {
                     ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
                     // add log (done)
+                    // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         UserId = MOCKEDUSERID,
                         ChangeType = "Modify Role",
-                        Description = $"Changed role of user {userID} to {normalizedRoleString}",
+                        Description = $"User {MOCKEDUSERID} changed role of user {result.UserName} (ID: {userID}) to {normalizedRoleString}",
                         ProjectID = projectID,
-                        AssetID = ""
+                        AssetID = "",
+                        IsAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -348,9 +371,10 @@ namespace APIs.Controllers
                 {
                     UserId = MOCKEDUSERID,
                     ChangeType = "Toggle Metadata Activation",
-                    Description = $"Toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")}",
+                    Description = $"User {MOCKEDUSERID} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {result.ProjectName} (project ID: {projectID})",
                     ProjectID = projectID,
-                    AssetID = ""
+                    AssetID = "",
+                    IsAdminAction = AdminActionTrue
                 });
 
                 return Results.Ok(result);

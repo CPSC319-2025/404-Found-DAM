@@ -16,6 +16,8 @@ namespace APIs.Controllers
         private  const int DefaultPageSize = 10;
         private const int MOCKEDUSERID = 2;
 
+        private const bool adminActionTrue = true;
+
         private static IActivityLogService _activityLogService;
         public static void Initialize(IActivityLogService activityLogService)
         {
@@ -163,10 +165,12 @@ namespace APIs.Controllers
                     return Results.StatusCode(500);
                 }
 
-
-                foreach (var projectID in req.projectIDs) {
-                    await _activityLogService.AddLogAsync(submitterID, "Archived", "", projectID, "") // assetID is empty string, but it should be ignored.
-                }
+                
+                var projectName = await projectService.GetProjectNameById(projectID);
+                
+                var description = $"{submitterID} archived project {projectID} ({projectName})";
+                await _activityLogService.AddLogAsync(submitterID, "Archived", description, projectID, "", adminActionTrue); // assetID is empty string, but it should be ignored.
+                
                 return Results.Ok(result);
 
             }
@@ -201,12 +205,16 @@ namespace APIs.Controllers
                     return Results.StatusCode(500);
                 }
                 foreach (var blobID in req.blobIDs) {
+                    var blobName = await projectService.GetBlobNameById(int.Parse(blobID));
+                    var projectName = await projectService.GetProjectNameById(projectID);
+                    var description = $"{submitterID} added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
                     await _activityLogService.AddLogAsync(
                         submitterID,
                         "Added",
-                        "",
+                        description,
                         projectID,
-                        int.Parse(blobID)
+                        int.Parse(blobID),
+                        !adminActionTrue
                     );
                 }
                 return Results.Ok(result);
@@ -235,6 +243,12 @@ namespace APIs.Controllers
                 }
 
                 var updateDescription = new StringBuilder();
+                updateDescription.AppendLine($"Submitter ID: {submitterID}");
+                updateDescription.AppendLine($"Project ID: {projectID}");
+
+                var projectName = await projectService.GetProjectNameById(projectID);
+                updateDescription.AppendLine($"Project Name: {projectName}");
+
                 if (!string.IsNullOrEmpty(req.Location))
                 {
                     updateDescription.AppendLine($"Location: {req.Location}");
@@ -272,7 +286,8 @@ namespace APIs.Controllers
                     "Updated",
                     updateDescription.ToString(),
                     projectID,
-                    "" // Project ID is empty string, but it should be ignored. No assetID for project update
+                    "", // Project ID is empty string, but it should be ignored. No assetID for project update
+                    adminActionTrue
                 );
 
                 return Results.Ok(result);
