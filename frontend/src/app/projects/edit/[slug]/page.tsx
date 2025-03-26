@@ -59,6 +59,8 @@ const editProjectFormFields: FormFieldType[] = [
 export default function ProjectPage({ params }: ProjectPageProps) {
   const [loading, setLoading] = useState(true);
 
+  const [formDisabled, setFormDisabled] = useState(true);
+
   const [formFields, setFormFields] = useState<FormFieldType[]>(editProjectFormFields);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -126,7 +128,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       customMetadata
     }
 
-    setLoading(true);
+    setFormDisabled(true);
 
     const response = await fetchWithAuth(`projects/${params.slug}`, {
       method: "PATCH",
@@ -134,10 +136,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     });
 
     if (!response.ok) {
-        console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
+      console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
+      // TODO: show error
+      setFormDisabled(false);
+      setLoading(false);
+      return;
     }
 
     toast.success("Successfully updated the project's metadata");
+
+    setLoading(true);
 
     onLoad();
   };
@@ -228,6 +236,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
         setLoading(false);
       })
+    // TODO: check if we should enable/disable the form based on user role!
+    setFormDisabled(false);
   }
 
   useEffect(() => {
@@ -285,6 +295,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           onSubmit={handleEditProject}
           onCancel={onCancel}
           submitButtonText="Save"
+          disabled={formDisabled}
         />
       )}
     </div>

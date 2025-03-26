@@ -12,6 +12,7 @@ import {
   Asset,
   Pagination as PaginationType,
 } from "@/app/types";
+import { ZstdCodec } from "zstd-codec";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -19,15 +20,21 @@ interface ProjectWithTags extends Project {
 
 interface PaginatedAssets {
   assets: Asset[];
+  assetIdNameList: { blobID: string, filename: string };
   pagination: PaginationType;
 }
 
 interface ItemsProps {
   currentItems?: any;
   setCurrentItems?: any;
+  projectID: any;
 }
 
-function Items({ currentItems, setCurrentItems }: ItemsProps) {
+interface AssetWithSrc extends Asset {
+  src?: string;
+}
+
+function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -55,7 +62,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentItems.map((asset: Asset) => (
+            {currentItems.map((asset: AssetWithSrc) => (
               <tr
                 key={asset.blobID}
                 className="cursor-pointer hover:bg-gray-50"
@@ -68,7 +75,7 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="h-20 w-20 relative">
                     <Image
-                      src="/images/missing-image.png"
+                      src={asset.src ?? ""}
                       alt={`${asset.filename} thumbnail`}
                       width={120}
                       height={120}
@@ -136,16 +143,51 @@ function Items({ currentItems, setCurrentItems }: ItemsProps) {
 const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentItems, setCurrentItems] = useState<Asset[]>([]);
+  const [currentItems, setCurrentItems] = useState<AssetWithSrc[]>([]);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedTag, setSelectedTag] = useState<number>(0);
-  const [selectedAssetType, setSelectedAssetType] = useState<string>("");
+  const [selectedAssetType, setSelectedAssetType] = useState<string>("all");
 
   // TODO: ADD IMAGE SIZE
 
   const [users, setUsers] = useState<User[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+
+  const getAssetFile = async (blobID: string, filename: string) => {
+    if (!filename.includes(".webp")) {
+      // TODO: handle video
+      return Promise.reject("Unable to handle video yet")
+    }
+    const response = await fetchWithAuth(`project/${projectID}/asset-files/storage/${blobID}/${filename}`);
+
+    if (!response.ok) {
+      throw new Error(`Fetch failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const contentType = response.headers.get("content-type");
+
+    console.log("Content type:", contentType);
+
+    const fileContent = new Uint8Array(await blob.arrayBuffer());
+
+    return new Promise((resolve, reject) => {
+      ZstdCodec.run((zstd: any) => {
+        try {
+          const simple = new zstd.Simple();
+          const decompressed = simple.decompress(fileContent);
+
+          const decompressedBlob = new Blob([decompressed], { type: contentType || "image/webp" });
+
+          const url = URL.createObjectURL(decompressedBlob);
+          resolve(url);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  };
 
   const fetchAssets = async (page: number) => {
     const queryParams = new URLSearchParams({
@@ -155,9 +197,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       tagID: String(selectedTag),
       assetType: selectedAssetType,
     }).toString();
-    const response = await fetchWithAuth(
-      `projects/${projectID}/assets/pagination?${queryParams}`
-    );
+    const url = `projects/${projectID}/assets/pagination?${queryParams}`;
+    const response = await fetchWithAuth(url);
 
     if (!response.ok) {
       console.error(
@@ -190,20 +231,38 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     return project as ProjectWithTags;
   };
 
+  const setAssetSrcs = (assets: AssetWithSrc[]) => {
+    assets.forEach(async (asset: AssetWithSrc) => {
+      try {
+        const src = (await getAssetFile(asset.blobID, asset.filename)) as string;
+        setCurrentItems((prevItems: AssetWithSrc[]) =>
+          prevItems.map((item: AssetWithSrc) =>
+            item.blobID === asset.blobID ? { ...item, src } : item
+          )
+        );
+      } catch (error) {
+        console.error(`Error loading asset ${asset.blobID}:`, error);
+      }
+    });
+  }
+
   const handlePageChange = (e: any, page: number) => {
+    console.log("setting page to: ", page)
     setCurrentPage(page);
-    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+    fetchAssets(page).then(({ assets, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
+      setAssetSrcs(assets);
     });
   };
 
   useEffect(() => {
     // upon filter change we go back to page 1
     setCurrentPage(1);
-    fetchAssets(currentPage).then(({ assets, totalPages }) => {
+    fetchAssets(1).then(({ assets, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
+      setAssetSrcs(assets);
     });
   }, [selectedUser, selectedTag, selectedAssetType]);
 
@@ -261,7 +320,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           </select>
         </div>
       </div>
-      <Items currentItems={currentItems} setCurrentItems={setCurrentItems} />
+      <Items currentItems={currentItems} setCurrentItems={setCurrentItems} projectID={projectID} />
       <Pagination
         count={totalPages}
         page={currentPage}
