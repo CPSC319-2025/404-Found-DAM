@@ -19,5 +19,11 @@ namespace Infrastructure.DataAccess
                 .Include(u => u.ProjectMemberships) // Load related project memberships if needed
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
+        
+        public async Task CreateUserAsync(User user)
+        {
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
     }
 }

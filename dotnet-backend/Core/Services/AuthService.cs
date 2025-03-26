@@ -84,7 +84,7 @@ namespace Core.Services
         }
 
         
-        public async Task<string?> RegisterAsync(string email, string password, string name, bool isSuperAdmin)
+        public async Task<int?> RegisterAsync(string email, string password, string name, bool isSuperAdmin)
         {
             var existingUser = await _userRepository.GetUserByEmailAsync(email);
             if (existingUser != null)
@@ -92,8 +92,18 @@ namespace Core.Services
 
             var passwordHasher = new PasswordHasher<User>();
             var hashedPassword = passwordHasher.HashPassword(null, password);
+            
+            var newUser = new User
+            {
+                Email = email,
+                Name = name,
+                PasswordHash = hashedPassword,
+                IsSuperAdmin = isSuperAdmin
+            };
+            
+            await _userRepository.CreateUserAsync(newUser);
 
-            return hashedPassword;
+            return newUser.UserID;
         }
     }
 }
