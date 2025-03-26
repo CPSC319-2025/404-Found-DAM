@@ -19,6 +19,15 @@ namespace APIs.Controllers
         private const int MOCKEDUSERID = 1;
 
         private const bool AdminActionTrue = true;
+
+        private static IActivityLogService _activityLogService;
+        private static IProjectService _projectService;
+
+        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService)
+        {
+            _activityLogService = activityLogService;
+            _projectService = projectService;
+        }
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -39,7 +48,7 @@ namespace APIs.Controllers
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
-        private static async Task<IResult> ExportProject(int projectID, IAdminService adminService)
+        private static async Task<IResult> ExportProject(int theProjectID, IAdminService adminService)
         {
             try 
             {
@@ -47,7 +56,7 @@ namespace APIs.Controllers
                 int requesterID = MOCKEDUSERID;
 
                 // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
+                (string fileName, byte[] excelData) = await adminService.ExportProject(theProjectID, requesterID);
                 // return excelData == null 
                 //     ? Results.NotFound("No project is found to be exported") 
                 //     : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
@@ -58,12 +67,12 @@ namespace APIs.Controllers
                     // add log (done)
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = requesterID,
-                        ChangeType = "Export",
-                        Description = $"User {requesterID} exported project {fileName} (project id: {projectID})",
-                        ProjectID = projectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = requesterID,
+                        changeType = "Export",
+                        description = $"User {requesterID} exported project {fileName} (project id: {theProjectID})",
+                        projectID = theProjectID, // would it be a problem (scope wise) if this was just called projectID (no "the")
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
                 }
@@ -111,12 +120,12 @@ namespace APIs.Controllers
                     // add log
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = MOCKEDUSERID,
-                        ChangeType = "Import",
-                        Description = $"User {MOCKEDUSERID} imported project {result.ProjectName} (project ID: {result.ProjectID})",
-                        ProjectID = result.ProjectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = MOCKEDUSERID,
+                        changeType = "Import",
+                        description = $"User {MOCKEDUSERID} imported project {result.ProjectName} (project ID: {result.ProjectID})",
+                        projectID = result.ProjectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -136,7 +145,7 @@ namespace APIs.Controllers
             } 
         }        
 
-        private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService) 
+        private static async Task<IResult> DeleteUsersFromProject(int theProjectID, DeleteUsersFromProjectReq req, IAdminService adminService) 
         {
             try 
             {
@@ -148,21 +157,21 @@ namespace APIs.Controllers
                 else 
                 {
                     int reqeusterID = MOCKEDUSERID;
-                    DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
+                    DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, theProjectID, req);
 
                     // add log (done)
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
-                    string description = $"User {reqeusterID} removed users ({removedUsers}) from project {result.ProjectName} (project ID: {projectID})";
+                    string theDescription = $"User {reqeusterID} removed users ({removedUsers}) from project {result.theProjectName} (project ID: {theProjectID})";
                     // string description = $"Removed users: {removedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = reqeusterID,
-                        ChangeType = "Remove Users",
-                        Description = desciption,
-                        ProjectID = projectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = reqeusterID,
+                        changeType = "Remove Users",
+                        description = theDescription,
+                        projectID = theProjectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -178,7 +187,7 @@ namespace APIs.Controllers
             }            
         }
 
-        private static async Task<IResult> AddUsersToProject(int projectID, AddUsersToProjectReq req, IAdminService adminService) 
+        private static async Task<IResult> AddUsersToProject(int theProjectID, AddUsersToProjectReq req, IAdminService adminService) 
         {
             try 
             {
@@ -190,22 +199,22 @@ namespace APIs.Controllers
                 else 
                 {
                     int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
-                    AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
+                    AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, theProjectID, req);
 
                     // add log (done)
 
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
-                    string description = $"User {reqeusterID} added users ({addedUsers}) into project {result.ProjectName} (project ID: {projectID})";
-                    string description = $"Added users: {addedUsers}";
+                    string theDescription = $"User {reqeusterID} added users ({addedUsers}) into project {result.ProjectName} (project ID: {theProjectID})";
+                    // string description = $"Added users: {addedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = reqeusterID,
-                        ChangeType = "Add Users",
-                        Description = description,
-                        ProjectID = projectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = reqeusterID,
+                        changeType = "Add Users",
+                        description = theDescription,
+                        projectID = theProjectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -242,23 +251,23 @@ namespace APIs.Controllers
         {
             try 
             {
-                int userID = MOCKEDUSERID;
-                List<CreateProjectsRes> result = await adminService.CreateProjects(req, userID);
+                int theUserID = MOCKEDUSERID;
+                List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
 
                 // add log (done)
                 string addedAdmins = string.Join(", ", req.SelectMany(r => r.admins ?? new List<int>()));
                 string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
                 foreach (var project in result)
                 {
-                    string description = $"User {userID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
+                    string theDescription = $"User {userID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = userID,
-                        ChangeType = "Create",
-                        Description = description,
-                        ProjectID = project.createdProjectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = theUserID,
+                        changeType = "Create",
+                        description = theDescription,
+                        projectID = project.createdProjectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                 }
                 // string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
@@ -291,22 +300,22 @@ namespace APIs.Controllers
             }      
         }
 
-        private static async Task<IResult> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req, IAdminService adminService)
+        private static async Task<IResult> AddMetaDataFieldsToProject(int theProjectID, List<AddMetadataReq> req, IAdminService adminService)
         {
             try 
             {
-                List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(projectID, req);
+                List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(theProjectID, req);
                 // add log (done)
                 string metadataDescriptions = string.Join(", ", req.Select(r => r.metadataName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
-                    UserId = MOCKEDUSERID,
-                    ChangeType = "Add Metadata",
-                    Description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {projectID}",
-                    ProjectID = projectID,
-                    AssetID = "",
-                    IsAdminAction = AdminActionTrue
+                    userID = MOCKEDUSERID,
+                    changeType = "Add Metadata",
+                    description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {theProjectID}",
+                    projectID = theProjectID,
+                    assetID = "",
+                    isAdminAction = AdminActionTrue
                 });
                 return Results.Ok(result); 
             }
@@ -324,7 +333,7 @@ namespace APIs.Controllers
             }         
         }
 
-        private static async Task<IResult> ModifyRole(int projectID, int userID, ModifyRoleReq req, IAdminService adminService)
+        private static async Task<IResult> ModifyRole(int theProjectID, int userID, ModifyRoleReq req, IAdminService adminService)
         { 
             string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
             
@@ -337,12 +346,12 @@ namespace APIs.Controllers
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserId = MOCKEDUSERID,
-                        ChangeType = "Modify Role",
-                        Description = $"User {MOCKEDUSERID} changed role of user {result.UserName} (ID: {userID}) to {normalizedRoleString}",
-                        ProjectID = projectID,
-                        AssetID = "",
-                        IsAdminAction = AdminActionTrue
+                        userID = MOCKEDUSERID,
+                        changeType = "Modify Role",
+                        description = $"User {MOCKEDUSERID} changed role of user {result.UserName} (ID: {userID}) to {normalizedRoleString}",
+                        projectID = theProjectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -361,20 +370,23 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> ToggleMetadataCategoryActivation(int projectID, int fieldID, ToggleMetadataStateReq req, IAdminService adminService)
+        private static async Task<IResult> ToggleMetadataCategoryActivation(int theProjectID, int fieldID, ToggleMetadataStateReq req, IAdminService adminService)
         {
             try 
             {
-                ToggleMetadataStateRes result = await adminService.ToggleMetadataCategoryActivation(projectID, fieldID, req.enabled);
+                ToggleMetadataStateRes result = await adminService.ToggleMetadataCategoryActivation(theProjectID, fieldID, req.enabled);
+
+                var project = await _projectService.GetProject(theProjectID);
+                var projectName = project.name;
                 // add log (done)
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
-                    UserId = MOCKEDUSERID,
-                    ChangeType = "Toggle Metadata Activation",
-                    Description = $"User {MOCKEDUSERID} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {result.ProjectName} (project ID: {projectID})",
-                    ProjectID = projectID,
-                    AssetID = "",
-                    IsAdminAction = AdminActionTrue
+                    userID = MOCKEDUSERID,
+                    changeType = "Toggle Metadata Activation",
+                    description = $"User {MOCKEDUSERID} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {theProjectID})",
+                    projectID = theProjectID,
+                    assetID = "",
+                    isAdminAction = AdminActionTrue
                 });
 
                 return Results.Ok(result);

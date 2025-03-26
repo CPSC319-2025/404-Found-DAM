@@ -38,7 +38,7 @@ namespace APIs.Controllers
             var query = request.Query;
 
             int? projectID = query.ContainsKey("projectID") ? int.Parse(query["projectID"]) : null;
-            int? assetID = query.ContainsKey("assetID") ? int.Parse(query["assetID"]) : null;
+            int? userID = query.ContainsKey("userID") ? int.Parse(query["userID"]) : null;
             string? assetID = query.ContainsKey("assetID") ? query["assetID"].ToString() : null;
             string? changeType = query.ContainsKey("changeType") ? query["changeType"].ToString() : null;
             DateTime? start = query.ContainsKey("start") ? DateTime.Parse(query["start"]) : null;
@@ -54,7 +54,7 @@ namespace APIs.Controllers
                 return Results.BadRequest("Page number and page size must be positive integers.");
             }
 
-            var logs = await activityService.GetLogsAsync(userID, changeType, projectID, assetID, start, end);
+            var logs = await activityService.GetLogsAsync(userID, changeType, projectID, assetID, start, end, isAdminAction ?? false);
 
             var paginatedLogs = logs
                 .Skip((pageNumber - 1) * pageSize)

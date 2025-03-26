@@ -4,6 +4,7 @@ using Infrastructure.Exceptions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Core.Services;
 using Infrastructure.DataAccess;
+using System.Text;
 
 // Use Task<T> or Task for async operations
 
@@ -164,13 +165,19 @@ namespace APIs.Controllers
                 if (_activityLogService == null) {
                     return Results.StatusCode(500);
                 }
+                foreach (var projectID in req.projectIDs)
+                {
+                    var projectName = await projectService.GetProject(projectID).name;
+                    var description = $"{submitterID} archived project {projectID} ({projectName})";
+                    await _activityLogService.AddLogAsync(submitterID, "Archived", description, projectID, "", adminActionTrue);
 
-                
-                var projectName = await projectService.GetProjectNameById(projectID);
-                
-                var description = $"{submitterID} archived project {projectID} ({projectName})";
-                await _activityLogService.AddLogAsync(submitterID, "Archived", description, projectID, "", adminActionTrue); // assetID is empty string, but it should be ignored.
-                
+                //     UserID = logDto.userID,
+                // ChangeType = logDto.changeType,
+                // Description = logDto.description,
+                // ProjectID = logDto.projectID,
+                // AssetID = logDto.assetID,
+                // IsAdminAction = logDto.isAdminAction
+                }
                 return Results.Ok(result);
 
             }

@@ -13,6 +13,13 @@ namespace APIs.Controllers
         // PUT /palette/assets/{assetId} edit asset in the pallete
         // DELETE /projects/assign-assets  delete an asset from palette
 
+        private static IActivityLogService _activityLogService;
+        public static void Initialize(IActivityLogService activityLogService)
+        {
+            _activityLogService = activityLogService;
+
+        }
+
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
@@ -115,12 +122,12 @@ namespace APIs.Controllers
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        UserID = userID,
-                        ChangeType = "Assigned",
-                        Description = $"User {userID} assigned tag {request.TagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
-                        ProjectID = 0, // Assuming no specific project is associated here
-                        AssetID = request.BlobId,
-                        IsAdminAction = AdminActionTrue
+                        userID = userID,
+                        changeType = "Assigned",
+                        description = $"User {userID} assigned tag {request.TagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
+                        projectID = 0, // Assuming no specific project is associated here
+                        assetID = request.BlobId,
+                        isAdminAction = AdminActionTrue
                     });
                     return Results.Ok(result);
                 }
@@ -281,12 +288,12 @@ namespace APIs.Controllers
                 {
                     var logDto = new CreateActivityLogDto
                     {
-                        UserID = MOCKEDUSERID,
-                        ChangeType = "Uploaded",
-                        Description = $"User {MOCKEDUSERID} uploaded asset {file.FileName} (Asset ID: {file.FileName})",
-                        ProjectID = 0, // Assuming no specific project is associated here
-                        AssetID = file.FileName,
-                        IsAdminAction = !AdminActionTrue
+                        userID = MOCKEDUSERID,
+                        changeType = "Uploaded",
+                        description = $"User {MOCKEDUSERID} uploaded asset {file.FileName} (Asset ID: {file.FileName})",
+                        projectID = 0, // Assuming no specific project is associated here
+                        assetID = file.FileName,
+                        isAdminAction = !AdminActionTrue
                     };
                     await _activityLogService.AddLogAsync(logDto);
                 }
@@ -330,12 +337,12 @@ namespace APIs.Controllers
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
                 var logDto = new CreateActivityLogDto
                 {
-                    UserID = MOCKEDUSERID,
-                    ChangeType = "Deleted",
-                    Description = $"User {MOCKEDUSERID} deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
-                    ProjectID = 0, // Assuming no specific project is associated here
-                    AssetID = deleteRequest.Name,
-                    IsAdminAction = !AdminActionTrue
+                    userID = MOCKEDUSERID,
+                    changeType = "Deleted",
+                    description = $"User {MOCKEDUSERID} deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
+                    projectID = 0, // Assuming no specific project is associated here
+                    assetID = deleteRequest.Name,
+                    isAdminAction = !AdminActionTrue
                 };
                 await _activityLogService.AddLogAsync(logDto);
 
@@ -356,7 +363,7 @@ namespace APIs.Controllers
             
         }
 
-        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService)
+        private static async Task<IResult> SubmitAssets(int theProjectID, SubmitAssetsReq req, IPaletteService paletteService)
          {
              // May need to add varification to check if client data is bad.
              try 
@@ -364,7 +371,7 @@ namespace APIs.Controllers
                  // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
                  int submitterID = MOCKEDUSERID; 
                  Console.WriteLine(req.blobIDs);
-                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(theProjectID, req.blobIDs, submitterID);
 
 
                  // add log (done)
@@ -372,12 +379,12 @@ namespace APIs.Controllers
                  {
                     var logDto = new CreateActivityLogDto
                     {
-                        UserID = submitterID,
-                        ChangeType = "Added",
-                        Description = $"User {submitterID} added blob {await paletteService.GetAssetNameByBlobIdAsync(blobID)} (Blob ID: {blobID}) into project {await paletteService.GetProjectNameByIdAsync(projectID)} (Project ID: {projectID}).",
-                        ProjectID = projectID,
-                        AssetID = blobID,
-                        IsAdminAction = !AdminActionTrue
+                        userID = submitterID,
+                        changeType = "Added",
+                        description = $"User {submitterID} added blob {await paletteService.GetAssetNameByBlobIdAsync(blobID)} (Blob ID: {blobID}) into project {await paletteService.GetProjectNameByIdAsync(theProjectID)} (Project ID: {theProjectID}).",
+                        projectID = theProjectID,
+                        assetID = blobID,
+                        isAdminAction = !AdminActionTrue
                     };
                  }
                  await _activityLogService.AddLogAsync(logDto);
@@ -418,12 +425,12 @@ namespace APIs.Controllers
                     {
                         var logDto = new CreateActivityLogDto
                         {
-                            UserID = MOCKEDUSERID,
-                            ChangeType = "Removed",
-                            Description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
-                            ProjectID = 0, // no project
-                            AssetID = blobId,
-                            IsAdminAction = !AdminActionTrue
+                            userID = MOCKEDUSERID,
+                            changeType = "Removed",
+                            description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
+                            projectID = 0, // no project
+                            assetID = blobId,
+                            isAdminAction = !AdminActionTrue
                         };
                         await _activityLogService.AddLogAsync(logDto);
                     }
@@ -440,17 +447,30 @@ namespace APIs.Controllers
                     // add log (done)
                     foreach (var blobId in request.BlobIds)
                     {
+                        var tagNames = new List<string>();
+                        
+                        foreach (var tagId in request.TagIds)
+                        {
+                            string tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                            tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                        }
+
+                        string tagDescription = string.Join(", ", tagNames);
+                        string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
+
                         var logDto = new CreateActivityLogDto
                         {
-                            UserID = MOCKEDUSERID,
-                            ChangeType = "Removed",
-                            Description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", request.TagIds.Select(tagId => $"{await paletteService.GetTagNameByIdAsync(tagId)} (Tag ID: {tagId})"))}] from Blob {await paletteService.GetAssetNameByBlobIdAsync(blobId)} (Blob ID: {blobId}).",
-                            ProjectID = 0, // no project
-                            AssetID = blobId,
-                            IsAdminAction = !AdminActionTrue
+                            userID = MOCKEDUSERID,
+                            changeType = "Removed",
+                            description = $"User {MOCKEDUSERID} removed tags [{tagDescription}] from Blob {assetName} (Blob ID: {blobId}).",
+                            projectID = 0, // no project
+                            assetID = blobId,
+                            isAdminAction = !AdminActionTrue
                         };
+                        
                         await _activityLogService.AddLogAsync(logDto);
                     }
+
                     return Results.Ok(new
                     {
                         message = "All specified associations were successfully removed.",
