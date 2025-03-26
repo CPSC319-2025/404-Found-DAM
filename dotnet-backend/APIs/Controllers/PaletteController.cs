@@ -35,7 +35,6 @@ namespace APIs.Controllers
         })
         .WithName("DeletePaletteAsset")
         .WithOpenApi();
-        
         // update the images in the palette with the selected project tags
         app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
         {

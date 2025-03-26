@@ -15,7 +15,6 @@ namespace Core.Interfaces
         Task<List<string>> GetProjectTagsAsync(int projectId);
         Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId);
         Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID);   
-
         Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds);     
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);

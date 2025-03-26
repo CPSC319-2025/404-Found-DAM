@@ -84,12 +84,6 @@ namespace Core.Services
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
 
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId) {
-            var projectTags = await _paletteRepository.GetProjectTagsAsync(projectId);
-            if (!projectTags.Any()) return false;
-            return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
-        }
-
         public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {
             try 
             {
