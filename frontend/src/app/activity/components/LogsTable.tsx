@@ -220,67 +220,71 @@ function Items({ currentItems }: ItemsProps) {
             IconComponent = ArrowUpOnSquareIcon;
           }
 
+          const isAdmin =
+            log.user?.name.toLowerCase().includes("admin") || false;
+          const userNameClass = isAdmin ? "text-blue-500" : "text-gray-700";
+
           let renderedText;
           if (log.action === "Downloaded") {
             renderedText = (
               <p className="text-gray-800">
-                <strong className="text-blue-500">
+                <strong className={userNameClass}>
                   {log.user?.name || "Unknown User"}
                 </strong>{" "}
                 Downloaded{" "}
-                {log.asset ? (
+                {log.asset && (
                   <span className="font-semibold">{log.asset.filename}</span>
-                ) : null}{" "}
+                )}{" "}
                 from{" "}
-                {log.project?.name ? (
+                {log.project?.name && (
                   <span className="font-semibold text-blue-500">
                     {log.project.name}
                   </span>
-                ) : null}
+                )}
               </p>
             );
           } else if (log.action === "Uploaded") {
             renderedText = (
               <p className="text-gray-800">
-                <strong className="text-blue-500">
+                <strong className={userNameClass}>
                   {log.user?.name || "Unknown User"}
                 </strong>{" "}
                 Uploaded{" "}
-                {log.asset ? (
+                {log.asset && (
                   <span className="font-semibold">{log.asset.filename}</span>
-                ) : null}{" "}
+                )}{" "}
                 to{" "}
-                {log.project?.name ? (
+                {log.project?.name && (
                   <span className="font-semibold text-blue-500">
                     {log.project.name}
                   </span>
-                ) : null}
+                )}
               </p>
             );
           } else if (log.action === "Modified tags") {
             renderedText = (
               <p className="text-gray-800">
-                <strong className="text-blue-500">
+                <strong className={userNameClass}>
                   {log.user?.name || "Unknown User"}
                 </strong>{" "}
                 Modified Tags in{" "}
-                {log.project?.name ? (
+                {log.project?.name && (
                   <span className="font-semibold text-blue-500">
                     {log.project.name}
                   </span>
-                ) : null}
+                )}
               </p>
             );
           } else {
             renderedText = (
               <p className="text-gray-800">
-                <strong className="text-blue-500">
+                <strong className={userNameClass}>
                   {log.user?.name || "Unknown User"}
                 </strong>{" "}
                 {log.action}{" "}
-                {log.project?.name ? (
+                {log.project?.name && (
                   <span className="text-blue-500">{log.project.name}</span>
-                ) : null}
+                )}
               </p>
             );
           }
