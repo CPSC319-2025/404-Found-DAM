@@ -16,10 +16,6 @@ export async function fetchWithAuth(
     options.headers || { "Content-Type": "application/json" }
   );
 
-  if (options.body instanceof FormData) {
-    headers.delete("Content-Type"); // Ensure we don't overwrite FormData's Content-Type
-  }
-
   if (token && !AUTH_EXCLUDED_ROUTES.includes(new URL(url).pathname)) {
     headers.set("Authorization", `Bearer ${token}`);
   }
