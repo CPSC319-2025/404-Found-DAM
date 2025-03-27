@@ -155,9 +155,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       tagID: String(selectedTag),
       assetType: selectedAssetType,
     }).toString();
-    const response = await fetchWithAuth(
-      `projects/${projectID}/assets/pagination?${queryParams}`
-    );
+    const response = await fetchWithAuth(`projects/${projectID}/assets/pagination?${queryParams}`);
 
     if (!response.ok) {
       console.error(

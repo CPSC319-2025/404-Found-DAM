@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, { Field as FormFieldType, FormData, ChangeType } from "@/app/components/GenericForm";
+import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
+import { useDropzone } from "react-dropzone";
 
 interface ProjectCardProps {
   projectID: number;
@@ -81,6 +82,11 @@ export default function ProjectsPage() {
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
 
+  const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
+  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(null);
+
+  const importFormRef = useRef<HTMLDivElement>(null);
+
   const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
     if (fieldName === "admins") {
       if (changeType === "select") {
@@ -131,7 +137,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleAddProject = async (formData: FormData) => {
+  const handleAddProject = async (formData: FormDataType) => {
     const payload = [
       {
         defaultMetadata: {
@@ -187,17 +193,13 @@ export default function ProjectsPage() {
       return;
     }
 
-    const response = await fetchWithAuth(
-      `/search?query=${encodeURIComponent(query)}`
-    );
+    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
 
     if (!response.ok) {
       throw new Error("Failed to do search");
     }
 
     const data = await response.json();
-
-    console.log(data);
 
     const filteredProjects = projects.filter((p: ProjectCardProps) =>
       data.projects.some(
@@ -258,6 +260,58 @@ export default function ProjectsPage() {
 
   }, [adminOptions, regularUserOptions]);
 
+  const onDrop = (acceptedFiles: File[]) => {
+    setImportedProjectFile(acceptedFiles[0]);
+  }
+
+  const onSubmitZip = async () => {
+    const formData = new FormData();
+    formData.append("file", importedProjectFile);
+
+    try {
+      const response = await fetchWithAuth("/project/import", {
+        method: "POST",
+        body: formData as BodyInit,
+        headers: {}
+      });
+
+      if (response.ok) {
+        setImportedProjectFile(null);
+        setImportProjectModalOpen(false);
+        toast.success("Imported project successfully.");
+
+        doSearch();
+      } else {
+        console.log("Error uploading file", response.status);
+        toast.error("Failed to import project. Make sure zip's content is valid.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: {
+      "application/x-zip-compressed": []
+    }
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (importFormRef.current && !importFormRef.current.contains(event.target as Node)) {
+        setImportProjectModalOpen(false);
+        setImportedProjectFile(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
@@ -268,14 +322,24 @@ export default function ProjectsPage() {
           onChange={(e) => setQuery(e.target.value)}
           onBlur={doSearch}
         />
-        {user?.superadmin && (
-          <button
-            onClick={() => setNewProjectModalOpen(true)}
-            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-          >
-            New Project
-          </button>
-        )}
+        <div>
+          {user?.superadmin && (
+            <button
+              onClick={() => setNewProjectModalOpen(true)}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              New Project
+            </button>
+          )}
+          {user?.superadmin && (
+            <button
+              onClick={() => setImportProjectModalOpen(true)}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Import Project
+            </button>
+          )}
+        </div>
       </div>
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
@@ -300,6 +364,51 @@ export default function ProjectsPage() {
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"
         />
+      )}
+
+      {importProjectModalOpen && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
+          <div ref={importFormRef} className="bg-white p-6 rounded shadow-lg w-200 max-h-screen overflow-y-auto">
+            <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
+              <div
+                {...getRootProps()}
+                className="border-2 border-dashed border-gray-300 p-8 rounded-lg mb-4 cursor-pointer"
+              >
+                <input {...getInputProps()} />
+                {isDragActive ? (
+                  <p className="text-xl text-teal-600">Drop the files here...</p>
+                ) : (
+                  <>
+                    <p className="text-xl mb-2">Drag and Drop here</p>
+                    <p className="text-gray-500 mb-4">or</p>
+                    <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
+                      Select file
+                    </button>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Zip only
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {importedProjectFile && (
+              <div>
+                <div className="py-2">
+                  <p>Uploaded Project Zip: <i>{importedProjectFile.name}</i></p>
+                </div>
+                <div className="flex justify-end py-2">
+                  <button
+                    className="bg-blue-500 text-white p-2 rounded float"
+                    onClick={() => onSubmitZip()}
+                  >
+                    Add Project
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
