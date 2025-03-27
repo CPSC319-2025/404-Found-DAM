@@ -287,7 +287,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         if (user?.superadmin) {
           setFormDisabled(false);
         } else {
-          if (project.admins.find(admin => admin.userID === user.userID)) {
+          if (project.admins.find(admin => admin.userID === user!.userID)) {
             setFormDisabled(false);
           }
         }
