@@ -65,14 +65,16 @@ namespace Infrastructure.DataAccess
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
             // Use the same blob naming convention as in upload
-            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}.{asset.FileName}.zst");
+            var blobClient = containerClient.GetBlobClient($"{asset.BlobID}");
             
             // Delete the blob
             return await blobClient.DeleteIfExistsAsync();
         }
         
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<Asset> assets)
+        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
+            // assetIdNameTuples.Item2 e.g., "land_picture.webp"
+            
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
@@ -86,10 +88,10 @@ namespace Infrastructure.DataAccess
             List<IFormFile> formFiles = new List<IFormFile>();
             
             // Create a list of tasks for parallel execution
-            var downloadTasks = assets.Select(async asset =>
+            var downloadTasks = assetIdNameTuples.Select(async assetIdNameTuple =>
             {
                 // Get a client for this specific blob
-                var blobClient = containerClient.GetBlobClient(asset.BlobID);
+                var blobClient = containerClient.GetBlobClient(assetIdNameTuple.Item1);
                 
                 // Download the blob
                 var response = await blobClient.DownloadAsync();
@@ -105,7 +107,7 @@ namespace Infrastructure.DataAccess
                     baseStreamOffset: 0,
                     length: memoryStream.Length,
                     name: "file", // Form field name
-                    fileName: $"{asset.BlobID}.{asset.FileName}.zst"
+                    fileName: Path.GetFileName($"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst")
                 );
                 
                 // Set content type if needed
@@ -122,7 +124,6 @@ namespace Infrastructure.DataAccess
             
             // Return the list of form files
             return formFiles;
-        }
-        
+        }  
     }
 }

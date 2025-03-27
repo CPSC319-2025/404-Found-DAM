@@ -5,7 +5,8 @@ import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/navigation";
 
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
-// Import your Zstandard compression helper
+// Import uploadFileZstd from the Apis folder
+import { uploadFileZstd as uploadFileZstdApi } from "@/app/palette/Apis/uploadFileZstd";
 import { compressFileZstd } from "@/app/palette/compressFileZstd";
 
 export default function UploadPage() {
@@ -19,50 +20,17 @@ export default function UploadPage() {
     }
   }, [files, router]);
 
-  // 2a) Helper function: compress + upload 
+  // 2a) Helper function: upload using the API implementation
   async function uploadFileZstd(fileMeta: FileMetadata) {
     try {
-      // Compress file with Zstandard
-      const compressedFile = await compressFileZstd(fileMeta.file);
-
-      // Use native FormData
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      // const FormData = require("form-data");
-      const formData = new FormData();
-      formData.append("userId", "1"); // or dynamic
-      formData.append("name", fileMeta.file.name);
-      formData.append("mimeType", fileMeta.file.type); // Use the actual file type
-      formData.append("files", compressedFile);
-
-      // Send the request
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer MY_TOKEN",
-          },
-          body: formData,
-        }
-      );
+      // Call the API implementation
+      const blobId = await uploadFileZstdApi(fileMeta);
       
-
-      if (!response.ok) {
-        throw new Error(`Upload failed with status ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Upload result:", result);
-
-      if (result?.length > 0) {
-        const detail = result[0]; // or find by filename if needed
-
-        console.log(detail.blobID);
-
+      if (blobId) {
         // Update our FileContext so that `fileMeta` gets the blobId
         setFiles((prevFiles) =>
           prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId: detail.blobID } : f
+            f === fileMeta ? { ...f, blobId } : f
           )
         );
       }

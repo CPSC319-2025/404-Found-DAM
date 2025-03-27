@@ -6,12 +6,16 @@ namespace Core.Interfaces  {
     public interface IPaletteRepository {
         public Task<List<string>> GetProjectTagsAsync(int projectId);
 
-        public Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags);
-
         public Task<bool> DeleteAsset(DeletePaletteAssetReq request);
 
         public Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService);
-        public Task<List<IFormFile>> GetAssetsAsync(int userId);
+        
+        // Update method signature to accept GetPaletteAssetsReq
+        public Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
+        
+        // New method to get a specific asset by blobId
+        public Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId);
+        
         Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID);    
 
         Task<bool> AssetTagAssociationExistsAsync(string blobId, int tagId);
@@ -22,5 +26,7 @@ namespace Core.Interfaces  {
         Task<string?> GetAssetNameByBlobIdAsync(string blobID);
         Task<string?> GetTagNameByIdAsync(int tagId);
         Task<string?> GetProjectNameByIdAsync(int projectID);
+
+        Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
     }
 }

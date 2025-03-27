@@ -9,6 +9,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity;
 
 namespace MockedData
 {
@@ -26,6 +27,16 @@ namespace MockedData
             if (users != null && _contextFactory != null) 
             {
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
+                var passwordHasher = new PasswordHasher<User>();
+
+                foreach (var user in users)
+                {
+                    if (!string.IsNullOrEmpty(user.PasswordHash))
+                    {
+                        user.PasswordHash = passwordHasher.HashPassword(user, user.PasswordHash);
+                    }
+                }
+
                 await _context.Users.AddRangeAsync(users);
                 await _context.SaveChangesAsync();
             }

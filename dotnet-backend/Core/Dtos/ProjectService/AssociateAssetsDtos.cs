@@ -1,15 +1,27 @@
+using System.Text.Json;
+
+
 namespace Core.Dtos
 {
-    public class AssociateAssetsReq
+    public class AssociateAssetsWithProjectReq
     {
-        public List<string> blobIDs { get; set; }
+        public required List<string> BlobIDs { get; set; } = new List<string>();
+        public required int ProjectID { get; set; }
+        public required List<int> TagIDs { get; set; }
+        public required List<AssetMetadataEntry> MetadataEntries { get; set; } = new List<AssetMetadataEntry>();
     }
 
-    public class AssociateAssetsRes
+    public class AssetMetadataEntry
     {
-        public int projectID {get; set; }
-        public List<string> success {get; set; }
-        public List<string> fail {get; set; }
+        public required int FieldId { get; set; }
+        public required JsonElement FieldValue { get; set; }
+    }
 
+        public class AssociateAssetsWithProjectRes
+    {
+        public required int ProjectID { get; set; }
+        public required List<string> UpdatedImages { get; set; } = new List<string>();
+        public required List<string> FailedAssociations { get; set; } = new List<string>();
+        public required string Message { get; set; }
     }
 }

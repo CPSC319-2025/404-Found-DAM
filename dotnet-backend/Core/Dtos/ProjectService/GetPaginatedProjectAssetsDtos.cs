@@ -1,4 +1,4 @@
-using Core.Entities;
+using Microsoft.AspNetCore.Http;
 
 namespace Core.Dtos
 {
@@ -17,6 +17,7 @@ namespace Core.Dtos
         public int projectID {get; set; }
         public List<PaginatedProjectAsset> assets { get; set; }
         public ProjectAssetsPagination pagination {get; set; }
+        public List<GetAssetFileFromStorageReq> assetIdNameList {get; set; }
     }
 
     public class PaginatedProjectAsset

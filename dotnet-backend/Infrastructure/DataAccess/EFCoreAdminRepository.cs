@@ -18,26 +18,63 @@ namespace Infrastructure.DataAccess
             _contextFactory = contextFactory;
         }
 
-        public async Task<int> ImportProjectInDB
+        public async Task<(int, List<UserCustomInfo>)> ImportProjectInDB
         (
             List<Project> projectList, 
             List<ProjectTag> projectTagList, 
             List<Tag> tagList, 
-            List<Asset> assetList, 
-            List<AssetTag> assetTagList, 
-            List<User> userList, 
-            List<ProjectMembership> projectMembershipList
+            List<ImportUserProfile> importUserProfileList
         )
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            // TODO: Save assets to blob and get their BlobID
+            List<(User, ProjectMembership.UserRoleType)> existentUserAndRoleList = new List<(User, ProjectMembership.UserRoleType)>();
+            List<UserCustomInfo> nonExistentUsers = new List<UserCustomInfo>();
+
+            // Get users if in the DB, or put into nonexistent list
+            foreach (ImportUserProfile profile in importUserProfileList)
+            {
+                User? user = await _context.Users.FirstOrDefaultAsync(u =>
+                    u.UserID == profile.userID &&
+                    u.Name == profile.userName &&
+                    u.Email == profile.userEmail
+                    // u.IsSuperAdmin == profile.userIsSuperAdmin // TODO: How to handle inconsistency here?
+                );
+
+                if (user != null)
+                {
+                    existentUserAndRoleList.Add((user, profile.userRole)); 
+                }
+                else 
+                {
+                    UserCustomInfo nonExistentUser = new UserCustomInfo
+                    {
+                        name = profile.userName,
+                        email = profile.userEmail,
+                        userID = profile.userID
+                    };
+                    nonExistentUsers.Add(nonExistentUser);
+                }
+            }
+                
+        
+            // Create projectMembershipList
+            List<ProjectMembership> projectMembershipList = new List<ProjectMembership>();
+            foreach ((User, ProjectMembership.UserRoleType) ur in existentUserAndRoleList)
+            {
+                ProjectMembership pm = new ProjectMembership
+                {
+                    Project = projectList[0],
+                    User = ur.Item1,
+                    UserRole = ur.Item2
+                };
+                projectMembershipList.Add(pm);
+            };
+
+            // Store
             await _context.Tags.AddRangeAsync(tagList);
-            await _context.Users.AddRangeAsync(userList);
             await _context.Projects.AddRangeAsync(projectList);
-            await _context.Assets.AddRangeAsync(assetList);
             await _context.ProjectTags.AddRangeAsync(projectTagList);
-            await _context.AssetTags.AddRangeAsync(assetTagList);
             await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
 
             await _context.SaveChangesAsync();
@@ -45,7 +82,7 @@ namespace Infrastructure.DataAccess
 
             // Retrieve new Project's ID
             List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
-            return newProjectIDs[0];
+            return (newProjectIDs[0], nonExistentUsers);
         }
 
         public async Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> DeleteUsersFromProjectInDb(int reqeusterID, int projectID, DeleteUsersFromProjectReq req)
@@ -121,7 +158,7 @@ namespace Infrastructure.DataAccess
                                     else
                                     {
                                         // FE should guard this already, so in BE this case will be ignored for now.
-                                         Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                        //  Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
                                     }
                                 }
                             } 
@@ -155,7 +192,7 @@ namespace Infrastructure.DataAccess
                                     else 
                                     {
                                         // FE should guard this already, so in BE this case will be ignored for now.
-                                        Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
+                                        // Console.WriteLine("candidate is a regular user of the project, but is put in the wrong list to be removed");
                                     }
                                 }
                             } 
@@ -511,7 +548,7 @@ namespace Infrastructure.DataAccess
 
                 }
                 // Insert in batch
-                Console.WriteLine("start inserting");
+                // Console.WriteLine("start inserting");
                 await _context.Projects.AddRangeAsync(projectList);
                 await _context.Tags.AddRangeAsync(tagList);
                 await _context.ProjectTags.AddRangeAsync(projectTagList);
@@ -519,12 +556,12 @@ namespace Infrastructure.DataAccess
                 await _context.SaveChangesAsync(); // Save change in the database
                 
                 await transaction.CommitAsync(); // Commit transaction for data persistence
-                Console.WriteLine("done");
+                // Console.WriteLine("done");
                 return projectList;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex.Message);
+                // Console.WriteLine(ex.Message);
                 await transaction.RollbackAsync(); // Undo any changes made within a database transaction
                 throw new Exception("Failed to create projects");
             }

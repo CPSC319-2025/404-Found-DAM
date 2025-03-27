@@ -264,6 +264,10 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("UserID");
 
                     b.ToTable("Users");
@@ -275,7 +279,8 @@ namespace Infrastructure.Migrations
                             Email = "userTest@example.com",
                             IsSuperAdmin = true,
                             LastUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "userTest"
+                            Name = "userTest",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJUsEQ+L7D9znNxLO6g9+Hr7QMereAnXK/SHFLUTqkpH67y8L7R4Uj78pVmY3/hyjg=="
                         });
                 });
 

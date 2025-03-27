@@ -34,44 +34,6 @@ namespace Infrastructure.DataAccess {
 
             return projectTags ?? new List<string>();
         }
-
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, List<string> tags) {
-            using var _context = _contextFactory.CreateDbContext();
-
-            var assets = await _context.Assets
-            .Where(a => imageIds
-            .Contains(a.BlobID))
-            .Include(a => a.AssetTags)
-            .ThenInclude(at => at.Tag)
-            .ToListAsync();
-
-            if (!assets.Any()) {
-                return false; 
-            }
-
-            foreach (var asset in assets) {
-
-                var existingTags = asset.AssetTags.Select(at => at.Tag.Name).ToHashSet();
-
-                foreach (var tagName in tags) {
-                    if (!existingTags.Contains(tagName)) {
-                        var tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
-                        if (tag == null) {
-                            tag = new Tag { Name = tagName };
-                            await _context.Tags.AddAsync(tag);
-                            await _context.SaveChangesAsync();
-                        } 
-                        asset.AssetTags.Add(new AssetTag {
-                            BlobID = asset.BlobID,
-                            Asset = asset,
-                            TagID = tag.TagID,
-                            Tag = tag
-                        });
-                    }
-                }
-            }
-            return await _context.SaveChangesAsync() > 0;
-        }
         
         public async Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
@@ -122,7 +84,7 @@ namespace Infrastructure.DataAccess {
                     catch (VipsException)
                     {
                         // TODO: Consider notifying users of failed conversion
-                        Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
+                        // Console.WriteLine($"Failed to convert image to webp; proceed with the original format");
                         using (var ms = new MemoryStream())
                         {
                             await file.CopyToAsync(ms);
@@ -154,6 +116,12 @@ namespace Infrastructure.DataAccess {
                     LastUpdated = DateTime.UtcNow,
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
+
+                if (compressedData.Length / 1024.0 > 2000)
+                {
+                    throw new Exception();
+                }
+
                 string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
                 asset.BlobID = blobId;
                     // Add the asset to the database context and save changes
@@ -161,9 +129,9 @@ namespace Infrastructure.DataAccess {
                 int num = await _context.SaveChangesAsync();
                 return asset;
             }
-            catch (Exception ex) 
+            catch (Exception) 
             {
-                Console.WriteLine($"Error saving asset to database: {ex.Message}");
+                // Console.WriteLine($"Error saving asset to database: {ex.Message}");
                 throw;
             }
         }
@@ -203,7 +171,51 @@ namespace Infrastructure.DataAccess {
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
-            return await _blobStorageService.DownloadAsync("palette-assets", assets);
+
+            if (assets == null || assets.Count == 0) 
+            {
+                return new List<IFormFile>(); // Return an empty list
+            }
+            else 
+            {
+                            
+                // Construct tuple list to be passed into DownloadAsync
+                List<(string, string)> assetIdNameTupleList = assets
+                    .Select(a => (a.BlobID, a.FileName))
+                    .ToList();
+
+                return await _blobStorageService.DownloadAsync("palette-assets", assetIdNameTupleList);
+            }
+        }
+
+        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+            using var _context = _contextFactory.CreateDbContext();
+            // Get all Assets for the user
+            var assets = await _context.Assets
+                .Where(ass => ass.UserID == request.UserId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
+                .ToListAsync();
+            
+            // Convert assets to list of tuples (BlobID, FileName)
+            var assetTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+            return await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
+        }
+
+        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId) {
+            using var _context = _contextFactory.CreateDbContext();
+            // Get the asset with the specified blobId that belongs to the user
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.BlobID == blobId && a.UserID == userId);
+            
+            if (asset == null) {
+                return null;
+            }
+            
+            // Download the single asset - convert to tuple list
+            var assetTuples = new List<(string, string)> { (asset.BlobID, asset.FileName) };
+            var files = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
+            
+            // Return the first (and only) file, or null if no files were downloaded
+            return files.FirstOrDefault();
         }
 
         public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {
@@ -371,6 +383,46 @@ namespace Infrastructure.DataAccess {
                 TagId = tagId,
                 Message = "Tag successfully assigned to asset"
             };
+        }
+
+        public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId)  {
+            using var _context = _contextFactory.CreateDbContext();
+            try 
+            {
+                // Read file from disk
+                byte[] fileData = await File.ReadAllBytesAsync(filePath);
+                
+                // Compress the data
+                byte[] compressedData = FileCompressionHelper.Compress(fileData);
+                
+                // Create an Asset instance with the file path
+                var asset = new Asset
+                {
+                    BlobID = "temp",
+                    FileName = filename,
+                    MimeType = mimeType,
+                    ProjectID = null,
+                    UserID = userId,
+                    FileSizeInKB = compressedData.Length / 1024.0,
+                    LastUpdated = DateTime.UtcNow,
+                    assetState = Asset.AssetStateType.UploadedToPalette,
+                };
+                
+                // Upload to blob storage (same location as UploadAssets)
+                string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
+                asset.BlobID = blobId;
+                
+                // Add the asset to the database and save changes
+                await _context.Assets.AddAsync(asset);
+                await _context.SaveChangesAsync();
+                
+                return asset;
+            }
+            catch (Exception ex) 
+            {
+                Console.WriteLine($"Error uploading merged chunk: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)

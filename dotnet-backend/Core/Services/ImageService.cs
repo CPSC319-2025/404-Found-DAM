@@ -57,9 +57,9 @@ namespace Core.Services
             ulong hash1 = hashAlgorithm.Hash(imageStream1);
             ulong hash2 = hashAlgorithm.Hash(imageStream2);
             double percentageImageSimilarity = CompareHash.Similarity(hash1, hash2);
-            Console.WriteLine($"hash1: ${hash1}");
-            Console.WriteLine($"hash2: ${hash2}");
-            Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
+            // Console.WriteLine($"hash1: ${hash1}");
+            // Console.WriteLine($"hash2: ${hash2}");
+            // Console.WriteLine($"percentageImageSimilarity: ${percentageImageSimilarity}");
         }
     }
 }
