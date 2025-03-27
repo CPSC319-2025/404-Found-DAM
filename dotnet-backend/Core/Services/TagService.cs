@@ -41,19 +41,5 @@ namespace Core.Services
             }
         }
 
-
-        public async Task<IEnumerable<TagDto>> AddTagsAsync(IEnumerable<CreateTagDto> newTags)
-        {
-            var tagDtos = new List<TagDto>();
-
-            foreach (var newTag in newTags)
-            {
-                var tag = new Tag { Name = newTag.Name };
-                var addedTag = await _tagRepository.AddTagAsync(tag);
-                tagDtos.Add(new TagDto { TagID = addedTag.TagID, Name = addedTag.Name });
-            }
-
-            return tagDtos;
-        }
     }
 }

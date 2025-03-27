@@ -56,28 +56,5 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> AddTags(HttpContext context, ITagService tagService)
-        {
-            try
-            {
-                var newTags = await context.Request.ReadFromJsonAsync<IEnumerable<CreateTagDto>>();
-                if (newTags == null || !newTags.Any())
-                {
-                    return Results.BadRequest("No tags provided.");
-                }
-
-                var addedTags = await tagService.AddTagsAsync(newTags);
-                return Results.Created("/tags", addedTags);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Internal Server Error"
-                );
-            }
-        }
-
     }
 }
