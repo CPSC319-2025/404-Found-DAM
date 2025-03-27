@@ -17,5 +17,12 @@ namespace Infrastructure.DataAccess
         {
             return await _context.Tags.ToListAsync();
         }
+
+        public async Task<Tag> AddTagAsync(Tag tag)
+        {
+            _context.Tags.Add(tag);
+            await _context.SaveChangesAsync();
+            return tag;
+        }
     }
 }

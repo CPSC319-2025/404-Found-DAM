@@ -1,5 +1,7 @@
 using Core.Interfaces;
 using Infrastructure.Exceptions;
+using Core.Dtos;
+
 
 namespace APIs.Controllers
 {
@@ -9,6 +11,9 @@ namespace APIs.Controllers
         {
             app.MapGet("/tags", GetTags)
                .WithName("GetTags")
+               .WithOpenApi();
+            app.MapPost("/tags", AddTag)
+               .WithName("AddTag")
                .WithOpenApi();
         }
 
@@ -31,6 +36,22 @@ namespace APIs.Controllers
                     statusCode: 500,
                     title: "Internal Server Error"
                 );            
+            }
+        }
+        private static async Task<IResult> AddTag(ITagService tagService, CreateTagDto newTag)
+        {
+            try 
+            {
+                var addedTag = await tagService.AddTagAsync(newTag);
+                return Results.Created($"/tags/{addedTag.TagID}", addedTag);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
             }
         }
     }

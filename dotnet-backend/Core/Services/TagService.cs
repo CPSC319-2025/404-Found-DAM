@@ -1,6 +1,12 @@
 using Core.Interfaces;
-using System.Linq;
+using Core.Dtos;
+using Microsoft.AspNetCore.Http;
+using System.Reflection.Metadata;
+using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
+using Core.Entities;
+using System.IO;
+using ZstdSharp;
 
 namespace Core.Services
 {
@@ -23,6 +29,22 @@ namespace Core.Services
             } catch (Exception) {
                 throw;
             }
+        }
+
+        public async Task<TagDto> AddTagAsync(CreateTagDto newTag)
+        {
+            var tag = new Tag
+            {
+                Name = newTag.Name
+            };
+
+            var addedTag = await _tagRepository.AddTagAsync(tag);
+
+            return new TagDto
+            {
+                TagID = addedTag.TagID,
+                Name = addedTag.Name
+            };
         }
     }
 }

@@ -6,5 +6,6 @@ namespace Core.Interfaces
     public interface ITagService
     {
         Task<IEnumerable<string>> GetTagNamesAsync();
+        Task<TagDto> AddTagAsync(CreateTagDto newTag);
     }
 }
