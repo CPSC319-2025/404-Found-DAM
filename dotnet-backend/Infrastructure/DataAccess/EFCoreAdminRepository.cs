@@ -456,6 +456,9 @@ namespace Infrastructure.DataAccess
             List<Tag> tagList = new List<Tag>(); // For storing created Tags
             List<ProjectTag> projectTagList = new List<ProjectTag>(); // For storing created ProjectTags
             List<ProjectMembership> projectMembershipList = new List<ProjectMembership>(); // For storing project memberships
+
+            var allTags = await _context.Tags.ToListAsync();
+            var tagLookup = allTags.ToDictionary(t => t.Name.ToLower(), t => t);
             
             using var transaction = await _context.Database.BeginTransactionAsync(); // To avoid partial data in database in case error occurs
             try 
@@ -530,19 +533,21 @@ namespace Infrastructure.DataAccess
                             projectMembershipList.Add(userMembership);
                         }
                     }
-                    if (data.tags != null && data.tags.Any()) 
+                    if (data.tags != null && data.tags.Any())
                     {
-                        foreach (string tagName in data.tags) 
+                        foreach (string tagName in data.tags)
                         {
-                            Tag newTag = new Tag{ Name = tagName };
-                            tagList.Add(newTag);
+                            if (!tagLookup.TryGetValue(tagName.ToLower(), out Tag? existingTag))
+                            {
+                                throw new Exception($"Tag '{tagName}' does not exist. All tags must be pre-configured.");
+                            }
 
-                            ProjectTag newProjectTag = new ProjectTag
+                            var newProjectTag = new ProjectTag
                             {
                                 Project = newProject,
-                                Tag = newTag
-                            };     
-                            projectTagList.Add(newProjectTag);                   
+                                Tag = existingTag
+                            };
+                            projectTagList.Add(newProjectTag);
                         }
                     }
 
