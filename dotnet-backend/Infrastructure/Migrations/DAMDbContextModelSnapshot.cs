@@ -17,7 +17,7 @@ namespace Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.2")
+                .HasAnnotation("ProductVersion", "9.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -280,7 +280,7 @@ namespace Infrastructure.Migrations
                             IsSuperAdmin = true,
                             LastUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "userTest",
-                            PasswordHash = "hashed_password_here"
+                            PasswordHash = "AQAAAAIAAYagAAAAEJUsEQ+L7D9znNxLO6g9+Hr7QMereAnXK/SHFLUTqkpH67y8L7R4Uj78pVmY3/hyjg=="
                         });
                 });
 

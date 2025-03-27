@@ -6,20 +6,46 @@ import { useRouter } from "next/navigation";
 
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import FileTable from "./components";
-import { ZstdCodec } from "zstd-codec";
-import { compressFileZstd } from "@/app/palette/compressFileZstd";
-import JSZip from "jszip";
+import { 
+  fetchPaletteAssets, 
+  fetchBlobDetails, 
+  fetchProjects, 
+  removeFile as removeFileApi, 
+  submitAssets,
+  uploadFileChunked,
+  UploadProgressCallbacks,
+  Project
+} from "./Apis";
 
-interface Project {
-  projectID: number;
-  projectName: string;
-  location: string;
-  description: string;
-  creationTime: string;
-  assetCount: number;
-  adminNames: string[];
-  regularUserNames: string[];
-}
+// Simple Button component
+const Button = ({ 
+  children, 
+  onClick 
+}: { 
+  children: React.ReactNode; 
+  onClick: () => void 
+}) => (
+  <button
+    onClick={onClick}
+    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+  >
+    {children}
+  </button>
+);
+
+// Simple Progress component
+const Progress = ({ 
+  value 
+}: { 
+  value: number 
+}) => (
+  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+    <div 
+      className="bg-indigo-600 h-2.5 rounded-full" 
+      style={{ width: `${value}%` }}
+    />
+  </div>
+);
 
 export default function PalettePage() {
   const router = useRouter();
@@ -29,475 +55,209 @@ export default function PalettePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const didFetchRef = useRef(false);
+  
+  // Upload status for drag and drop
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  useEffect(() => {
-    if (didFetchRef.current) return;
-    didFetchRef.current = true;
-    fetchPaletteAssets();
-  }, []);
-
-  function getMimeTypeFromFileName(filename: string): string {
-    const extension = filename.split(".").pop()?.toLowerCase();
-    //console.log(filename)
-    if (!extension) return "unknown";
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
-    const videoExtensions = ["mp4", "webm", "ogg"];
-    if (imageExtensions.includes(extension)) {
-      return extension === "jpg" ? "image/jpeg" : `image/${extension}`;
-    } else if (videoExtensions.includes(extension)) {
-      return extension === "mp4" ? "video/mp4" : `video/${extension}`;
-    }
-    return "unknown";
-  }
-
-  function getFilenameFromContentDisposition(disposition: string): string {
-    // Example disposition:
-    // 'attachment; filename=11.Screenshot 2025-03-18 200722.png.zst; filename*=UTF-8\'\'11.Screenshot 2025-03-18 200722.png.zst'
-
-    // Split on semicolons
-    const parts = disposition.split(";");
-
-    for (const part of parts) {
-      const trimmed = part.trim();
-
-      // Look for filename=
-      if (trimmed.toLowerCase().startsWith("filename=")) {
-        // e.g. filename=11.Screenshot 2025-03-18 200722.png.zst
-        const val = trimmed
-          .substring("filename=".length)
-          .trim()
-          .replace(/^"|"$/g, "");
-        return val;
-      }
-
-      // Look for filename*= (UTF-8)
-      if (trimmed.toLowerCase().startsWith("filename*=")) {
-        // e.g. filename*=UTF-8''11.Screenshot 2025-03-18 200722.png.zst
-        const val = trimmed
-          .substring("filename*=".length)
-          .trim()
-          .replace(/^"|"$/g, "");
-        // If it starts with UTF-8'', remove that and decode
-        if (val.toLowerCase().startsWith("utf-8''")) {
-          return decodeURIComponent(val.substring(7));
-        }
-        return val;
-      }
-    }
-
-    // Fallback if we don't find anything
-    return "defaultFilename.zst";
-  }
-
-  // Function to extract the original filename from the server format (BlobID.OriginalFilename.zst)
-  function extractOriginalFilename(filename: string): string {
-    // Format: BlobID.OriginalFilename.zst
-    const parts = filename.split('.');
-    if (parts.length < 3) {
-      return filename; // Return as is if not in expected format
-    }
-    
-    // Remove the first part (BlobID) and the last part (.zst)
-    parts.shift(); // Remove BlobID
-    parts.pop(); // Remove .zst extension
-    
-    // Join the remaining parts to handle filenames with dots
-    return parts.join('.');
-  }
-
-  // Function to extract BlobID from the server format (BlobID.OriginalFilename.zst)
-  function extractBlobId(filename: string): string | undefined {
-    const parts = filename.split('.');
-    if (parts.length < 2) {
-      return undefined;
-    }
-    
-    const blobIdStr = parts[0];
-    return blobIdStr;
-  }
-
-  // Fetch project and tags for a blob
-  async function fetchBlobDetails(blobId: string): Promise<{project?: any, tags?: string[], tagIds?: number[], description?: string, location?: string}> {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
-      if (!response.ok) {
-        console.error(`Failed to fetch details for blob ${blobId}: ${response.status}`);
-        return {};
-      }
-      const data = await response.json();
-      
-      const projectId = data.project?.projectId.toString();
-      
-      // Check for different possible property name casings from the backend
-      // The C# backend might use "location" or "Location" depending on serialization settings
-      let description = data.project?.description || data.project?.Description;
-      let location = data.project?.location || data.project?.Location;
-      // console.log(data.tagIds);
-      return {
-        project: projectId,
-        tags: data.tags || [],
-        tagIds: data.tagIds || [],
-        description: description || "",
-        location: location || ""
-      };
-    } catch (error) {
-      console.error(`Error fetching details for blob ${blobId}:`, error);
-      return {};
-    }
-  }
-
-  async function fetchPaletteAssets() {
-
-    setFiles([]);
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    // const FormData = require("form-data");
-    const formData = new FormData();
-    formData.append("UserId", "1"); // Fixed requirement: UserId=1
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets`, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer MY_TOKEN",
-      },
-      // body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Fetch failed with status ${response.status}`);
-    }
-
-    console.log(response);
-
-    const blob = await response.blob();
-    const contentType = response.headers.get("content-type");
-
-    // Helper to decompress using ZstdCodec
-    const decompressZstd = async (data: Uint8Array): Promise<Uint8Array> => {
-      return new Promise((resolve, reject) => {
-        ZstdCodec.run((zstd: any) => {
-          try {
-            const simple = new zstd.Simple();
-            const result = simple.decompress(data);
-            resolve(result);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-    };
-
-    if (contentType === "application/zstd") {
-      const fileContent = new Uint8Array(await blob.arrayBuffer());
-      const decompressed = await decompressZstd(fileContent);
-
-      const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = "defaultFilename.zst";
-      if (contentDisposition) {
-        filename = getFilenameFromContentDisposition(contentDisposition);
-      }
-
-      // Extract the original filename and blobId from the server format
-      const originalFilename = extractOriginalFilename(filename);
-      const blobId = extractBlobId(filename);
-      
-      const file = new File(
-        [decompressed],
-        originalFilename, // Use the original filename without BlobID and .zst
-        { type: getMimeTypeFromFileName(originalFilename) }
-      );
-
-      const fileSize = (file.size / 1024).toFixed(2) + " KB";
-      const fileMeta: FileMetadata = {
-        file,
-        fileSize,
-        description: "",
-        location: "",
-        tags: [],
-        tagIds: [],
-        blobId // Store the blobId extracted from the filename
-      };
-
-      // Fetch project and tags information if we have a blobId
-      if (blobId) {
-        const details = await fetchBlobDetails(blobId);
-        if (details.project) {
-          fileMeta.project = details.project;
-        }
-        if (details.tags && details.tags.length > 0) {
-          fileMeta.tags = details.tags;
-          fileMeta.tagIds = details.tagIds || [];
-          fileMeta.description = details.description || "";
-          fileMeta.location = details.location || "";
-        }
-      }
-
-      if (file.type.startsWith("image/")) {
+  // Helper function to get file dimensions from image/video and add to state
+  const processFileMetadata = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
+    return new Promise((resolve) => {
+      if (fileMeta.file.type.startsWith("image/")) {
         const img = new Image();
         img.onload = () => {
           fileMeta.width = img.width;
           fileMeta.height = img.height;
           setFiles((prev) => [...prev, fileMeta]);
+          resolve();
         };
-        img.src = URL.createObjectURL(file);
-      } else if (file.type.startsWith("video/")) {
+        img.src = URL.createObjectURL(fileMeta.file);
+      } else if (fileMeta.file.type.startsWith("video/")) {
         const video = document.createElement("video");
         video.preload = "metadata";
         video.onloadedmetadata = () => {
           fileMeta.width = video.videoWidth;
           fileMeta.height = video.videoHeight;
           fileMeta.duration = Math.floor(video.duration);
-          // Add metadata to state
           setFiles((prev) => [...prev, fileMeta]);
+          resolve();
         };
-        video.src = URL.createObjectURL(file);
+        video.src = URL.createObjectURL(fileMeta.file);
       } else {
-        // Other file types:
         setFiles((prev) => [...prev, fileMeta]);
+        resolve();
       }
-    } else if (contentType === "application/zip") {
-      const zip = await JSZip.loadAsync(await blob.arrayBuffer());
-      // const fileContents: FileMetadata[] = [];
-      // console.log("zip");
-      await Promise.all(
-        Object.keys(zip.files).map(async (filename) => {
-          const fileData = await zip.files[filename].async("uint8array");
-          const decompressedData = await decompressZstd(fileData);
+    });
+  }, [setFiles]);
 
-          // Extract the original filename and blobId from the server format
-          const originalFilename = extractOriginalFilename(filename);
-          const blobId = extractBlobId(filename);
-          
-          const file = new File(
-            [decompressedData],
-            originalFilename, // Use the original filename without BlobID and .zst
-            { type: getMimeTypeFromFileName(originalFilename) }
-          );
-
-          const fileSize = (file.size / 1024).toFixed(2) + " KB";
-          const fileMeta: FileMetadata = {
-            file,
-            fileSize,
-            description: "",
-            location: "",
-            tags: [],
-            tagIds: [],
-            blobId // Store the blobId extracted from the filename
-          };
-
-          // Fetch project and tags information if we have a blobId
-          if (blobId) {
-            const details = await fetchBlobDetails(blobId);
-            if (details.project) {
-              fileMeta.project = details.project;
-            }
-            if (details.tags && details.tags.length > 0) {
-              fileMeta.tags = details.tags;
-              fileMeta.tagIds = details.tagIds || [];
-              fileMeta.description = details.description || "";
-              fileMeta.location = details.location || "";
-            }
-          }
-
-          if (file.type.startsWith("image/")) {
-            const img = new Image();
-            img.onload = () => {
-              fileMeta.width = img.width;
-              fileMeta.height = img.height;
-              setFiles((prev) => [...prev, fileMeta]);
-            };
-            img.src = URL.createObjectURL(file);
-          } else if (file.type.startsWith("video/")) {
-            const video = document.createElement("video");
-            video.preload = "metadata";
-            video.onloadedmetadata = () => {
-              fileMeta.width = video.videoWidth;
-              fileMeta.height = video.videoHeight;
-              fileMeta.duration = Math.floor(video.duration);
-              // Add metadata to state
-              setFiles((prev) => [...prev, fileMeta]);
-            };
-            video.src = URL.createObjectURL(file);
-          } else {
-            // Other file types:
-            setFiles((prev) => [...prev, fileMeta]);
-          }
-        })
-      );
-    } else if (contentType == "application/json; charset=utf-8") {
-      console.log("no file in palette");
-    } else {
-      console.error("Unexpected content type:", contentType);
-    }
-  }
-
-  async function uploadFileZstd(fileMeta: FileMetadata) {
+  // Helper function to fetch blob details
+  const fetchAndUpdateBlobDetails = useCallback(async (blobId: string): Promise<void> => {
+    if (!blobId) return;
+    
     try {
-      // 3.1 Compress file with Zstandard
-      const compressedFile = await compressFileZstd(fileMeta.file);
-
-      // 3.2 Use native FormData (NOT require("form-data"))
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      // const FormData = require("form-data");
-      const formData = new FormData();
-      formData.append("userId", "001"); // or dynamic
-      formData.append("name", fileMeta.file.name);
-      formData.append("mimeType", fileMeta.file.type); // Use the file's actual MIME type dynamically
-      formData.append("files", compressedFile);
-
-      // 3.3 Send the request
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer MY_TOKEN",
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed with status ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Upload result:", result);
-
-      if (result?.length > 0) {
-        const detail = result[0]; // or find by filename if needed
-
-        console.log(detail.blobID);
-
-        // Update our FileContext so that `fileMeta` gets the blobId
-        setFiles((prevFiles) =>
-          prevFiles.map((f) =>
-            f === fileMeta ? { ...f, blobId: detail.blobID } : f
-          )
-        );
-      }
-    } catch (err) {
-      console.error("Error uploading file:", err);
+      const details = await fetchBlobDetails(blobId);
+      
+      // Update the file in our state with the details
+      setFiles(prevFiles => prevFiles.map(file => {
+        if (file.blobId === blobId) {
+          return {
+            ...file,
+            project: details.project,
+            tags: details.tags || [],
+            tagIds: details.tagIds || [],
+            description: details.description || "",
+            location: details.location || ""
+          };
+        }
+        return file;
+      }));
+    } catch (error) {
+      console.error("Error fetching blob details:", error);
     }
-  }
+  }, [setFiles]);
 
-  // 1. Fetch the project logs  once on mount
+  // Load assets on initial mount
   useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`);
-        if (!res.ok) {
-          console.error("Failed to fetch project logs:", res.status);
-          return;
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
+    
+    const loadAssets = async () => {
+      setFiles([]);
+      const fetchedFiles = await fetchPaletteAssets();
+      
+      // Process each file for additional metadata
+      for (const fileMeta of fetchedFiles) {
+        await processFileMetadata(fileMeta);
+        if (fileMeta.blobId) {
+          await fetchAndUpdateBlobDetails(fileMeta.blobId);
         }
-        const data = await res.json();
-        // data.logs is the array we want
-        if (data.fullProjectInfos) {
-          setProjects(data.fullProjectInfos);
-        } else {
-          console.warn("No 'logs' found in response:", data);
-        }
-      } catch (err) {
-        console.error("Error fetching project logs:", err);
       }
-    }
+    };
+    
+    loadAssets();
+  }, [setFiles, processFileMetadata, fetchAndUpdateBlobDetails]);
 
-    fetchProjects();
+  // Fetch projects once on mount
+  useEffect(() => {
+    const loadProjects = async () => {
+      const projectsData = await fetchProjects();
+      setProjects(projectsData);
+    };
+
+    loadProjects();
   }, []);
 
-  // 2. Remove a file by index
-  function removeFile(index: number) {
+  // Remove a file by index
+  const removeFile = useCallback((index: number) => {
     setFiles((prev) => {
       const updated = [...prev];
-
-      // Grab the file object we are removing
       const fileToRemove = updated[index];
-
-      // Prepare form data
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      // const FormData = require("form-data");
-      const formData = new FormData();
-      formData.append("UserId", "1");
-
-      // Use whatever property holds the "blobId" or "name" you need to pass
-      // For example, if your file object has "blobId":
-      if (fileToRemove.blobId !== undefined) {
-        formData.append("Name", fileToRemove.blobId);
-      } else {
-        console.warn("No blobId found for file:", fileToRemove.file.name);
-        // Continue with deletion from UI even if we can't delete from server
+      
+      // Call the API to remove the file
+      if (fileToRemove.blobId) {
+        removeFileApi(fileToRemove);
       }
-
-      //Make the DELETE request with form data
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset`, {
-        method: "DELETE",
-        body: formData,
-        // No need to set 'Content-Type'; fetch does it automatically for FormData
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          return response.json(); // or response.text() depending on your API
-        })
-        .then((data) => {
-          console.log("Delete successful:", data);
-        })
-        .catch((error) => {
-          console.error("Error deleting:", error);
-        });
-
+      
       // Remove the file from state
       updated.splice(index, 1);
       return updated;
     });
-  }
+  }, [setFiles]);
 
-  // 3. Drag-and-drop for images/videos
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      acceptedFiles.forEach((file) => {
-        const fileSize = (file.size / 1024).toFixed(2) + " KB";
-        const fileMeta: FileMetadata = {
-          file,
-          fileSize,
-          description: "",
-          location: "",
-          tags: [],
-          tagIds: [],
-        };
+  // Prepare a file metadata object
+  const createFileMetadata = useCallback((file: File): FileMetadata => {
+    const fileSize = (file.size / 1024).toFixed(2) + " KB";
+    return {
+      file,
+      fileSize,
+      description: "",
+      location: "",
+      tags: [],
+      tagIds: [],
+    };
+  }, []);
 
-        if (file.type.startsWith("image/")) {
-          const img = new Image();
-          img.onload = () => {
-            fileMeta.width = img.width;
-            fileMeta.height = img.height;
-
-            // Add metadata to state
-            setFiles((prev) => [...prev, fileMeta]);
-            // Immediately upload
-            uploadFileZstd(fileMeta).catch(console.error);
-          };
-          img.src = URL.createObjectURL(file);
-        } else if (file.type.startsWith("video/")) {
-          const video = document.createElement("video");
-          video.preload = "metadata";
-          video.onloadedmetadata = () => {
-            fileMeta.width = video.videoWidth;
-            fileMeta.height = video.videoHeight;
-            fileMeta.duration = Math.floor(video.duration);
-
-            // Add metadata to state
-            setFiles((prev) => [...prev, fileMeta]);
-            // Immediately upload
-            uploadFileZstd(fileMeta).catch(console.error);
-          };
-          video.src = URL.createObjectURL(file);
-        } else {
-          // Other file types:
-          setFiles((prev) => [...prev, fileMeta]);
-          // Immediately upload
-          uploadFileZstd(fileMeta).catch(console.error);
-        }
-      });
+  // Create callbacks for the chunked upload
+  const createUploadCallbacks = useCallback((file: File, fileMeta: FileMetadata): UploadProgressCallbacks => ({
+    onProgress: (progress: number, status: string) => {
+      setUploadStatus(`Uploading ${file.name}: ${status}`);
+      setUploadProgress(progress);
     },
-    [setFiles]
+    onSuccess: async (blobId?: string) => {
+      setUploadStatus(`File ${file.name} uploaded successfully`);
+      setUploadProgress(100);
+      
+      // Clear status after a delay
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+      }, 500);
+      
+      if (blobId) {
+        // Update the file metadata with the blobId
+        setFiles(prevFiles => {
+          return prevFiles.map(f => {
+            if (f.file === file) {
+              return { ...f, blobId };
+            }
+            return f;
+          });
+        });
+        
+        // Fetch and update blob details
+        await fetchAndUpdateBlobDetails(blobId);
+      } else {
+        // Fallback to old method if no blobId is returned
+        const fetchedFiles = await fetchPaletteAssets();
+        
+        // Find the newly uploaded file and get its blobId
+        const newFile = fetchedFiles.find(f => f.file.name === file.name);
+        if (newFile && newFile.blobId) {
+          await fetchAndUpdateBlobDetails(newFile.blobId);
+        }
+      }
+    },
+    onError: (error: string) => {
+      setUploadStatus(`Error uploading ${file.name}: ${error}`);
+      
+      // Clear error after a delay
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+      }, 5000);
+    }
+  }), [fetchAndUpdateBlobDetails, setFiles]);
+
+  // Handle file drop with chunked upload
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      for (const file of acceptedFiles) {
+        // Create file metadata
+        const fileMeta = createFileMetadata(file);
+        
+        // Process file metadata (dimensions, etc.)
+        await processFileMetadata(fileMeta);
+        
+        // Upload file in chunks
+        setUploadStatus(`Starting upload of ${file.name}...`);
+        setUploadProgress(0);
+        
+        const blobId = await uploadFileChunked(file, createUploadCallbacks(file, fileMeta));
+        
+        // If we got a blobId directly, update the file metadata
+        if (blobId) {
+          setFiles(prevFiles => {
+            return prevFiles.map(f => {
+              if (f.file === file) {
+                return { ...f, blobId };
+              }
+              return f;
+            });
+          });
+        }
+      }
+    },
+    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -505,8 +265,8 @@ export default function PalettePage() {
     accept: { "image/*": [], "video/*": [] },
   });
 
-  // 4. Example: One call per selected file
-  async function handleSubmitAssets() {
+  // Submit selected assets
+  const handleSubmitAssets = useCallback(async () => {
     if (selectedIndices.length === 0) {
       alert("No files selected!");
       return;
@@ -519,20 +279,15 @@ export default function PalettePage() {
       return;
     }
 
-    // 1) Group selected files by their project
+    // Group selected files by their project
     const projectMap: Record<string, string[]> = {};
-    //   projectMap[projectID] => [blobIDs]
-
+    
     selectedIndices.forEach((fileIndex) => {
       const fileMeta = files[fileIndex];
 
       // Make sure this file has both a blobId and a project ID
-      if (!fileMeta.blobId) {
-        console.warn("File missing blobId:", fileMeta.file.name);
-        return;
-      }
-      if (!fileMeta.project) {
-        console.warn("File missing project ID:", fileMeta.file.name);
+      if (!fileMeta.blobId || !fileMeta.project) {
+        console.warn(`File missing blobId or project ID: ${fileMeta.file.name}`);
         return;
       }
 
@@ -543,35 +298,14 @@ export default function PalettePage() {
       projectMap[projectId].push(fileMeta.blobId);
     });
 
-    // 2) For each project, hit the PATCH endpoint with the array of blobIDs
+    // Submit assets for each project
     for (const projectId in projectMap) {
       const blobIDs = projectMap[projectId];
-
-
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/${projectId}/submit-assets`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: "Bearer MY_TOKEN",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ blobIDs }), // e.g. { "blobIDs": [123, 456] }
-          }
-        );
-
-        if (!response.ok) {
-          console.error("Submit assets failed:", response.status);
-          continue;
-        }
-
-        
-
-        const data = await response.json();
-        console.log("Submission success:", data);
-
-        // 3) Remove these files from our palette state
+      
+      const success = await submitAssets(projectId, blobIDs);
+      
+      if (success) {
+        // Remove these files from our palette state
         setFiles((prev) =>
           prev.filter(
             (file) =>
@@ -592,11 +326,9 @@ export default function PalettePage() {
             );
           })
         );
-      } catch (err) {
-        console.error("Error submitting assets:", err);
       }
     }
-  }
+  }, [files, selectedIndices, setFiles]);
 
   return (
     <div className="p-6 min-h-screen">
@@ -605,7 +337,7 @@ export default function PalettePage() {
         removeFile={removeFile}
         selectedIndices={selectedIndices}
         setSelectedIndices={setSelectedIndices}
-        projects={projects} // Pass in the array from Beeceptor
+        projects={projects}
       />
 
       <div className="mt-6 bg-white p-4 rounded shadow flex flex-col items-center">
@@ -635,21 +367,20 @@ export default function PalettePage() {
           )}
         </div>
 
-        {/* Button that uploads each selected file individually */}
+        {/* Display upload progress and status */}
+        {uploadStatus && (
+          <div className="mt-4 w-full max-w-md">
+            <p className="text-sm text-gray-700">{uploadStatus}</p>
+            {uploadProgress > 0 && <Progress value={uploadProgress} />}
+          </div>
+        )}
+
         <button
           onClick={handleSubmitAssets}
           className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           Submit Assets
         </button>
-
-        {/*TODO*/}
-        {/*<button*/}
-        {/*    onClick={handleUpload}*/}
-        {/*    className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"*/}
-        {/*>*/}
-        {/*  Select Files to Upload*/}
-        {/*</button>*/}
       </div>
     </div>
   );

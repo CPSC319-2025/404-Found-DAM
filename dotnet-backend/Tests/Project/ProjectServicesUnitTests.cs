@@ -10,10 +10,11 @@ public class ProjectServicesUnitTests
 {
     private readonly IProjectService _projectService;
     private readonly IProjectRepository _projectRepository = Substitute.For<IProjectRepository>();
+    private readonly IBlobStorageService _blobStorageService = Substitute.For<IBlobStorageService>();
 
     public ProjectServicesUnitTests()
     {
-        _projectService = new ProjectService(_projectRepository);
+        _projectService = new ProjectService(_projectRepository, _blobStorageService);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -51,6 +51,7 @@ namespace Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsSuperAdmin = table.Column<bool>(type: "bit", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -230,8 +231,8 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "UserID", "Email", "IsSuperAdmin", "LastUpdated", "Name" },
-                values: new object[] { 1, "userTest@example.com", true, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "userTest" });
+                columns: new[] { "UserID", "Email", "IsSuperAdmin", "LastUpdated", "Name", "PasswordHash" },
+                values: new object[] { 1, "userTest@example.com", true, new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "userTest", "AQAAAAIAAYagAAAAEJUsEQ+L7D9znNxLO6g9+Hr7QMereAnXK/SHFLUTqkpH67y8L7R4Uj78pVmY3/hyjg==" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AssetMetadata_FieldID",

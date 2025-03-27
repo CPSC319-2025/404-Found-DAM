@@ -1,12 +1,8 @@
 ﻿using Core.Interfaces;
 using Core.Dtos;
 using Infrastructure.Exceptions;
+using Microsoft.Net.Http.Headers;
 
-using Core.Services;
-using Core.Entities;
-using Microsoft.AspNetCore.Http.HttpResults;
-using System;
-using Microsoft.AspNetCore.Http;
 
 // Use Task<T> or Task for async operations
 
@@ -37,7 +33,7 @@ namespace APIs.Controllers
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
-        private static async Task<IResult> ExportProject(int projectID, IAdminService adminService)
+        private static async Task<IResult> ExportProject(int projectID, IAdminService adminService, HttpContext context)
         {
             try 
             {
@@ -46,9 +42,23 @@ namespace APIs.Controllers
 
                 // Get binary data of the Excel file containing details of the exported project
                 (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
-                return excelData == null 
-                    ? Results.NotFound("No project is found to be exported") 
-                    : Results.File(excelData, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName); // Return the Excel file's binary data
+                if (excelData == null || excelData.Length == 0)
+                {
+                    return Results.NotFound("No project is found to be exported");
+                }
+                else 
+                {
+                    var result  = Results.File(
+                        excelData, 
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  // MIME type for Excel
+                        fileDownloadName: fileName  // The filename for the download
+                    );   
+
+                    // Manually set Content-Disposition Header to instruct the browser to download the file  
+                    context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
+
+                    return result;
+                }
             }
             catch (DataNotFoundException ex)
             {
@@ -67,11 +77,10 @@ namespace APIs.Controllers
 
         /*
             ImportProject Assumes:
-                - The imported excel file extension is .xlsx
-                - Project, assets, and users do NOT exist in DB, so the IDs are omitted.
-                    - Also assume asset has no custom metadata fields and values.
-                - Relation between user and assets are not preserved in the import file.
-            BlobID in the file of "import project example" is asset's local file path
+                - Assume users are in the system (throw errors if some are not)
+                - No need to import assets (i.e., a project with users only, no assets included yet), so just need to establish projectmemberships
+                - The imported excel file extension is .xlsx, which is zipped.
+                - The project Excel file must adhere to the format seen in the provided example, or the operation will fail and return an error to the user                       -  
         */
         private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
         {
