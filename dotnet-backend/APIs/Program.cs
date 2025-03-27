@@ -65,7 +65,11 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
-    ProjectController.Initialize(activityLogService);
+    var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
+    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+    ProjectController.Initialize(activityLogService, projectService, userService);
+    PaletteController.Initialize(activityLogService);
+    AdminController.Initialize(activityLogService, projectService, userService);
 }
 
 // 3) Make sure to call app.UseCors(...) BEFORE mapping endpoints

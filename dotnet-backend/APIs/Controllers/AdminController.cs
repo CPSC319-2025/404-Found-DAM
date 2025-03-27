@@ -168,10 +168,13 @@ namespace APIs.Controllers
                     int reqeusterID = MOCKEDUSERID;
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, theProjectID, req);
 
+                    var project = await _projectService.GetProject(theProjectID);
+                    var theProjectName = project.name;
+
                     // add log (done)
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
-                    string theDescription = $"User {reqeusterID} removed users ({removedUsers}) from project {result.theProjectName} (project ID: {theProjectID})";
+                    string theDescription = $"User {reqeusterID} removed users ({removedUsers}) from project {theProjectName} (project ID: {theProjectID})";
                     // string description = $"Removed users: {removedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -212,9 +215,12 @@ namespace APIs.Controllers
 
                     // add log (done)
 
+                    var project = await _projectService.GetProject(theProjectID);
+                    var theProjectName = project.name;
+
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
-                    string theDescription = $"User {reqeusterID} added users ({addedUsers}) into project {result.ProjectName} (project ID: {theProjectID})";
+                    string theDescription = $"User {reqeusterID} added users ({addedUsers}) into project {theProjectName} (project ID: {theProjectID})";
                     // string description = $"Added users: {addedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -263,35 +269,32 @@ namespace APIs.Controllers
                 int theUserID = MOCKEDUSERID;
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
 
-                // add log (done)
-                string addedAdmins = string.Join(", ", req.SelectMany(r => r.admins ?? new List<int>()));
-                string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
-                foreach (var project in result)
+                foreach (var createProjectResEntry in result) 
                 {
-                    string theDescription = $"User {theUserID} created project {project.createdProjectID} ({project.ProjectName}) and added admins ({string.Join(", ", project.AddedAdmins.Select(a => $"{a.UserID} ({a.UserName})"))}) and users ({string.Join(", ", project.AddedUsers.Select(u => $"{u.UserID} ({u.UserName})"))})";
+                    int theProjectID = createProjectResEntry.createdProjectID;
+                    var getProjectDto = await _projectService.GetProject(theProjectID);
+                    var theProjectName = getProjectDto.name;
+
+                    // Collect admin and user IDs
+                    var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
+                    var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
+
+                    string addedAdmins = string.Join(", ", adminIDs);
+                    string addedUsers = string.Join(", ", userIDs);
+
+                    string theDescription = $"User {theUserID} created project {theProjectID} ({theProjectName}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = theUserID,
                         changeType = "Create",
                         description = theDescription,
-                        projectID = project.createdProjectID,
+                        projectID = theProjectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
                     });
                 }
-                // string addedUsers = string.Join(", ", req.SelectMany(r => r.users ?? new List<int>()));
-                // string description = $"Created projects with admins: {addedAdmins}, users: {addedUsers}";
-                // foreach (var project in result)
-                // {
-                //     await _activityLogService.AddLogAsync(new CreateActivityLogDto
-                //     {
-                //         UserId = userID,
-                //         ChangeType = "Create",
-                //         Description = description,
-                //         ProjectID = project.createdProjectID,
-                //         AssetID = ""
-                //     });
-                // }
+
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 
@@ -309,19 +312,22 @@ namespace APIs.Controllers
             }      
         }
 
+
         private static async Task<IResult> AddMetaDataFieldsToProject(int theProjectID, List<AddMetadataReq> req, IAdminService adminService)
         {
             try 
             {
                 List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(theProjectID, req);
                 // add log (done)
+                var project = await _projectService.GetProject(theProjectID);
+                var theProjectName = project.name;
                 string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Add Metadata",
-                    description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {theProjectID}",
+                    description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {theProjectID})",
                     projectID = theProjectID,
                     assetID = "",
                     isAdminAction = AdminActionTrue
@@ -355,7 +361,7 @@ namespace APIs.Controllers
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
 
                     var user = await _userService.GetUser(userID);
-                    var username = user.name;
+                    var username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,

@@ -418,16 +418,17 @@ namespace Core.Services
             return result;
         }
 
-        public async Task<string> GetProjectNameById(int projectID)
+        public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
         {
-            // var project = await _dbContext.Projects.FindAsync(projectID);
-            // if (project == null)
-            // {
-            //     throw new DataNotFoundException($"Project with ID {projectID} not found.");
-            // }
-            // return project.Name;
-            return "name (todo)";
+            return await _repository.GetAssetNameByBlobIdAsync(blobID);
         }
 
+        public async Task<string?> GetProjectNameByIdAsync(int projectID) {
+            return await _repository.GetProjectNameByIdAsync(projectID);
+        }
+
+        public async Task<string?> GetTagNameByIdAsync(int tagID) {
+            return await _repository.GetTagNameByIdAsync(tagID);
+        }
     }
 }

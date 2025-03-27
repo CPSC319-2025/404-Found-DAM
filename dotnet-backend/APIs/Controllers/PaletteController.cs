@@ -120,11 +120,13 @@ namespace APIs.Controllers
                     int userID = MOCKEDUSERID;
 
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
+
+                    var tagName = await paletteService.GetTagNameByIdAsync(request.TagId);
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = userID,
                         changeType = "Assigned",
-                        description = $"User {userID} assigned tag {request.TagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
+                        description = $"User {userID} assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
                         projectID = 0, // Assuming no specific project is associated here
                         assetID = request.BlobId,
                         isAdminAction = AdminActionTrue
@@ -376,18 +378,26 @@ namespace APIs.Controllers
 
                  // add log (done)
                  foreach (var blobID in req.blobIDs)
-                 {
+                {
+                    string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
+
+                    
+                    string projectName = await paletteService.GetProjectNameByIdAsync(theProjectID);
+
                     var logDto = new CreateActivityLogDto
                     {
                         userID = submitterID,
                         changeType = "Added",
-                        description = $"User {submitterID} added blob {await paletteService.GetAssetNameByBlobIdAsync(blobID)} (Blob ID: {blobID}) into project {await paletteService.GetProjectNameByIdAsync(theProjectID)} (Project ID: {theProjectID}).",
+                        description = $"User {submitterID} added blob {assetName} (Blob ID: {blobID}) into project {projectName} (Project ID: {theProjectID}).",
                         projectID = theProjectID,
                         assetID = blobID,
                         isAdminAction = !AdminActionTrue
                     };
-                 }
-                 await _activityLogService.AddLogAsync(logDto);
+
+                    await _activityLogService.AddLogAsync(logDto);
+                }
+
+                 
                  return Results.Ok(result);
              }
 

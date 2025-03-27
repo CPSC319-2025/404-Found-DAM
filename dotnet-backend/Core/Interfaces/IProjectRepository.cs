@@ -16,5 +16,8 @@ namespace Core.Interfaces
         Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req);
 
         Task<List<Project>> GetProjectsForUserInDb(int userId);
+        Task<string?> GetAssetNameByBlobIdAsync(string blobID);
+        Task<string?> GetTagNameByIdAsync(int tagId);
+        Task<string?> GetProjectNameByIdAsync(int projectID);
     }
 }

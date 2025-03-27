@@ -20,10 +20,13 @@ namespace APIs.Controllers
         private const bool adminActionTrue = true;
 
         private static IActivityLogService _activityLogService;
-        public static void Initialize(IActivityLogService activityLogService)
+        private static IProjectService _projectService;
+        private static IUserService _userService;
+        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
         {
             _activityLogService = activityLogService;
-
+            _projectService = projectService;
+            _userService = userService;
         }
 
         public static void MapProjectEndpoints(this WebApplication app)
@@ -167,9 +170,19 @@ namespace APIs.Controllers
                 }
                 foreach (var projectID in req.projectIDs)
                 {
-                    var projectName = await projectService.GetProject(projectID).name;
+                    var project = await projectService.GetProject(projectID);
+                    var projectName = project.name;
                     var description = $"{submitterID} archived project {projectID} ({projectName})";
-                    await _activityLogService.AddLogAsync(submitterID, "Archived", description, projectID, "", adminActionTrue);
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = submitterID, 
+                        changeType = "Archived",
+                        description = description,
+                        projectID = projectID,
+                        assetID = "", 
+                        isAdminAction = adminActionTrue
+                    });
+
 
                 //     UserID = logDto.userID,
                 // ChangeType = logDto.changeType,
@@ -212,17 +225,18 @@ namespace APIs.Controllers
                     return Results.StatusCode(500);
                 }
                 foreach (var blobID in req.blobIDs) {
-                    var blobName = await projectService.GetBlobNameById(int.Parse(blobID));
-                    var projectName = await projectService.GetProjectNameById(projectID);
+                    var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);
+                    var projectName = await projectService.GetProjectNameByIdAsync(projectID);
                     var description = $"{submitterID} added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
-                    await _activityLogService.AddLogAsync(
-                        submitterID,
-                        "Added",
-                        description,
-                        projectID,
-                        int.Parse(blobID),
-                        !adminActionTrue
-                    );
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = submitterID,
+                        changeType = "Added",
+                        description = description,
+                        projectID = projectID,
+                        assetID = blobID,
+                        isAdminAction = !adminActionTrue
+                    });
                 }
                 return Results.Ok(result);
             }
@@ -237,11 +251,11 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService)
+        private static async Task<IResult> UpdateProject(int theProjectID, UpdateProjectReq req, IProjectService projectService)
         {
             try
             {
-                var result = await projectService.UpdateProject(projectID, req);
+                var result = await projectService.UpdateProject(theProjectID, req);
 
                 int submitterID = MOCKEDUSERID;
 
@@ -251,9 +265,9 @@ namespace APIs.Controllers
 
                 var updateDescription = new StringBuilder();
                 updateDescription.AppendLine($"Submitter ID: {submitterID}");
-                updateDescription.AppendLine($"Project ID: {projectID}");
+                updateDescription.AppendLine($"Project ID: {theProjectID}");
 
-                var projectName = await projectService.GetProjectNameById(projectID);
+                var projectName = await _projectService.GetProjectNameByIdAsync(theProjectID);
                 updateDescription.AppendLine($"Project Name: {projectName}");
 
                 if (!string.IsNullOrEmpty(req.Location))
@@ -266,7 +280,10 @@ namespace APIs.Controllers
                     updateDescription.AppendLine("Memberships: ");
                     foreach (var membership in req.Memberships)
                     {
-                        updateDescription.AppendLine($"- {membership.MemberName} ({membership.Role})");
+                        var getUserDto = await _userService.GetUser(membership.UserID);
+                        var memberUserName = getUserDto.Name;
+
+                        updateDescription.AppendLine($"- {memberUserName} (User ID: {membership.UserID})");
                     }
                 }
 
@@ -282,20 +299,21 @@ namespace APIs.Controllers
                 if (req.CustomMetadata != null && req.CustomMetadata.Any())
                 {
                     updateDescription.AppendLine("Custom Metadata: ");
-                    foreach (var metadata in req.CustomMetadata)
+                    foreach (var customMetadataDto in req.CustomMetadata) // met
                     {
-                        updateDescription.AppendLine($"- {metadata.Key}: {metadata.Value}");
+                        updateDescription.AppendLine($"- {customMetadataDto.FieldName}: {customMetadataDto.FieldValue}");
                     }
                 }
 
-                await _activityLogService.AddLogAsync(
-                    submitterID,
-                    "Updated",
-                    updateDescription.ToString(),
-                    projectID,
-                    "", // Project ID is empty string, but it should be ignored. No assetID for project update
-                    adminActionTrue
-                );
+                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                {
+                    userID = submitterID,
+                    changeType = "Updated",
+                    description = updateDescription.ToString(),
+                    projectID = theProjectID,
+                    assetID = null, // No assetID for project update
+                    isAdminAction = adminActionTrue
+                });
 
                 return Results.Ok(result);
             }
@@ -312,6 +330,7 @@ namespace APIs.Controllers
                 );
             }
         }
+
 
 
         private static async Task<IResult> GetMyProjects(IProjectService projectService)
