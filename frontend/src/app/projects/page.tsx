@@ -263,10 +263,11 @@ export default function ProjectsPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search... <press enter or click outside>"
           className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
           onChange={(e) => setQuery(e.target.value)}
           onBlur={doSearch}
+          onKeyDown={(e) => e.key === "Enter" && doSearch()}
         />
         {user?.superadmin && (
           <button
