@@ -7,8 +7,16 @@ using MockedData;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+//// To increase request body size limit to 1 GB; Unblock and adjust if needed 
+// builder.Services.Configure<KestrelServerOptions>(options =>
+//    {
+//      options.Limits.MaxRequestBodySize = 1_000_000_000;
+//    });
 
 //Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
@@ -19,6 +27,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(allowedOrigins)
+                  .AllowAnyOrigin()
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
@@ -45,6 +54,7 @@ builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
@@ -121,6 +131,7 @@ app.MapPaletteEndpoints();
 app.MapSearchEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapFileUploadEndpoints();
 
 // Create/migrate database
 if (app.Environment.IsDevelopment())
@@ -134,20 +145,8 @@ if (app.Environment.IsDevelopment())
         .CreateDbContext();
 
     await context.Database.EnsureCreatedAsync();
-} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
-{
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
-    
-    // Drop the database
-    dbContext.Database.EnsureDeleted();
-    
-    // Apply migrations to create a new database
-    dbContext.Database.Migrate();
-    await SeedDatabase(app);
-    
-    Console.WriteLine("Database was reset and migrations applied successfully");
-} else
+}
+else
 {
     try
     {

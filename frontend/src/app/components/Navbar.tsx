@@ -31,7 +31,7 @@ const pages: Page[] = [
     icon: <ChartBarIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
   },
   {
-    path: "upload",
+    path: "palette",
     title: "Upload Palette",
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
