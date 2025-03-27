@@ -4,10 +4,21 @@ using Infrastructure.DataAccess;
 using Core.Interfaces;
 using Core.Services;
 using MockedData;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1) Read from appsettings.json -> "AllowedOrigins": ["http://localhost:3000"]
+//// To increase request body size limit to 1 GB; Unblock and adjust if needed 
+// builder.Services.Configure<KestrelServerOptions>(options =>
+//    {
+//      options.Limits.MaxRequestBodySize = 1_000_000_000;
+//    });
+
+//Note to developers: need to add to appsettings.json -> "AllowedOrigins": [FRONTENDROUTEGOESHERE],
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
 builder.Services.AddCors(options =>
@@ -16,19 +27,22 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(allowedOrigins)
-                  .AllowAnyMethod()
+                  .AllowAnyOrigin()
                   .AllowAnyHeader()
-                  .WithExposedHeaders("Content-Disposition");
+                  .AllowAnyMethod();
         });
 });
 
-// 2) Add other services, swagger, etc.
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Replace the existing DbContext registration with this:
 builder.Services.AddDbContextFactory<DAMDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register services with the dependency injection container
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectRepository, EFCoreProjectRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -40,6 +54,31 @@ builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddTransient<IFileService, Core.Services.FileService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+
+// Configure JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    string jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is not configured.");
+    var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+});
 
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
@@ -55,12 +94,13 @@ if (!builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-// 3) Make sure to call app.UseCors(...) BEFORE mapping endpoints
 app.UseCors("AllowReactApp");
 
+// Add Authentication & Authorization middleware
+app.UseAuthentication();
+// app.UseAuthorization();
 
-
-// Optional: seed the database if the app is run with `--seed`
+// Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
 {
     await SeedDatabase(app);
@@ -68,26 +108,30 @@ if (args.Contains("--seed"))
 
 async Task SeedDatabase(WebApplication app)
 {
-    using var scope = app.Services.CreateScope();
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        Console.WriteLine("Start populating database with mocked data...");
-        await MockedDataSeeding.Seed(scope);
-        Console.WriteLine("Database seeding completed.");
-    }
-    catch (Exception)
-    {
-        throw;
+        try
+        {   
+            Console.WriteLine("Start populating database with mocked data...");
+            await MockedDataSeeding.Seed(scope);
+            Console.WriteLine("Database seeding completed.");
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 }
 
-// Map your endpoints
-app.MapProjectEndpoints();
-app.MapNotificationEndpoints();
-app.MapAdminEndpoints();
-app.MapPaletteEndpoints();
+// Extension methods to register and group endpoints by controller
+app.MapProjectEndpoints(); 
+app.MapNotificationEndpoints(); 
+app.MapAdminEndpoints(); 
+app.MapPaletteEndpoints(); 
 app.MapSearchEndpoints();
+app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapFileUploadEndpoints();
 
 // Create/migrate database
 if (app.Environment.IsDevelopment())
@@ -101,20 +145,8 @@ if (app.Environment.IsDevelopment())
         .CreateDbContext();
 
     await context.Database.EnsureCreatedAsync();
-} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
-{
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
-    
-    // Drop the database
-    dbContext.Database.EnsureDeleted();
-    
-    // Apply migrations to create a new database
-    dbContext.Database.Migrate();
-    await SeedDatabase(app);
-    
-    Console.WriteLine("Database was reset and migrations applied successfully");
-} else
+}
+else
 {
     try
     {

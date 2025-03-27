@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface ProjectCardProps {
   id: string;
@@ -15,10 +16,18 @@ export default function ProjectCard({
   assetCount,
   userNames,
 }: ProjectCardProps) {
+  const router = useRouter();
   //format creationTime into readable string
   const formattedCreationTime = new Date(creationTime).toLocaleString();
+
+  const handleCardClick = () => {
+    router.push(`/projects/${id}`);
+  };
   return (
-    <div className="border p-4 rounded-lg transition-shadow duration-300 bg-white shadow-sm">
+    <div
+      className="border p-4 rounded-lg transition-shadow duration-300 bg-white shadow-sm hover:cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="flex flex-col gap-4 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -92,7 +101,7 @@ export default function ProjectCard({
               ))}
               {userNames.length > 4 && (
                 <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-sm font-medium text-blue-600">
-                  +(userNames.length - 4)
+                  +{userNames.length - 4}
                 </div>
               )}
             </div>

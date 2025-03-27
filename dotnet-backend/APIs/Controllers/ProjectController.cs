@@ -12,7 +12,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 2;
+        private const int MOCKEDUSERID = 1;
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -25,7 +25,7 @@ namespace APIs.Controllers
             app.MapGet("/project/{projectID}/asset-files/storage/{blobID}/{filename}", GetAssetFileFromStorage).WithName("GetAssetFileFromStorageReq").WithOpenApi();
 
             // TODO: Return mocked data currently
-            app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
+            // app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
 
             // Update project details endpoint
             app.MapPatch("/projects/{projectID}", UpdateProject).WithName("UpdateProject").WithOpenApi();
@@ -165,14 +165,28 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsReq req, IProjectService projectService)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsWithProjectReq request, IProjectService projectService, ILogger<Program> logger)
         {
-            try 
+            try
             {
-                // TODO: verify submitter is in the DB and retrieve the userID; replace the following MOCKEDUSERID
-                int submitterID = MOCKEDUSERID; 
-                AssociateAssetsRes result = await projectService.AssociateAssetsWithProject(projectID, req.blobIDs, submitterID);
-                return Results.Ok(result);
+                // Ensure the projectID in the route matches the one in the request.
+                if (projectID != request.ProjectID)
+                {
+                    return Results.BadRequest("Project ID mismatch between route and request body.");
+                }
+
+                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
+
+                AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
+
+                return Results.Ok(new
+                {
+                    status = "success",
+                    projectId = result.ProjectID,
+                    updatedImages = result.UpdatedImages,
+                    failedAssociations = result.FailedAssociations,
+                    message = result.Message
+                });
             }
             catch (DataNotFoundException ex)
             {
@@ -180,7 +194,7 @@ namespace APIs.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
+                logger.LogError($"Error in AssociateAssetsWithProject: {ex.Message}");
                 return Results.StatusCode(500);
             }
         }
