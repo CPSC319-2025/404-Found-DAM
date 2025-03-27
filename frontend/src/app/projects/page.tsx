@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, { Field as FormFieldType, FormData, ChangeType } from "@/app/components/GenericForm";
+import GenericForm, {
+  Field as FormFieldType,
+  FormData,
+  ChangeType,
+} from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
@@ -46,9 +50,8 @@ const newProjectFormFields: FormFieldType[] = [
   {
     name: "tags",
     label: "Tags",
-    type: "text",
-    isMulti: true,
-    placeholder: "Add tags (Press Enter to add one)",
+    type: "select",
+    isMultiSelect: true,
     required: false,
   },
   {
@@ -56,13 +59,13 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: false
+    required: false,
   },
   {
     name: "users",
     label: "Users",
     type: "select",
-    isMultiSelect: true
+    isMultiSelect: true,
   },
 ];
 
@@ -72,23 +75,47 @@ export default function ProjectsPage() {
   const [query, setQuery] = useState<string>("");
 
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+  const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
   const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
 
-  const [formFields, setFormFields] = useState<FormFieldType[]>(newProjectFormFields);
+  const [formFields, setFormFields] =
+    useState<FormFieldType[]>(newProjectFormFields);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
-
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
 
-  const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
+
+  // Global Tags
+  const fetchTags = async () => {
+    try {
+      const response = await fetchWithAuth("tags");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tags: ${response.statusText}`);
+      }
+      // returns an array of tag names (strings)
+      const data = await response.json();
+      setTagOptions(data);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
+  const onUserChange = (
+    changeItem: { id: number; name: string },
+    fieldName: string,
+    changeType: ChangeType
+  ) => {
     if (fieldName === "admins") {
       if (changeType === "select") {
         setRegularUserOptions((prev) =>
           prev.filter((user) => user.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setRegularUserOptions((prev) => [...prev, userToAddBack!]);
       }
     } else {
@@ -97,11 +124,13 @@ export default function ProjectsPage() {
           prev.filter((admin) => admin.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setAdminOptions((prev) => [...prev, userToAddBack!]);
       }
     }
-  }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -221,7 +250,7 @@ export default function ProjectsPage() {
       console.error("[Diagnostics] Error fetching users: ", error);
       return [] as User[];
     }
-  }
+  };
 
   useEffect(() => {
     fetchProjects().then((projects) => setProjectList(projects));
@@ -229,15 +258,19 @@ export default function ProjectsPage() {
       setAllUsers(users);
       setAdminOptions(users);
       setRegularUserOptions(users);
-    })
+    });
   }, []);
+
+  useEffect(() => {
+    console.log("Updated tag options:", tagOptions);
+  }, [tagOptions]);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
     const updatedFormFields = [...newProjectFormFields];
 
     updatedFormFields.forEach((field) => {
-      if (field.name === 'admins') {
+      if (field.name === "admins") {
         field.options = adminOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -245,18 +278,23 @@ export default function ProjectsPage() {
         field.onChange = onUserChange;
       }
 
-      if (field.name === 'users') {
+      if (field.name === "users") {
         field.options = regularUserOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
         }));
         field.onChange = onUserChange;
       }
+      if (field.name === "tags") {
+        field.options = tagOptions.map((tag: string) => ({
+          id: tag,
+          name: tag,
+        }));
+      }
     });
 
     setFormFields(updatedFormFields);
-
-  }, [adminOptions, regularUserOptions]);
+  }, [adminOptions, regularUserOptions, tagOptions]);
 
   return (
     <div className="p-6 min-h-screen">
@@ -268,14 +306,28 @@ export default function ProjectsPage() {
           onChange={(e) => setQuery(e.target.value)}
           onBlur={doSearch}
         />
-        {user?.superadmin && (
-          <button
-            onClick={() => setNewProjectModalOpen(true)}
-            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-          >
-            New Project
-          </button>
-        )}
+        <div>
+          {/* {user?.superadmin && (
+            <button
+              onClick={() => setAddTagsModalOpen(true)}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Add Tags
+            </button>
+          )} */}
+          {user?.superadmin && (
+            <button
+              onClick={() => {
+                fetchTags();
+                console.log("line 316", tagOptions);
+                setNewProjectModalOpen(true);
+              }}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              New Project
+            </button>
+          )}
+        </div>
       </div>
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
       <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
@@ -301,6 +353,15 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
+      {/* {addTagsModalOpen && (
+        <GenericForm
+          title="Add Tags Modal"
+          fields={formFields}
+          onSubmit={handleAddProject}
+          onCancel={() => setNewProjectModalOpen(false)}
+          submitButtonText="Create Project"
+        />
+      )} */}
 
       <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
     </div>
