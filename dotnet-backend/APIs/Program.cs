@@ -57,6 +57,8 @@ builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -132,6 +134,7 @@ app.MapSearchEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapFileUploadEndpoints();
+app.MapTagEndpoints();
 
 // Create/migrate database
 if (app.Environment.IsDevelopment())
