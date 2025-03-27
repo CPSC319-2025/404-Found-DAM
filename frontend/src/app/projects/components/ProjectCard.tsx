@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { Menu, MenuItem, IconButton } from "@mui/material";
+import { EllipsisVerticalIcon } from "@heroicons/react/16/solid";
+import { useUser } from "@/app/context/UserContext";
+import { User } from "@/app/types";
+import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
 
 interface ProjectCardProps {
   id: string;
   name: string;
   creationTime: string;
   assetCount: number;
+  admins: User[];
   userNames: string[];
 }
 
@@ -14,15 +22,80 @@ export default function ProjectCard({
   name,
   creationTime,
   assetCount,
+  admins,
   userNames,
 }: ProjectCardProps) {
+  const { user } = useUser();
   const router = useRouter();
   //format creationTime into readable string
   const formattedCreationTime = new Date(creationTime).toLocaleString();
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const [hasAdminAccess, setHasAdminAccess] = useState<boolean>(false);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = (event?: any) => {
+    event?.stopPropagation();
+    setAnchorEl(null);
+  };
+
   const handleCardClick = () => {
     router.push(`/projects/${id}`);
   };
+
+  const handleEdit = (event: any) => {
+    event.stopPropagation();
+    router.push(`/projects/edit/${id}`);
+    handleMenuClose();
+  }
+
+  const handleArchive = (event: any) => {
+    event.stopPropagation();
+    handleMenuClose();
+  }
+
+  const handleExport = async (event: any) => {
+    event.stopPropagation();
+    try {
+      const response = await fetchWithAuth(`projects/${id}/export`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to export project: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${name.replace(/\s+/g, '_')}.xlsx`;
+      link.click();
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+    handleMenuClose();
+  }
+
+  useEffect(() => {
+    if (user?.superadmin) {
+      setHasAdminAccess(true);
+    } else {
+      if (admins?.find(admin => admin.userID === user!.userID)) {
+        setHasAdminAccess(true);
+      }
+    }
+  }, [admins])
+
   return (
     <div
       className="border p-4 rounded-lg transition-shadow duration-300 bg-white shadow-sm hover:cursor-pointer"
@@ -54,24 +127,27 @@ export default function ProjectCard({
               <p className="text-sm text-gray-500">{formattedCreationTime}</p>
             </div>
           </div>
-          <Link
-            href={`/projects/edit/${id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="size-6"
+          {hasAdminAccess && (
+            <IconButton onClick={handleMenuOpen} className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 rounded-full cursor-pointer">
+              <EllipsisVerticalIcon />
+            </IconButton>
+          )}
+
+          <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+            <MenuItem onClick={handleEdit}>
+              Edit
+            </MenuItem>
+            <MenuItem
+              onClick={handleArchive}
             >
-              <path
-                fillRule="evenodd"
-                d="M10.5 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm0 6a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </Link>
+              Archive
+            </MenuItem>
+            <MenuItem
+              onClick={handleExport}
+            >
+              Export
+            </MenuItem>
+          </Menu>
         </div>
         <div>
           <div className="flex justify-between items-center">

@@ -14,6 +14,7 @@ interface ProjectCardProps {
   name: string;
   creationTime: string;
   assetCount: number;
+  admins: User[];
   userNames: string[];
 }
 
@@ -126,6 +127,7 @@ export default function ProjectsPage() {
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
+            admins: project.admins,
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
@@ -266,7 +268,7 @@ export default function ProjectsPage() {
 
   const onSubmitZip = async () => {
     const formData = new FormData();
-    formData.append("file", importedProjectFile);
+    formData.append("file", importedProjectFile!);
 
     try {
       const response = await fetchWithAuth("/project/import", {
@@ -350,6 +352,7 @@ export default function ProjectsPage() {
               name={project.name}
               creationTime={project.creationTime}
               assetCount={project.assetCount}
+              admins={project.admins}
               userNames={project.userNames}
             />
           </div>
