@@ -24,5 +24,11 @@ namespace Infrastructure.DataAccess
             await _context.SaveChangesAsync();
             return tag;
         }
+        
+        public async Task ClearTagsAsync()
+        {
+            _context.Tags.RemoveRange(_context.Tags);
+            await _context.SaveChangesAsync();
+        }
     }
 }

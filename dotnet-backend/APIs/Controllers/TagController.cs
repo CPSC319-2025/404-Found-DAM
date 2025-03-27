@@ -12,9 +12,7 @@ namespace APIs.Controllers
             app.MapGet("/tags", GetTags)
                .WithName("GetTags")
                .WithOpenApi();
-            app.MapPost("/tags", AddTag)
-               .WithName("AddTag")
-               .WithOpenApi();
+            app.MapPut("/tags", ReplaceTags).WithName("ReplaceTags").WithOpenApi();
         }
 
         private static async Task<IResult> GetTags(ITagService tagService)
@@ -38,12 +36,15 @@ namespace APIs.Controllers
                 );            
             }
         }
-        private static async Task<IResult> AddTag(ITagService tagService, CreateTagDto newTag)
+        private static async Task<IResult> ReplaceTags(ITagService tagService, HttpContext context)
         {
-            try 
+            try
             {
-                var addedTag = await tagService.AddTagAsync(newTag);
-                return Results.Created($"/tags/{addedTag.TagID}", addedTag);
+                var tagDtos = await context.Request.ReadFromJsonAsync<IEnumerable<CreateTagDto>>();
+                if (tagDtos == null) return Results.BadRequest("Invalid tag data");
+
+                await tagService.ReplaceAllTagsAsync(tagDtos);
+                return Results.Ok("Tag table replaced");
             }
             catch (Exception ex)
             {
@@ -54,5 +55,29 @@ namespace APIs.Controllers
                 );
             }
         }
+
+        private static async Task<IResult> AddTags(HttpContext context, ITagService tagService)
+        {
+            try
+            {
+                var newTags = await context.Request.ReadFromJsonAsync<IEnumerable<CreateTagDto>>();
+                if (newTags == null || !newTags.Any())
+                {
+                    return Results.BadRequest("No tags provided.");
+                }
+
+                var addedTags = await tagService.AddTagsAsync(newTags);
+                return Results.Created("/tags", addedTags);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+
     }
 }

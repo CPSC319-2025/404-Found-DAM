@@ -25,6 +25,16 @@ interface GetAllProjectsResponse {
   fullProjectInfos: Project[];
 }
 
+const addTagFormFields: FormFieldType[] = [
+  {
+    name: "newTag",
+    label: "New Tag",
+    type: "text",
+    placeholder: "Enter new tag name",
+    required: true,
+  },
+];
+
 const newProjectFormFields: FormFieldType[] = [
   {
     name: "name",
@@ -86,6 +96,9 @@ export default function ProjectsPage() {
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
 
   const [tagOptions, setTagOptions] = useState<string[]>([]);
+
+  const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
+  const [configuredTags, setConfiguredTags] = useState<string[]>([]);
 
   // Global Tags
   const fetchTags = async () => {
@@ -159,6 +172,35 @@ export default function ProjectsPage() {
       return [] as ProjectCardProps[];
     }
   };
+
+  const handleSubmitConfigureTags = async (formData: FormData) => {
+    const updatedTags = (formData.tags as string[])
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    try {
+      const response = await fetchWithAuth("tags", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTags.map((name) => ({ name }))),
+      });
+
+      if (!response.ok) throw new Error("Failed to update tags");
+
+      toast.success("Tags updated");
+      setConfigureTagsOpen(false);
+      fetchTags(); // refresh local tag options
+    } catch (error) {
+      console.error("Error replacing tags", error);
+      toast.error("Failed to update tags");
+    }
+  };
+
+  useEffect(() => {
+    if (addTagsModalOpen) {
+      fetchTags();
+    }
+  }, [addTagsModalOpen]);
 
   const handleAddProject = async (formData: FormData) => {
     const payload = [
@@ -307,14 +349,17 @@ export default function ProjectsPage() {
           onBlur={doSearch}
         />
         <div>
-          {/* {user?.superadmin && (
-            <button
-              onClick={() => setAddTagsModalOpen(true)}
-              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-            >
-              Add Tags
-            </button>
-          )} */}
+          <button
+            onClick={async () => {
+              const response = await fetchWithAuth("tags");
+              const tags = await response.json();
+              setConfiguredTags(tags);
+              setConfigureTagsOpen(true);
+            }}
+            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+          >
+            Configure Tags
+          </button>
           {user?.superadmin && (
             <button
               onClick={() => {
@@ -353,15 +398,24 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
-      {/* {addTagsModalOpen && (
+      {configureTagsOpen && (
         <GenericForm
-          title="Add Tags Modal"
-          fields={formFields}
-          onSubmit={handleAddProject}
-          onCancel={() => setNewProjectModalOpen(false)}
-          submitButtonText="Create Project"
+          title="Configure Tags"
+          fields={[
+            {
+              name: "tags",
+              label: "Tag List",
+              type: "text",
+              isMulti: true,
+              required: false,
+              value: configuredTags,
+            },
+          ]}
+          onSubmit={handleSubmitConfigureTags}
+          onCancel={() => setConfigureTagsOpen(false)}
+          submitButtonText="Update Tags"
         />
-      )} */}
+      )}
 
       <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
     </div>

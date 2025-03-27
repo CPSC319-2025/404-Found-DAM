@@ -46,7 +46,8 @@ namespace Infrastructure.DataAccess {
                 .HasIndex(p => p.Name);
 
             modelBuilder.Entity<Tag>()
-                .HasIndex(t => t.Name);
+                .HasIndex(t => t.Name)
+                .IsUnique();
 
             modelBuilder.Entity<ProjectTag>()
                 .HasIndex(pt => new { pt.ProjectID, pt.TagID });

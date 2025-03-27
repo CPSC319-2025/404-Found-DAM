@@ -31,20 +31,29 @@ namespace Core.Services
             }
         }
 
-        public async Task<TagDto> AddTagAsync(CreateTagDto newTag)
+        public async Task ReplaceAllTagsAsync(IEnumerable<CreateTagDto> newTags)
         {
-            var tag = new Tag
+            await _tagRepository.ClearTagsAsync();
+            foreach (var tagDto in newTags.Where(t => !string.IsNullOrWhiteSpace(t.Name)))
             {
-                Name = newTag.Name
-            };
+                var tag = new Tag { Name = tagDto.Name.Trim() };
+                await _tagRepository.AddTagAsync(tag);
+            }
+        }
 
-            var addedTag = await _tagRepository.AddTagAsync(tag);
 
-            return new TagDto
+        public async Task<IEnumerable<TagDto>> AddTagsAsync(IEnumerable<CreateTagDto> newTags)
+        {
+            var tagDtos = new List<TagDto>();
+
+            foreach (var newTag in newTags)
             {
-                TagID = addedTag.TagID,
-                Name = addedTag.Name
-            };
+                var tag = new Tag { Name = newTag.Name };
+                var addedTag = await _tagRepository.AddTagAsync(tag);
+                tagDtos.Add(new TagDto { TagID = addedTag.TagID, Name = addedTag.Name });
+            }
+
+            return tagDtos;
         }
     }
 }
