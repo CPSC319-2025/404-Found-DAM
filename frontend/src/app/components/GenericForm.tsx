@@ -37,6 +37,7 @@ interface GenericFormProps {
   onCancel: () => void;
   submitButtonText: string;
   isModal?: boolean;
+  disabled?: boolean;
 }
 
 export default function GenericForm({
@@ -46,6 +47,7 @@ export default function GenericForm({
   onCancel,
   submitButtonText,
   isModal = true,
+  disabled = false,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +155,26 @@ export default function GenericForm({
     setFormData((prevData) => {
       const updatedArray = [...(prevData[fieldName] as CustomMetadataField[])];
       updatedArray[index] = { ...updatedArray[index], [key]: value };
-      return { ...prevData, [fieldName]: updatedArray };
+      const nextState = { ...prevData, [fieldName]: updatedArray };
+
+      let stillError = false;
+      updatedArray.forEach((item) => {
+        if (!item.name) {
+          stillError = true;
+        }
+      });
+
+      if (!stillError) {
+        setFormErrors((prevErrors) => {
+          const updatedErrors = { ...prevErrors };
+          if (updatedErrors[fieldName]) {
+            delete updatedErrors[fieldName];
+          }
+          return updatedErrors;
+        });
+      }
+
+      return nextState;
     });
 
     if (!hasEdited) {
@@ -176,12 +197,32 @@ export default function GenericForm({
   };
 
   const removeComplexEntry = (fieldName: string, index: number) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      [fieldName]: (prevData[fieldName] as CustomMetadataField[]).filter(
+    setFormData((prevData) => {
+      const updatedArray = (prevData[fieldName] as CustomMetadataField[]).filter(
         (_, i) => i !== index
-      ),
-    }));
+      );
+
+      const nextState = { ...prevData, [fieldName]: updatedArray };
+
+      let stillError = false;
+      updatedArray.forEach((item) => {
+        if (!item.name) {
+          stillError = true;
+        }
+      });
+
+      if (!stillError) {
+        setFormErrors((prevErrors) => {
+          const updatedErrors = { ...prevErrors };
+          if (updatedErrors[fieldName]) {
+            delete updatedErrors[fieldName];
+          }
+          return updatedErrors;
+        });
+      }
+
+      return nextState;
+    });
 
     if (!hasEdited) {
       setHasEdited(() => true);
@@ -207,9 +248,13 @@ export default function GenericForm({
             errors[field.name] = `${field.label} is required`;
           }
         }
+      } else if (field.isCustomMetadata) {
+        (formData[field.name] as CustomMetadataField[]).forEach((value) => {
+          if (!value.name) {
+            errors[field.name] = "All custom metadata requires a given name";
+          }
+        })
       }
-
-      // TODO: error for empty metadata field name
     });
 
     return errors;
@@ -302,183 +347,193 @@ export default function GenericForm({
       >
         <h2 className="text-xl font-bold mb-4">{title}</h2>
 
-        <form onSubmit={handleSubmit}>
-          {fields.map((field) => (
-            <div key={field.name} className="mb-4">
-              <label className="block mb-2" htmlFor={field.name}>
-                {`${field.label} ${field.required ? " *" : ""}`}
-              </label>
-              {field.isMultiSelect ? (
-                <Multiselect
-                  options={field.options || []}
-                  selectedValues={field.options?.filter((option) =>
-                    (formData[field.name] as (string | number)[]).map(String).includes(String(option.id))
-                  )}
-                  onSelect={(selectedList, selectedItem) =>
-                    handleSelect(selectedList, selectedItem, field.name)
-                  }
-                  onRemove={(selectedList, selectedItem) =>
-                    handleRemove(selectedList, selectedItem, field.name)
-                  }
-                  displayValue="name"
-                  className="custom-multiselect w-full p-2 border rounded"
-                  closeIcon="cancel"
-                  avoidHighlightFirstOption
-                />
-              ) : field.isMulti ? (
-                <div>
+        <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}>
+          <fieldset disabled={disabled}>
+            {fields.map((field) => (
+              <div key={field.name} className="mb-4">
+                <label className="block mb-2" htmlFor={field.name}>
+                  {`${field.label} ${field.required ? " *" : ""}`}
+                </label>
+                {field.isMultiSelect ? (
+                  <Multiselect
+                    options={field.options || []}
+                    selectedValues={field.options?.filter((option) =>
+                      (formData[field.name] as (string | number)[]).map(String).includes(String(option.id))
+                    )}
+                    onSelect={(selectedList, selectedItem) =>
+                      handleSelect(selectedList, selectedItem, field.name)
+                    }
+                    onRemove={(selectedList, selectedItem) =>
+                      handleRemove(selectedList, selectedItem, field.name)
+                    }
+                    displayValue="name"
+                    className="custom-multiselect w-full p-2 border rounded"
+                    closeIcon="cancel"
+                    avoidHighlightFirstOption
+                  />
+                ) : field.isMulti ? (
+                  <div>
+                    <input
+                      id={field.name}
+                      name={field.name}
+                      type="text"
+                      placeholder={field.placeholder}
+                      onKeyDown={(e) => handleMultiValueChange(e, field.name)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <div className="flex flex-wrap mt-2">
+                      {(formData[field.name] as string[]).map((entry, index) => (
+                        <span key={index} className="chip">
+                          {entry}
+                          <button
+                            type="button"
+                            className="ml-2 text-2xl text-white bg-transparent border-none cursor-pointer"
+                            onClick={() => removeEntry(field.name, entry)}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : field.isCustomMetadata ? (
+                  <div>
+                    {((formData[field.name] as CustomMetadataField[]) || []).map(
+                      (entry, index) => (
+                        <div
+                          key={entry.id}
+                          className="flex mb-2 items-center border p-2 rounded-md w-full"
+                        >
+                          <input
+                            type="text"
+                            placeholder="Metadata Name"
+                            value={entry.name}
+                            onChange={(e) =>
+                              handleComplexChange(
+                                index,
+                                field.name,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                            className={`w-full p-2 border rounded sm:max-w-3xs ${
+                              formErrors[field.name] && !entry.name ? "border-red-500 bg-red-50" : "border-gray-300"
+                            }`}
+                          />
+
+                          <select
+                            value={entry.type}
+                            onChange={(e) =>
+                              handleComplexChange(
+                                index,
+                                field.name,
+                                "type",
+                                e.target.value
+                              )
+                            }
+                            className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
+                          >
+                            <option value="String">Text</option>
+                            <option value="Number">Number</option>
+                            <option value="Boolean">Yes / No</option>
+                          </select>
+
+                          <div className="flex items-center ml-2 sm:ml-2 space-x-3">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={entry.enabled}
+                                onChange={(e) =>
+                                  handleComplexChange(
+                                    index,
+                                    field.name,
+                                    "enabled",
+                                    e.target.checked
+                                  )
+                                }
+                                className="hidden"
+                              />
+                              <span
+                                className={`w-10 h-5 flex items-center rounded-full p-1 transition duration-300 ${
+                                  entry.enabled ? "bg-green-500" : "bg-gray-300"
+                                }`}
+                              >
+                                <span
+                                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition duration-300 ${
+                                    entry.enabled ? "translate-x-5" : ""
+                                  }`}
+                                ></span>
+                              </span>
+                            </label>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeComplexEntry(field.name, index)
+                              }
+                              className="text-red-500"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => addComplexEntry(field.name)}
+                      className="text-blue-500"
+                    >
+                      + Add Entry
+                    </button>
+                  </div>
+                ) : field.type.toLowerCase() === "number" ? (
+                  <input
+                    id={field.name}
+                    name={field.name}
+                    type="number"
+                    placeholder={field.placeholder}
+                    value={formData[field.name] as string}
+                    onChange={handleChange}
+                    className={`w-full p-2 border rounded ${
+                      formErrors[field.name] ? "border-red-500 bg-red-50" : "border-gray-300"
+                    }`}
+                  />
+                ) : field.type.toLowerCase() === "boolean" ? (
+                  <select
+                    id={field.name}
+                    name={field.name}
+                    value={String(formData[field.name])}
+                    onChange={handleChange}
+                    className={`w-full p-2 border rounded ${
+                      formErrors[field.name] ? "border-red-500 bg-red-50" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="">Select...</option>
+                    <option value={"true"}>Yes</option>
+                    <option value={"false"}>No</option>
+                  </select>
+                ) : (
                   <input
                     id={field.name}
                     name={field.name}
                     type="text"
                     placeholder={field.placeholder}
-                    onKeyDown={(e) => handleMultiValueChange(e, field.name)}
-                    className="w-full p-2 border rounded"
+                    value={formData[field.name] as string}
+                    onChange={handleChange}
+                    className={`w-full p-2 border rounded ${
+                      formErrors[field.name] ? "border-red-500 bg-red-50" : "border-gray-300"
+                    }`}
                   />
-                  <div className="flex flex-wrap mt-2">
-                    {(formData[field.name] as string[]).map((entry, index) => (
-                      <span key={index} className="chip">
-                        {entry}
-                        <button
-                          type="button"
-                          className="ml-2 text-2xl text-white bg-transparent border-none cursor-pointer"
-                          onClick={() => removeEntry(field.name, entry)}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : field.isCustomMetadata ? (
-                <div>
-                  {((formData[field.name] as CustomMetadataField[]) || []).map(
-                    (entry, index) => (
-                      <div
-                        key={entry.id}
-                        className="flex mb-2 items-center border p-2 rounded-md w-full"
-                      >
-                        <input
-                          type="text"
-                          placeholder="Metadata Name"
-                          value={entry.name}
-                          onChange={(e) =>
-                            handleComplexChange(
-                              index,
-                              field.name,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          className="p-2 border rounded w-full sm:max-w-3xs"
-                        />
-
-                        <select
-                          value={entry.type}
-                          onChange={(e) =>
-                            handleComplexChange(
-                              index,
-                              field.name,
-                              "type",
-                              e.target.value
-                            )
-                          }
-                          className="p-2 border rounded ml-2 w-full sm:max-w-3xs"
-                        >
-                          <option value="String">Text</option>
-                          <option value="Number">Number</option>
-                          <option value="Boolean">Yes / No</option>
-                        </select>
-
-                        <div className="flex items-center ml-2 sm:ml-2 space-x-3">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={entry.enabled}
-                              onChange={(e) =>
-                                handleComplexChange(
-                                  index,
-                                  field.name,
-                                  "enabled",
-                                  e.target.checked
-                                )
-                              }
-                              className="hidden"
-                            />
-                            <span
-                              className={`w-10 h-5 flex items-center rounded-full p-1 transition duration-300 ${
-                                entry.enabled ? "bg-green-500" : "bg-gray-300"
-                              }`}
-                            >
-                              <span
-                                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition duration-300 ${
-                                  entry.enabled ? "translate-x-5" : ""
-                                }`}
-                              ></span>
-                            </span>
-                          </label>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeComplexEntry(field.name, index)
-                            }
-                            className="text-red-500"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => addComplexEntry(field.name)}
-                    className="text-blue-500"
-                  >
-                    + Add Entry
-                  </button>
-                </div>
-              ) : field.type.toLowerCase() === "number" ? (
-                <input
-                  id={field.name}
-                  name={field.name}
-                  type="number"
-                  placeholder={field.placeholder}
-                  value={formData[field.name] as string}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                />
-              ) : field.type.toLowerCase() === "boolean" ? (
-                <select
-                  id={field.name}
-                  name={field.name}
-                  value={String(formData[field.name])}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">Select...</option>
-                  <option value={"true"}>Yes</option>
-                  <option value={"false"}>No</option>
-                </select>
-              ) : (
-                <input
-                  id={field.name}
-                  name={field.name}
-                  type="text"
-                  placeholder={field.placeholder}
-                  value={formData[field.name] as string}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                />
-              )}
-              {formErrors[field.name] && (
-                <p className="text-red-500 text-sm mt-1">
-                  {formErrors[field.name]}
-                </p>
-              )}
-            </div>
-          ))}
+                )}
+                {formErrors[field.name] && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {formErrors[field.name]}
+                  </p>
+                )}
+              </div>
+            ))}
+          </fieldset>
 
           <div>
             <i className="opacity-50">* Required field</i>
@@ -496,7 +551,8 @@ export default function GenericForm({
             )}
             <button
               type="submit"
-              className="bg-blue-500 text-white p-2 rounded"
+              className="bg-blue-500 text-white p-2 rounded disabledButton"
+              disabled={disabled}
             >
               {submitButtonText}
             </button>

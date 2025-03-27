@@ -9,6 +9,10 @@ import GenericForm, {
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { User, Project, Tag, ProjectMetadataField } from "@/app/types";
+import { useRouter } from "next/navigation";
+import PopupModal from "@/app/components/ConfirmModal";
+import { useUser } from "@/app/context/UserContext";
+import metadata from "next/dist/server/typescript/rules/metadata";
 
 interface ProjectWithMetadata extends Project {
   tags: Tag[];
@@ -19,7 +23,7 @@ type ProjectPageProps = {
   params: { slug: string };
 };
 
-const isNewMetadataField = (id: string) => id.startsWith("new_");
+// const isNewMetadataField = (id: string) => id.startsWith("new_");
 
 const editProjectFormFields: FormFieldType[] = [
   {
@@ -57,7 +61,15 @@ const editProjectFormFields: FormFieldType[] = [
 ];
 
 export default function ProjectPage({ params }: ProjectPageProps) {
+  const router = useRouter();
+  const { user } = useUser();
+
+  const [confirmPopup, setConfirmPopup] = useState<boolean>(false);
+  const [confirmMessages, setConfirmMessages] = useState<string[]>([]);
+
   const [loading, setLoading] = useState(true);
+
+  const [formDisabled, setFormDisabled] = useState(true);
 
   const [formFields, setFormFields] = useState<FormFieldType[]>(editProjectFormFields);
 
@@ -65,6 +77,10 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
+
+  const [projectName, setProjectName] = useState<string>("");
+
+  const [formData, setFormData] = useState<FormData>({});
 
   const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
     if (fieldName === "admins") {
@@ -88,7 +104,40 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     }
   }
 
+  const onSubmit = (updatedFormData: FormData) => {
+    let anyDeletions = false;
+
+    const metadataFields = formFields.find((field) => field.name === "metadata");
+
+    if (updatedFormData?.metadata && metadataFields) {
+      const oldMetadata = metadataFields.value as CustomMetadataField[];
+      const newMetadata = updatedFormData.metadata as CustomMetadataField[];
+
+      anyDeletions = oldMetadata.some(
+        (oldField) => !newMetadata.some((newField) => newField.id === oldField.id)
+      );
+    }
+
+    let confirmMessages = [];
+
+    if (anyDeletions) {
+      confirmMessages.push("Warning: any data related to deleted metadata will be lost.");
+    }
+
+    confirmMessages.push(" Any disabled custom metadata fields will become unusable.");
+
+    setConfirmMessages(confirmMessages);
+    setConfirmPopup(true);
+    setFormData(updatedFormData);
+  }
+
+  const onConfirmSubmit = () => {
+    handleEditProject(formData)
+  }
+
   const handleEditProject = async (updatedFormData: FormData) => {
+    setConfirmPopup(false);
+
     const admins = (updatedFormData.admins as number[]).map((id) => {
       return {
         userID: id,
@@ -126,7 +175,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       customMetadata
     }
 
-    setLoading(true);
+    setFormDisabled(true);
 
     const response = await fetchWithAuth(`projects/${params.slug}`, {
       method: "PATCH",
@@ -134,12 +183,19 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     });
 
     if (!response.ok) {
-        console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
+      console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
+      setFormDisabled(false);
+      setLoading(false);
+
+      const parsedResponse: any = await response.json();
+      toast.error(parsedResponse.detail);
+
+      return;
     }
 
     toast.success("Successfully updated the project's metadata");
 
-    onLoad();
+    router.push("/projects");
   };
 
   const fetchUsers = async () => {
@@ -184,6 +240,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       .then((project) => {
         const updatedFormFields = [...editProjectFormFields];
 
+        setProjectName(project.name!)
+
         updatedFormFields.forEach((field) => {
           if (field.name === 'location') {
             field.value = project.location;
@@ -226,6 +284,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           prev.filter((user) => !selectedAdmins.includes(user.userID))
         );
 
+        if (user?.superadmin) {
+          setFormDisabled(false);
+        } else {
+          if (project.admins.find(admin => admin.userID === user!.userID)) {
+            setFormDisabled(false);
+          }
+        }
+
         setLoading(false);
       })
   }
@@ -261,13 +327,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }, [adminOptions, regularUserOptions]);
 
   const onCancel = () => {
-    window.location.reload();
+    router.push("/projects");
   };
 
   return (
     <div className="sm:p-6 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">
-        {"Edit Project: " + params.slug}
+        {"Edit Project: " + projectName}
       </h1>
 
       {loading && (
@@ -282,11 +348,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           title=""
           isModal={false}
           fields={formFields}
-          onSubmit={handleEditProject}
+          onSubmit={onSubmit}
           onCancel={onCancel}
           submitButtonText="Save"
+          disabled={formDisabled}
         />
       )}
+
+      <PopupModal
+        title="Are you sure you want to update this project?"
+        isOpen={confirmPopup}
+        onClose={() => setConfirmPopup(false)}
+        onConfirm={onConfirmSubmit}
+        messages={confirmMessages}
+      />
     </div>
   );
 }
