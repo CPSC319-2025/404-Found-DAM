@@ -11,6 +11,8 @@ import { toast } from "react-toastify";
 import { User, Project, Tag, ProjectMetadataField } from "@/app/types";
 import { useRouter } from "next/navigation";
 import PopupModal from "@/app/components/ConfirmModal";
+import { useUser } from "@/app/context/UserContext";
+import metadata from "next/dist/server/typescript/rules/metadata";
 
 interface ProjectWithMetadata extends Project {
   tags: Tag[];
@@ -21,7 +23,7 @@ type ProjectPageProps = {
   params: { slug: string };
 };
 
-const isNewMetadataField = (id: string) => id.startsWith("new_");
+// const isNewMetadataField = (id: string) => id.startsWith("new_");
 
 const editProjectFormFields: FormFieldType[] = [
   {
@@ -60,9 +62,10 @@ const editProjectFormFields: FormFieldType[] = [
 
 export default function ProjectPage({ params }: ProjectPageProps) {
   const router = useRouter();
+  const { user } = useUser();
 
   const [confirmPopup, setConfirmPopup] = useState<boolean>(false);
-  const [confirmMessage, setConfirmMessage] = useState<string>("");
+  const [confirmMessages, setConfirmMessages] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -102,8 +105,28 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   const onSubmit = (updatedFormData: FormData) => {
-    // check form data + add warning message
-    setConfirmMessage("TODO!!!")
+    let anyDeletions = false;
+
+    const metadataFields = formFields.find((field) => field.name === "metadata");
+
+    if (updatedFormData?.metadata && metadataFields) {
+      const oldMetadata = metadataFields.value as CustomMetadataField[];
+      const newMetadata = updatedFormData.metadata as CustomMetadataField[];
+
+      anyDeletions = oldMetadata.some(
+        (oldField) => !newMetadata.some((newField) => newField.id === oldField.id)
+      );
+    }
+
+    let confirmMessages = [];
+
+    if (anyDeletions) {
+      confirmMessages.push("Warning: any data related to deleted metadata will be lost.");
+    }
+
+    confirmMessages.push(" Any disabled custom metadata fields will become unusable.");
+
+    setConfirmMessages(confirmMessages);
     setConfirmPopup(true);
     setFormData(updatedFormData);
   }
@@ -113,6 +136,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   }
 
   const handleEditProject = async (updatedFormData: FormData) => {
+    setConfirmPopup(false);
+
     const admins = (updatedFormData.admins as number[]).map((id) => {
       return {
         userID: id,
@@ -159,9 +184,12 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
     if (!response.ok) {
       console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
-      // TODO: show error
       setFormDisabled(false);
       setLoading(false);
+
+      const parsedResponse: any = await response.json();
+      toast.error(parsedResponse.detail);
+
       return;
     }
 
@@ -256,10 +284,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           prev.filter((user) => !selectedAdmins.includes(user.userID))
         );
 
+        if (user?.superadmin) {
+          setFormDisabled(false);
+        } else {
+          if (project.admins.find(admin => admin.userID === user.userID)) {
+            setFormDisabled(false);
+          }
+        }
+
         setLoading(false);
       })
-    // TODO: check if we should enable/disable the form based on user role!
-    setFormDisabled(false);
   }
 
   useEffect(() => {
@@ -326,7 +360,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         isOpen={confirmPopup}
         onClose={() => setConfirmPopup(false)}
         onConfirm={onConfirmSubmit}
-        message={confirmMessage}
+        messages={confirmMessages}
       />
     </div>
   );

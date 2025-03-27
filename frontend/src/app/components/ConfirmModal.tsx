@@ -6,10 +6,10 @@ interface PopupModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title?: string;
-  message: string;
+  messages: string[];
 }
 
-export default function PopupModal({ isOpen, onClose, onConfirm, title, message }: PopupModalProps) {
+export default function PopupModal({ isOpen, onClose, onConfirm, title, messages }: PopupModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,8 +31,12 @@ export default function PopupModal({ isOpen, onClose, onConfirm, title, message 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div ref={modalRef} className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="mt-2">{message}</p>
+        {title && <h2 className="text-xl font-semibold">{title}</h2>}
+        <div className="mt-2 space-y-2">
+          {messages.map((msg, index) => (
+            <p key={index}>{msg}</p>
+          ))}
+        </div>
         <div className="mt-4 flex justify-end space-x-2">
           <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
             No

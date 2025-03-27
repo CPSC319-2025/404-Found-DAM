@@ -34,6 +34,16 @@ interface AssetWithSrc extends Asset {
   src?: string;
 }
 
+function formatFileSize(sizeInKB) {
+  if (sizeInKB >= 1024 * 1024) {
+    return (sizeInKB / (1024 * 1024)).toFixed(2) + " GB";
+  } else if (sizeInKB >= 1024) {
+    return (sizeInKB / 1024).toFixed(2) + " MB";
+  } else {
+    return sizeInKB.toFixed(2) + " KB";
+  }
+}
+
 function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
@@ -42,10 +52,13 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Image ID
+                File Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Image
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Filesize
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Updated
@@ -69,7 +82,7 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {asset.blobID}
+                    {asset.filename}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -81,6 +94,11 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                       height={120}
                       className="object-cover rounded w-full h-full"
                     />
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {formatFileSize(asset.filesizeInKB)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -114,21 +132,21 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                     >
                       <PencilIcon className="h-5 w-5" />
                     </button>
-                    <button
-                      className="text-red-600 hover:text-red-900"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (
-                          confirm(
-                            "Are you sure you want to delete this project?"
-                          )
-                        ) {
-                          // TODO
-                        }
-                      }}
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                    {/*<button*/}
+                    {/*  className="text-red-600 hover:text-red-900"*/}
+                    {/*  onClick={(e) => {*/}
+                    {/*    e.stopPropagation();*/}
+                    {/*    if (*/}
+                    {/*      confirm(*/}
+                    {/*        "Are you sure you want to delete this asset?"*/}
+                    {/*      )*/}
+                    {/*    ) {*/}
+                    {/*      // TODO*/}
+                    {/*    }*/}
+                    {/*  }}*/}
+                    {/*>*/}
+                    {/*  <TrashIcon className="h-5 w-5" />*/}
+                    {/*</button>*/}
                   </div>
                 </td>
               </tr>
@@ -155,10 +173,10 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [tags, setTags] = useState<Tag[]>([]);
 
   const getAssetFile = async (blobID: string, filename: string) => {
-    if (!filename.includes(".webp")) {
-      // TODO: handle video
-      return Promise.reject("Unable to handle video yet")
-    }
+    // if (!filename.includes(".webp")) {
+    //   // TODO: handle video
+    //   return Promise.reject("Unable to handle video yet")
+    // }
     const response = await fetchWithAuth(`project/${projectID}/asset-files/storage/${blobID}/${filename}`);
 
     if (!response.ok) {
