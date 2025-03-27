@@ -184,5 +184,10 @@ namespace Core.Services
                 throw;
             }
         }
+
+        // Updating the newly Edited Image to the local storage
+        public async Task<Asset> AssetsEditted(IFormFile file, string blobID, UploadAssetsReq req) {
+            return await _paletteRepository.UploadEditedImage(file, blobID, req, _imageService);
+        }
     }
 }

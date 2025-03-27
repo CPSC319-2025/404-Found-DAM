@@ -28,6 +28,14 @@ namespace APIs.Controllers
         .WithName("UploadAssets")
         .WithOpenApi();
 
+        // Api for Editting Image
+        app.MapPatch("/palette/asset/{blobId}", async(IFormFile file, string blobID, UploadAssetsReq req, IPaletteService paletteService) => 
+        {
+            return await paletteService.AssetsEditted(file, blobID, req);
+        })
+        .WithName("EditedAssets")
+        .WithOpenApi();
+
         // Delete assets in the pallete
         app.MapDelete("/palette/asset", async (HttpRequest request, IPaletteService paletteService) => 
         {
@@ -192,6 +200,7 @@ namespace APIs.Controllers
             }
             
         }
+
 
 
         /*

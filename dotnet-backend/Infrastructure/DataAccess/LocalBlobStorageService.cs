@@ -7,6 +7,19 @@ namespace Infrastructure.DataAccess
 {
     public class LocalBlobStorageService : IBlobStorageService
     {
+
+        public async Task<string> UploadEditedImageAsync (byte[] file, string blobID, string containerName, Asset assetMeta) {
+            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+            if (!Directory.Exists(storageDirectory)) {
+                Directory.CreateDirectory(storageDirectory);
+            }
+
+            // re-use the same blobID 
+            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{blobID}.{assetMeta.FileName}.zst"), file);
+            return blobID;
+        }
+
+
         public async Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData)
         {
             string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");

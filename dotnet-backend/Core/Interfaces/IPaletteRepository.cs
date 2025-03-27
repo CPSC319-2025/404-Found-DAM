@@ -18,5 +18,7 @@ namespace Core.Interfaces  {
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
+
+        Task<Asset> UploadEditedImage(IFormFile file, string blobID, UploadAssetsReq req, IImageService _imageService);
     }
 }
