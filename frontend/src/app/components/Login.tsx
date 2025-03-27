@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "@/app/utils/api/auth";
-import { getUserFromToken } from "@/app/utils/api/auth";
+import { login, getUserFromToken } from "@/app/utils/api/auth";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-toastify";
 
 interface LoginProps {
-  setUser: any;
+  setUser: (user: any) => void;
 }
 
 export default function Login({ setUser }: LoginProps) {
@@ -14,19 +14,23 @@ export default function Login({ setUser }: LoginProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async () => {
-    const token = await login(email);
-    if (token) {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevents page reload
+    try {
+      await login(email, password);
       const user = await getUserFromToken();
       setUser(user);
-    } else {
-      alert("No user with given email");
+    } catch (error) {
+      toast.error((error as Error).message);
     }
   };
 
   return (
     <div className="login-container">
-      <div className="flex flex-col p-6 shadow-lg w-full max-w-sm bg-white rounded-2xl h-full space-y-2 justify-center items-center hover:scale-105 transition-transform duration-200">
+      <form
+        onSubmit={handleLogin}
+        className="flex flex-col p-6 shadow-lg w-full max-w-sm bg-white rounded-2xl h-full space-y-2 justify-center items-center hover:scale-105 transition-transform duration-200"
+      >
         <h2 className="text-2xl font-semibold text-center mb-4 text-gray-600 pb-5">
           Sign In
         </h2>
@@ -37,6 +41,7 @@ export default function Login({ setUser }: LoginProps) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             className="border border-gray-600 rounded-md p-2 mx-3 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            required
           />
           <div className="relative w-full">
             <input
@@ -45,6 +50,7 @@ export default function Login({ setUser }: LoginProps) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               className="border border-gray-600 rounded-md p-2 mx-3 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              required
             />
             <button
               type="button"
@@ -61,13 +67,13 @@ export default function Login({ setUser }: LoginProps) {
         </div>
         <div className="w-full y-full flex justify-center items-center pt-6 pb-3">
           <button
-            onClick={handleLogin}
+            type="submit" // Ensures form submission
             className="bg-blue-400 rounded-md w-4/5 py-1.5 hover:scale-105 transition-transform duration-200 hover:bg-blue-500 text-gray-100"
           >
             LOGIN
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

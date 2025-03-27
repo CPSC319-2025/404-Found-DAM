@@ -55,9 +55,15 @@ namespace Infrastructure.DataAccess {
                 .HasIndex(at => new { at.BlobID, at.TagID });
 
             // seed data
-            modelBuilder.Entity<User>().HasData(
-                new User { UserID = 1, Name = "userTest", Email = "userTest@example.com", IsSuperAdmin = true
+            modelBuilder.Entity<User>().HasData( new User
+                {
+                    UserID = 1,
+                    Name = "userTest",
+                    Email = "userTest@example.com",
+                    PasswordHash = "hashed_password_here", // A proper hash should be here.
+                    IsSuperAdmin = true,
                 });
+
 
             base.OnModelCreating(modelBuilder);
         }

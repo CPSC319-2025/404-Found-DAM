@@ -5,7 +5,8 @@ using System.Reflection.Metadata;
 using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
 using Core.Entities;
-
+using System.IO;
+using ZstdSharp;
 
 namespace Core.Services
 {
@@ -77,17 +78,42 @@ namespace Core.Services
         }
 
         public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
-            return await _paletteRepository.GetAssetsAsync(request.UserId);
+            return await _paletteRepository.GetAssets(request);
+        }
+
+        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId)
+        {
+            try
+            {
+                return await _paletteRepository.GetAssetByBlobIdAsync(blobId, userId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting asset by blobId: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<byte[]> DecompressZstdAsync(byte[] compressedData)
+        {
+            return await Task.Run(() => 
+            {
+                try 
+                {
+                    // Using ZstdSharp for decompression - simplest approach
+                    using var decompressor = new ZstdSharp.Decompressor();
+                    return decompressor.Unwrap(compressedData).ToArray();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error decompressing data: {ex.Message}");
+                    throw;
+                }
+            });
         }
 
         public async Task<List<string>> GetProjectTagsAsync(int projectId) {
             return await _paletteRepository.GetProjectTagsAsync(projectId);
-        }
-
-        public async Task<bool> AddTagsToPaletteImagesAsync(List<string> imageIds, int projectId) {
-            var projectTags = await _paletteRepository.GetProjectTagsAsync(projectId);
-            if (!projectTags.Any()) return false;
-            return await _paletteRepository.AddTagsToPaletteImagesAsync(imageIds, projectTags);
         }
 
         public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {

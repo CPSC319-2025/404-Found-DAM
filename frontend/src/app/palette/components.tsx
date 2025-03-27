@@ -183,23 +183,23 @@ export default function FileTable({
     
     // Call API to update tags for the image
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/tags`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            ImageIds: [fileMeta.blobId],
-            ProjectId: newProjectID
-          })
-        }
-      );
+      // const response = await fetch(
+      //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/tags`,
+      //   {
+      //     method: "PATCH",
+      //     headers: {
+      //       "Content-Type": "application/json"
+      //     },
+      //     body: JSON.stringify({
+      //       ImageIds: [fileMeta.blobId],
+      //       ProjectId: newProjectID
+      //     })
+      //   }
+      // );
 
-      if (!response.ok) {
-        console.error("Failed to update image tags:", response.status);
-      }
+      // if (!response.ok) {
+      //   console.error("Failed to update image tags:", response.status);
+      // }
     } catch (err) {
       console.error("Error updating image tags:", err); 
     }
@@ -214,7 +214,12 @@ export default function FileTable({
             Authorization: "Bearer MY_TOKEN",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ blobIDs: [fileMeta.blobId] }),
+          body: JSON.stringify({
+            projectID: parseInt(newProjectID),
+            blobIDs: [fileMeta.blobId],
+            tagIDs: [],
+            metadataEntries: []
+          }),
         }
       );
       
