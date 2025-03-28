@@ -63,7 +63,7 @@ builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
-// Configure JWT Authentication
+// Configure JWT Authentication // todo: temporarily commented out
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

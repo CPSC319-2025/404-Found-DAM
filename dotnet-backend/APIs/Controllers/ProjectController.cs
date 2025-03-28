@@ -223,19 +223,20 @@ namespace APIs.Controllers
                 int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
 
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
-foreach (var blobID in req.blobIDs) {
+                foreach (var blobID in request.BlobIDs) {
                     var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                    var description = $"{submitterID} added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
+                    var description = $"{submitterId} added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {userID = submitterID,
+                    {
+                        userID = submitterId,
                         changeType = "Added",
                         description = description,
                         projectID = projectID,
                         assetID = blobID,
                         isAdminAction = !adminActionTrue
                     });
-                    }
+                }
                 return Results.Ok(new
                 {
                     status = "success",

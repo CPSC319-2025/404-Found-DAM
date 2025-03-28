@@ -47,7 +47,7 @@ namespace APIs.Controllers
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
-        private static async Task<IResult> ExportProject(int theProjectID, IAdminService adminService)
+        private static async Task<IResult> ExportProject(int theProjectID, IAdminService adminService, HttpContext context)
         {
             try 
             {
@@ -55,7 +55,7 @@ namespace APIs.Controllers
                 int requesterID = MOCKEDUSERID;
 
                 // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
+                (string fileName, byte[] excelData) = await adminService.ExportProject(theProjectID, requesterID);
                 if (excelData == null || excelData.Length == 0)
                 {
                     return Results.NotFound("No project is found to be exported");
@@ -70,7 +70,7 @@ namespace APIs.Controllers
 
                     // Manually set Content-Disposition Header to instruct the browser to download the file  
                     context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
-await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         // Add log (done)
                         userID = requesterID,
