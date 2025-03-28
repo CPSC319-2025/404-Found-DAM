@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, { Field as FormFieldType, FormData, ChangeType } from "@/app/components/GenericForm";
+import GenericForm, {
+  Field as FormFieldType,
+  FormData,
+  ChangeType,
+} from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
@@ -56,13 +60,13 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: false
+    required: false,
   },
   {
     name: "users",
     label: "Users",
     type: "select",
-    isMultiSelect: true
+    isMultiSelect: true,
   },
 ];
 
@@ -74,21 +78,28 @@ export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
 
-  const [formFields, setFormFields] = useState<FormFieldType[]>(newProjectFormFields);
+  const [formFields, setFormFields] =
+    useState<FormFieldType[]>(newProjectFormFields);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
 
-  const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
+  const onUserChange = (
+    changeItem: { id: number; name: string },
+    fieldName: string,
+    changeType: ChangeType
+  ) => {
     if (fieldName === "admins") {
       if (changeType === "select") {
         setRegularUserOptions((prev) =>
           prev.filter((user) => user.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setRegularUserOptions((prev) => [...prev, userToAddBack!]);
       }
     } else {
@@ -97,11 +108,13 @@ export default function ProjectsPage() {
           prev.filter((admin) => admin.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setAdminOptions((prev) => [...prev, userToAddBack!]);
       }
     }
-  }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -221,7 +234,7 @@ export default function ProjectsPage() {
       console.error("[Diagnostics] Error fetching users: ", error);
       return [] as User[];
     }
-  }
+  };
 
   useEffect(() => {
     fetchProjects().then((projects) => setProjectList(projects));
@@ -229,7 +242,7 @@ export default function ProjectsPage() {
       setAllUsers(users);
       setAdminOptions(users);
       setRegularUserOptions(users);
-    })
+    });
   }, []);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
@@ -237,7 +250,7 @@ export default function ProjectsPage() {
     const updatedFormFields = [...newProjectFormFields];
 
     updatedFormFields.forEach((field) => {
-      if (field.name === 'admins') {
+      if (field.name === "admins") {
         field.options = adminOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -245,7 +258,7 @@ export default function ProjectsPage() {
         field.onChange = onUserChange;
       }
 
-      if (field.name === 'users') {
+      if (field.name === "users") {
         field.options = regularUserOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -255,7 +268,6 @@ export default function ProjectsPage() {
     });
 
     setFormFields(updatedFormFields);
-
   }, [adminOptions, regularUserOptions]);
 
   return (
@@ -264,7 +276,7 @@ export default function ProjectsPage() {
         <input
           type="text"
           placeholder="Search... <press enter or click outside>"
-          className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
+          className="w-full md:w-2/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
           onChange={(e) => setQuery(e.target.value)}
           onBlur={doSearch}
           onKeyDown={(e) => e.key === "Enter" && doSearch()}
