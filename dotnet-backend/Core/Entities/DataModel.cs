@@ -119,6 +119,8 @@ namespace Core.Entities
     public class Log
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // Auto-increment identity
+
         public int ChangeID { get; set; } // formerly: LogID
         
         public required string ChangeType { get; set; } // formerly: Action

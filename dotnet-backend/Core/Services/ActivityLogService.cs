@@ -34,7 +34,7 @@ namespace Core.Services
         {
             var log = new Log
             {
-                ChangeID = getNextLogNumber(),
+                // ChangeID = getNextLogNumber(), // removed, using Auto-incrementing identity column instead.
                 Timestamp = DateTime.UtcNow,
                 UserID = logDto.userID,
                 // User = user, TODO

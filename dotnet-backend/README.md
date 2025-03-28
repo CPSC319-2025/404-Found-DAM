@@ -39,6 +39,7 @@ If you encounter issues with running the backend
 --- then:
 --------- 1. cd to dotnet-backend/Infrastructure/Migrations and delete the Migrations folder (this folder).
 --------- 2. run this command (2a: mac; 2b: windows):
+--------- 3. cd to root folder and run "./run.sh"
 2a:
 dotnet ef migrations add InitialCreate \
   --project Infrastructure \
