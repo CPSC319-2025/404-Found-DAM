@@ -12,6 +12,8 @@ import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
 
+import LoadingSpinner from "@/app/components/LoadingSpinner";
+
 import PopupModal from "@/app/components/ConfirmModal";
 
 interface ProjectCardProps {
@@ -83,6 +85,8 @@ const newProjectFormFields: FormFieldType[] = [
 
 export default function ProjectsPage() {
   const { user } = useUser();
+
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [query, setQuery] = useState<string>("");
 
@@ -301,17 +305,16 @@ export default function ProjectsPage() {
   };
 
   useEffect(() => {
-    fetchProjects().then((projects) => setProjectList(projects));
-    fetchUsers().then((users) => {
-      setAllUsers(users);
-      setAdminOptions(users);
-      setRegularUserOptions(users);
-    });
+    setLoading(true);
+    Promise.all([fetchProjects(), fetchUsers()])
+      .then(([projects, users]) => {
+        setProjectList(projects);
+        setAllUsers(users);
+        setAdminOptions(users);
+        setRegularUserOptions(users);
+      })
+      .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    console.log("Updated tag options:", tagOptions);
-  }, [tagOptions]);
 
   const onSubmitConfigureTags = (formData: FormData) => {
     setPendingConfigureFormData(formData);
@@ -387,19 +390,26 @@ export default function ProjectsPage() {
         </div>
       </div>
       <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-        {projectList.map((project) => (
-          <div key={project.projectID} className="w-full h-full">
-            <ProjectCard
-              id={String(project.projectID)}
-              name={project.name}
-              creationTime={project.creationTime}
-              assetCount={project.assetCount}
-              userNames={project.userNames}
-            />
-          </div>
-        ))}
-      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-start justify-start w-full py-6">
+          <LoadingSpinner message="Loading projects..." />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+          {projectList.map((project) => (
+            <div key={project.projectID} className="w-full h-full">
+              <ProjectCard
+                id={String(project.projectID)}
+                name={project.name}
+                creationTime={project.creationTime}
+                assetCount={project.assetCount}
+                userNames={project.userNames}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {newProjectModalOpen && (
         <GenericForm
