@@ -85,14 +85,12 @@ const newProjectFormFields: FormFieldType[] = [
 
 export default function ProjectsPage() {
   const { user } = useUser();
-
   const [loading, setLoading] = useState<boolean>(true);
-
   const [query, setQuery] = useState<string>("");
 
+  const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
 
   const [formFields, setFormFields] =
     useState<FormFieldType[]>(newProjectFormFields);
@@ -100,7 +98,6 @@ export default function ProjectsPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
-
   const [tagOptions, setTagOptions] = useState<string[]>([]);
 
   const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
@@ -124,7 +121,6 @@ export default function ProjectsPage() {
       console.error("Error fetching tags:", error);
     }
   };
-
   const onUserChange = (
     changeItem: { id: number; name: string },
     fieldName: string,
@@ -155,7 +151,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const fetchProjects = async () => {
+  const fetchAllProjects = async () => {
     try {
       const response = await fetchWithAuth("projects");
       if (!response.ok) {
@@ -164,7 +160,7 @@ export default function ProjectsPage() {
         );
       }
       const data = (await response.json()) as GetAllProjectsResponse;
-
+      console.log("All Projects", data);
       return data.fullProjectInfos.map(
         (project: Project) =>
           ({
@@ -253,8 +249,8 @@ export default function ProjectsPage() {
       setNewProjectModalOpen(false);
       toast.success("Created new project successfully.");
 
-      const projects = await fetchProjects();
-      setProjectList(projects);
+      const projects = await fetchAllProjects();
+      setAllProjects(projects);
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
@@ -262,9 +258,9 @@ export default function ProjectsPage() {
   };
 
   const doSearch = async () => {
-    const projects = await fetchProjects();
+    const projects = await fetchAllProjects();
     if (!query.trim()) {
-      setProjectList(projects);
+      setAllProjects(projects);
       return;
     }
 
@@ -286,7 +282,7 @@ export default function ProjectsPage() {
       )
     );
 
-    setProjectList(filteredProjects);
+    setAllProjects(filteredProjects);
   };
 
   const fetchUsers = async () => {
@@ -303,15 +299,19 @@ export default function ProjectsPage() {
       return [] as User[];
     }
   };
-
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchProjects(), fetchUsers()])
+
+    // Fetch all projects (for filtering "My Projects") AND all users
+    Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
-        setProjectList(projects);
+        setAllProjects(projects);
         setAllUsers(users);
         setAdminOptions(users);
         setRegularUserOptions(users);
+      })
+      .catch((error) => {
+        console.error("Error loading initial data:", error);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -352,8 +352,19 @@ export default function ProjectsPage() {
     setFormFields(updatedFormFields);
   }, [adminOptions, regularUserOptions, tagOptions]);
 
+  const myProjects = allProjects.filter((project) =>
+    project.userNames.includes("Isabella Sanchez")
+  );
+
+  const filteredAllProjects = allProjects.filter(
+    (project) => !project.userNames.includes("Isabella Sanchez")
+  );
+
+  const overallProjectsExist = allProjects.length > 0 || myProjects.length > 0;
+
   return (
     <div className="p-6 min-h-screen">
+      {/* header: Always display search bar for all users and "New Project" button if superadmin */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
         <input
           type="text"
@@ -389,26 +400,60 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
-      <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+      {/* case 1: there are no projects overall */}
+      {!overallProjectsExist && (
+        <div className="flex flex-col items-center justify-center h-64">
+          <p className="text-2xl text-gray-500">No projects to display!</p>
+        </div>
+      )}
 
-      {loading ? (
-        <div className="flex flex-col items-start justify-start w-full py-6">
-          <LoadingSpinner message="Loading projects..." />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-          {projectList.map((project) => (
-            <div key={project.projectID} className="w-full h-full">
-              <ProjectCard
-                id={String(project.projectID)}
-                name={project.name}
-                creationTime={project.creationTime}
-                assetCount={project.assetCount}
-                userNames={project.userNames}
-              />
+      {/* else display the project sections */}
+      {overallProjectsExist && (
+        <>
+          {/* My Projects */}
+          <div>
+            <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
+            {myProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+                {myProjects.map((project) => (
+                  <div key={project.projectID} className="w-full h-full">
+                    <ProjectCard
+                      id={String(project.projectID)}
+                      name={project.name}
+                      creationTime={project.creationTime}
+                      assetCount={project.assetCount}
+                      userNames={project.userNames}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-lg text-gray-500">
+                No projects assigned to you
+              </p>
+            )}
+          </div>
+
+          {/* All Projects Section filtering projects not belonging to me */}
+          {filteredAllProjects.length > 0 && (
+            <div className="mt-8">
+              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+                {filteredAllProjects.map((project) => (
+                  <div key={project.projectID} className="w-full h-full">
+                    <ProjectCard
+                      id={String(project.projectID)}
+                      name={project.name}
+                      creationTime={project.creationTime}
+                      assetCount={project.assetCount}
+                      userNames={project.userNames}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {newProjectModalOpen && (
