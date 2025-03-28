@@ -394,12 +394,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       {!loading && (
         <GenericForm
           title=""
-          isModal={false}
+          isModal={true}
           fields={formFields}
           onSubmit={onSubmit}
           onCancel={onCancel}
           submitButtonText="Save"
           disabled={formDisabled}
+          disableOutsideClose={confirmPopup}
         />
       )}
 
