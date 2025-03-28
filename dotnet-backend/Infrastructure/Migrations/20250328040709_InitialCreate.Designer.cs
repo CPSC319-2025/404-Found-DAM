@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DAMDbContext))]
-    [Migration("20250327010811_InitialCreate")]
+    [Migration("20250328040709_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -100,15 +100,29 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Log", b =>
                 {
-                    b.Property<int>("LogID")
+                    b.Property<int>("ChangeID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogID"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ChangeID"));
 
-                    b.Property<string>("Action")
+                    b.Property<string>("AssetID")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAdminAction")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProjectID")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
@@ -116,7 +130,7 @@ namespace Infrastructure.Migrations
                     b.Property<int>("UserID")
                         .HasColumnType("int");
 
-                    b.HasKey("LogID");
+                    b.HasKey("ChangeID");
 
                     b.HasIndex("UserID");
 
@@ -342,13 +356,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Log", b =>
                 {
-                    b.HasOne("Core.Entities.User", "User")
+                    b.HasOne("Core.Entities.User", null)
                         .WithMany("Logs")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Core.Entities.ProjectMembership", b =>

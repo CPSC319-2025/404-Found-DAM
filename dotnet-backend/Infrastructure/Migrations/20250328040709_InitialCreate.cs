@@ -138,15 +138,19 @@ namespace Infrastructure.Migrations
                 name: "Logs",
                 columns: table => new
                 {
-                    LogID = table.Column<int>(type: "int", nullable: false)
+                    ChangeID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ChangeType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ProjectID = table.Column<int>(type: "int", nullable: false),
+                    AssetID = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UserID = table.Column<int>(type: "int", nullable: false)
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    IsAdminAction = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Logs", x => x.LogID);
+                    table.PrimaryKey("PK_Logs", x => x.ChangeID);
                     table.ForeignKey(
                         name: "FK_Logs_Users_UserID",
                         column: x => x.UserID,
