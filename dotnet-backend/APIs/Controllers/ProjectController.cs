@@ -108,9 +108,7 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: replace MOCKEDUSERID with authenticated userID
-                int userID = MOCKEDUSERID;
-                GetAllProjectsRes result = await projectService.GetAllProjects(userID);
+                GetAllProjectsRes result = await projectService.GetAllProjects();
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
