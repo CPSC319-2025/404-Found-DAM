@@ -33,12 +33,7 @@ namespace Core.Services
 
         public async Task ReplaceAllTagsAsync(IEnumerable<CreateTagDto> newTags)
         {
-            await _tagRepository.ClearTagsAsync();
-            foreach (var tagDto in newTags.Where(t => !string.IsNullOrWhiteSpace(t.Name)))
-            {
-                var tag = new Tag { Name = tagDto.Name.Trim() };
-                await _tagRepository.AddTagAsync(tag);
-            }
+            await _tagRepository.ReplaceTagsAsync(newTags);
         }
 
     }
