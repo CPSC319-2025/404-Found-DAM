@@ -49,9 +49,9 @@ const pages: Page[] = [
 ];
 export default function Navbar() {
   return (
-    <nav className="group transition-all duration-300 w-24 hover:w-64 bg-navbar p-2 fixed sm:relative z-50">
-      <div className="block sm:hidden">
-        <ul className="flex justify-around space-x-4">
+    <>
+      <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-navbar p-2 z-50">
+        <ul className="flex justify-around">
           {pages.map((page) => (
             <li key={page.path} className="text-center">
               <Link
@@ -64,9 +64,9 @@ export default function Navbar() {
             </li>
           ))}
         </ul>
-      </div>
+      </nav>
 
-      <div className="hidden sm:block pl-3">
+      <nav className="hidden sm:block group transition-all duration-300 w-24 hover:w-64 bg-navbar p-2 relative z-50">
         <div className="flex justify-center mb-4 overflow-hidden">
           <Link href="https://www.ae.ca/">
             <img
@@ -91,7 +91,7 @@ export default function Navbar() {
             </li>
           ))}
         </ul>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
