@@ -12,6 +12,8 @@ import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
 
+import PopupModal from "@/app/components/ConfirmModal";
+
 interface ProjectCardProps {
   projectID: number;
   name: string;
@@ -99,6 +101,10 @@ export default function ProjectsPage() {
 
   const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
   const [configuredTags, setConfiguredTags] = useState<string[]>([]);
+
+  const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
+  const [pendingConfigureFormData, setPendingConfigureFormData] =
+    useState<FormData | null>(null);
 
   // Global Tags
   const fetchTags = async () => {
@@ -307,6 +313,11 @@ export default function ProjectsPage() {
     console.log("Updated tag options:", tagOptions);
   }, [tagOptions]);
 
+  const onSubmitConfigureTags = (formData: FormData) => {
+    setPendingConfigureFormData(formData);
+    setConfirmConfigurePopup(true);
+  };
+
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
     const updatedFormFields = [...newProjectFormFields];
@@ -412,13 +423,36 @@ export default function ProjectsPage() {
               value: configuredTags,
             },
           ]}
-          onSubmit={handleSubmitConfigureTags}
+          onSubmit={onSubmitConfigureTags} // use our new handler here
           onCancel={() => setConfigureTagsOpen(false)}
+          confirmRemoval={true}
+          confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
           submitButtonText="Update Tags"
+          disableOutsideClose={confirmConfigurePopup}
         />
       )}
 
-      <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
+      {confirmConfigurePopup && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Confirm Tag Changes"
+            isOpen={true}
+            onClose={() => {
+              // Only clear the confirmation popup state, leaving the GenericForm open.
+              setConfirmConfigurePopup(false);
+            }}
+            onConfirm={async () => {
+              if (pendingConfigureFormData) {
+                await handleSubmitConfigureTags(pendingConfigureFormData);
+              }
+              setConfirmConfigurePopup(false);
+            }}
+            messages={[
+              "Are you sure you would like to make these changes? This may cause unexpected project and asset changes across the system.",
+            ]}
+          />
+        </div>
+      )}
     </div>
   );
 }
