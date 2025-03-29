@@ -304,7 +304,6 @@ namespace APIs.Controllers
                 // add log (todo)
                 foreach (var file in request.Form.Files)
                 {
-                    console.log("PALETTECONTROLLER.UPLOAD FILE LOOP");
                     var logDto = new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
@@ -314,7 +313,6 @@ namespace APIs.Controllers
                         assetID = file.FileName,
                         isAdminAction = !AdminActionTrue
                     };
-                    console.log("CALL ADDLOGASYNC");
                     await _activityLogService.AddLogAsync(logDto);
                 }
             

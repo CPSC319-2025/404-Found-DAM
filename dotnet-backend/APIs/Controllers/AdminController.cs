@@ -132,8 +132,8 @@ namespace APIs.Controllers
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Import",
-                        description = $"User {MOCKEDUSERID} imported project {projectName} (project ID: {theProjectID})",
-                        projectID = theProjectID,
+                        description = $"User {MOCKEDUSERID} imported project {projectName} (project ID: {projectID})",
+                        projectID = projectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
                     });
@@ -280,10 +280,25 @@ namespace APIs.Controllers
                     var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
                     var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
 
-                    string addedAdmins = string.Join(", ", adminIDs);
-                    string addedUsers = string.Join(", ", userIDs);
+                    var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => 
+                    {
+                        var admin = await _userService.GetUser(adminID);
+                        return $"{admin.Name} (User ID: {adminID})";
+                    }));
 
-                    string theDescription = $"User {theUserID} created project {theProjectID} ({theProjectName}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                    var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
+                    {
+                        var user = await _userService.GetUser(userID);
+                        return $"{user.Name} (User ID: {userID})";
+                    }));
+
+                    string addedAdmins = string.Join(", ", adminDetails);
+                    string addedUsers = string.Join(", ", userDetails);
+
+                    string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                    // string addedUsers = string.Join(", ", userIDs);
+
+                    // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
 
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
