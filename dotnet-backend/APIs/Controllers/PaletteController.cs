@@ -124,7 +124,7 @@ namespace APIs.Controllers
                         userID = userID,
                         changeType = "Assigned",
                         description = $"User {userID} assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
-                        projectID = 0, // Assuming no specific project is associated here
+                        projID = 0, // Assuming no specific project is associated here
                         assetID = request.BlobId,
                         isAdminAction = AdminActionTrue
                     });
@@ -309,7 +309,7 @@ namespace APIs.Controllers
                         userID = MOCKEDUSERID,
                         changeType = "Uploaded",
                         description = $"User {MOCKEDUSERID} uploaded asset {file.FileName} (Asset ID: {file.FileName})",
-                        projectID = 0, // Assuming no specific project is associated here
+                        projID = 0, // Assuming no specific project is associated here
                         assetID = file.FileName,
                         isAdminAction = !AdminActionTrue
                     };
@@ -392,7 +392,7 @@ namespace APIs.Controllers
                     userID = MOCKEDUSERID,
                     changeType = "Deleted",
                     description = $"User {MOCKEDUSERID} deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
-                    projectID = 0, // Assuming no specific project is associated here
+                    projID = 0, // Assuming no specific project is associated here
                     assetID = deleteRequest.Name,
                     isAdminAction = !AdminActionTrue
                 };
@@ -415,7 +415,7 @@ namespace APIs.Controllers
             
         }
 
-        private static async Task<IResult> SubmitAssets(int theProjectID, SubmitAssetsReq req, IPaletteService paletteService)
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService)
          {
              // May need to add varification to check if client data is bad.
              try 
@@ -423,7 +423,7 @@ namespace APIs.Controllers
                  // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
                  int submitterID = MOCKEDUSERID; 
                  Console.WriteLine(req.blobIDs);
-                 SubmitAssetsRes result = await paletteService.SubmitAssets(theProjectID, req.blobIDs, submitterID);
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
 
 
                  // add log (done)
@@ -432,14 +432,14 @@ namespace APIs.Controllers
                     string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
 
                     
-                    string projectName = await paletteService.GetProjectNameByIdAsync(theProjectID);
+                    string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
 
                     var logDto = new CreateActivityLogDto
                     {
                         userID = submitterID,
                         changeType = "Added",
-                        description = $"User {submitterID} added blob {assetName} (Blob ID: {blobID}) into project {projectName} (Project ID: {theProjectID}).",
-                        projectID = theProjectID,
+                        description = $"User {submitterID} added blob {assetName} (Blob ID: {blobID}) into project {projectName} (Project ID: {projectID}).",
+                        projID = projectID,
                         assetID = blobID,
                         isAdminAction = !AdminActionTrue
                     };
@@ -497,7 +497,7 @@ namespace APIs.Controllers
                             userID = MOCKEDUSERID,
                             changeType = "Removed",
                             description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", tagNames)}] from Blob {assetName} (Blob ID: {blobId}).",
-                            projectID = 0, // no project
+                            projID = 0, // no project
                             assetID = blobId,
                             isAdminAction = !AdminActionTrue
                         };
@@ -534,7 +534,7 @@ namespace APIs.Controllers
                             userID = MOCKEDUSERID,
                             changeType = "Removed",
                             description = $"User {MOCKEDUSERID} removed tags [{tagDescription}] from Blob {assetName} (Blob ID: {blobId}).",
-                            projectID = 0, // no project
+                            projID = 0, // no project
                             assetID = blobId,
                             isAdminAction = !AdminActionTrue
                         };

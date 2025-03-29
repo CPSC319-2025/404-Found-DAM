@@ -179,7 +179,7 @@ namespace APIs.Controllers
                         userID = submitterID, 
                         changeType = "Archived",
                         description = description,
-                        projectID = projectID,
+                        projID = projectID,
                         assetID = "", 
                         isAdminAction = adminActionTrue
                     });
@@ -232,7 +232,7 @@ namespace APIs.Controllers
                         userID = submitterId,
                         changeType = "Added",
                         description = description,
-                        projectID = projectID,
+                        projID = projectID,
                         assetID = blobID,
                         isAdminAction = !adminActionTrue
                     });
@@ -240,7 +240,7 @@ namespace APIs.Controllers
                 return Results.Ok(new
                 {
                     status = "success",
-                    projectId = result.ProjectID,
+                    projId = result.ProjectID,
                     updatedImages = result.UpdatedImages,
                     failedAssociations = result.FailedAssociations,
                     message = result.Message
@@ -257,11 +257,11 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> UpdateProject(int theProjectID, UpdateProjectReq req, IProjectService projectService)
+        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService)
         {
             try
             {
-                var result = await projectService.UpdateProject(theProjectID, req);
+                var result = await projectService.UpdateProject(projectID, req);
 
                 int submitterID = MOCKEDUSERID;
 
@@ -271,9 +271,9 @@ namespace APIs.Controllers
 
                 var updateDescription = new StringBuilder();
                 updateDescription.AppendLine($"Submitter ID: {submitterID}");
-                updateDescription.AppendLine($"Project ID: {theProjectID}");
+                updateDescription.AppendLine($"Project ID: {projectID}");
 
-                var projectName = await _projectService.GetProjectNameByIdAsync(theProjectID);
+                var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
                 updateDescription.AppendLine($"Project Name: {projectName}");
 
                 if (!string.IsNullOrEmpty(req.Location))
@@ -316,7 +316,7 @@ namespace APIs.Controllers
                     userID = submitterID,
                     changeType = "Updated",
                     description = updateDescription.ToString(),
-                    projectID = theProjectID,
+                    projID = projectID,
                     assetID = null, // No assetID for project update
                     isAdminAction = adminActionTrue
                 });

@@ -40,7 +40,7 @@ namespace Core.Services
                 // User = user, TODO
                 ChangeType = logDto.changeType,
                 Description = logDto.description,
-                ProjectID = logDto.projectID,
+                ProjectID = logDto.projID,
                 AssetID = logDto.assetID,
                 IsAdminAction = logDto.isAdminAction
             };
