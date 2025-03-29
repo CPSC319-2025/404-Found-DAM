@@ -70,12 +70,14 @@ namespace APIs.Controllers
 
                     // Manually set Content-Disposition Header to instruct the browser to download the file  
                     context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         // Add log (done)
                         userID = requesterID,
                         changeType = "Export",
-                        description = $"User {requesterID} exported project {fileName} (project id: {projectID})",
+                        description = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})",
                         projID = projectID, // would it be a problem (scope wise) if this was just called projectID (no "the")
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -128,11 +130,13 @@ namespace APIs.Controllers
                     var projectID = project.projectID;
 
                     // add log
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Import",
-                        description = $"User {MOCKEDUSERID} imported project {projectName} (project ID: {projectID})",
+                        description = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})",
                         projID = projectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -173,9 +177,11 @@ namespace APIs.Controllers
                     var projectName = project.name;
 
                     // add log (done)
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
-                    string theDescription = $"User {reqeusterID} removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
+                    string theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
                     // string description = $"Removed users: {removedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -219,9 +225,12 @@ namespace APIs.Controllers
                     var project = await _projectService.GetProject(projectID);
                     var theProjectName = project.name;
 
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
+
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
-                    string theDescription = $"User {reqeusterID} added users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
+                    string theDescription = $"{username} (User ID: {reqeusterID}) added users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
                     // string description = $"Added users: {addedUsers}";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -295,7 +304,10 @@ namespace APIs.Controllers
                     string addedAdmins = string.Join(", ", adminDetails);
                     string addedUsers = string.Join(", ", userDetails);
 
-                    string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
+
+                    string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
                     // string addedUsers = string.Join(", ", userIDs);
 
                     // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
@@ -339,11 +351,13 @@ namespace APIs.Controllers
                 var theProjectName = project.name;
                 string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
+                var user = await _userService.GetUser(submitterID);
+                string username = user.Name;
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Add Metadata",
-                    description = $"User {MOCKEDUSERID} added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})",
+                    description = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})",
                     projID = projectID,
                     assetID = "",
                     isAdminAction = AdminActionTrue
@@ -378,11 +392,12 @@ namespace APIs.Controllers
 
                     var user = await _userService.GetUser(userID);
                     var username = user.Name;
+                    var projectName = await _projectService.GetProjectNameByIdAsync(proejectID);
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Modify Role",
-                        description = $"User {MOCKEDUSERID} changed role of user {username} (ID: {userID}) to {normalizedRoleString}",
+                        description = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {username} (User ID: {userID}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})",
                         projID = projectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -412,12 +427,14 @@ namespace APIs.Controllers
 
                 var project = await _projectService.GetProject(projectID);
                 var projectName = project.name;
+                var user = await _userService.GetUser(userID);
+                var username = user.Name;
                 // add log (done)
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Toggle Metadata Activation",
-                    description = $"User {MOCKEDUSERID} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})",
+                    description = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})",
                     projID = projectID,
                     assetID = "",
                     isAdminAction = AdminActionTrue

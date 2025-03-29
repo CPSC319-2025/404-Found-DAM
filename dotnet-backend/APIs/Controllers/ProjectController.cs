@@ -171,14 +171,16 @@ namespace APIs.Controllers
                 }
                 foreach (var projectID in req.projectIDs)
                 {
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
                     var project = await projectService.GetProject(projectID);
                     var projectName = project.name;
-                    var description = $"{submitterID} archived project {projectID} ({projectName})";
+                    var theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = submitterID, 
                         changeType = "Archived",
-                        description = description,
+                        description = theDescription,
                         projID = projectID,
                         assetID = "", 
                         isAdminAction = adminActionTrue
@@ -222,16 +224,22 @@ namespace APIs.Controllers
 
                 int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
 
+                
+
+
+
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
+                var user = await _userService.GetUser(submitterID);
+                string username = user.Name;
                 foreach (var blobID in request.BlobIDs) {
                     var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                    var description = $"{submitterId} added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
+                    var theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = submitterId,
                         changeType = "Added",
-                        description = description,
+                        description = theDescription,
                         projID = projectID,
                         assetID = blobID,
                         isAdminAction = !adminActionTrue
@@ -270,7 +278,9 @@ namespace APIs.Controllers
                 }
 
                 var updateDescription = new StringBuilder();
-                updateDescription.AppendLine($"Submitter ID: {submitterID}");
+                var user = await _userService.GetUser(submitterID);
+                string username = user.Name;
+                updateDescription.AppendLine($"{username} (User ID: {submitterID})");
                 updateDescription.AppendLine($"Project ID: {projectID}");
 
                 var projectName = await _projectService.GetProjectNameByIdAsync(projectID);

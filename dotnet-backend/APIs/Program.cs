@@ -106,21 +106,21 @@ using (var scope = app.Services.CreateScope())
     var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
     var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
     ProjectController.Initialize(activityLogService, projectService, userService);
-    PaletteController.Initialize(activityLogService);
+    PaletteController.Initialize(activityLogService, userService);
     AdminController.Initialize(activityLogService, projectService, userService);
 }
 
 
-// static dependency injection
-using (var scope = app.Services.CreateScope())
-{
-    var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
-    var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
-    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
-    ProjectController.Initialize(activityLogService, projectService, userService);
-    PaletteController.Initialize(activityLogService);
-    AdminController.Initialize(activityLogService, projectService, userService);
-}
+// // static dependency injection
+// using (var scope = app.Services.CreateScope())
+// {
+//     var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
+//     var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
+//     var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+//     ProjectController.Initialize(activityLogService, projectService, userService);
+//     PaletteController.Initialize(activityLogService);
+//     AdminController.Initialize(activityLogService, projectService, userService);
+// }
 
 app.UseCors("AllowReactApp");
 

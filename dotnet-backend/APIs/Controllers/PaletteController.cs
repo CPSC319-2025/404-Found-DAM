@@ -1,6 +1,7 @@
 using Core.Interfaces;
 using Core.Dtos;
 using Infrastructure.Exceptions;
+using Core.Services;
 
 namespace APIs.Controllers
 {
@@ -14,9 +15,11 @@ namespace APIs.Controllers
         // DELETE /projects/assign-assets  delete an asset from palette
 
         private static IActivityLogService _activityLogService;
-        public static void Initialize(IActivityLogService activityLogService)
+        private static IUserService _userService;
+        public static void Initialize(IActivityLogService activityLogService, IUserService userService)
         {
             _activityLogService = activityLogService;
+            _userService = userService;
 
         }
 
@@ -119,11 +122,13 @@ namespace APIs.Controllers
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
 
                     var tagName = await paletteService.GetTagNameByIdAsync(request.TagId);
+                    var user = await _userService.GetUser(userID);
+                    string username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = userID,
                         changeType = "Assigned",
-                        description = $"User {userID} assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Blob ID: {request.BlobId}).",
+                        description = $"{username} (User ID: {userID}) assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId}).",
                         projID = 0, // Assuming no specific project is associated here
                         assetID = request.BlobId,
                         isAdminAction = AdminActionTrue
@@ -301,6 +306,10 @@ namespace APIs.Controllers
                 // Create a task for each file
                 ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
 
+
+                var user = await _userService.GetUser(submitterID);
+                string username = user.Name;
+
                 // add log (todo)
                 foreach (var file in request.Form.Files)
                 {
@@ -308,7 +317,7 @@ namespace APIs.Controllers
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Uploaded",
-                        description = $"User {MOCKEDUSERID} uploaded asset {file.FileName} (Asset ID: {file.FileName})",
+                        description = $"{username} (User ID: {MOCKEDUSERID}) uploaded asset {file.FileName} (Asset ID: {file.FileName})",
                         projID = 0, // Assuming no specific project is associated here
                         assetID = file.FileName,
                         isAdminAction = !AdminActionTrue
@@ -386,12 +395,15 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
+                var user = await _userService.GetUser(submitterID);
+                string username = user.Name;
+
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
                 var logDto = new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Deleted",
-                    description = $"User {MOCKEDUSERID} deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
+                    description = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
                     projID = 0, // Assuming no specific project is associated here
                     assetID = deleteRequest.Name,
                     isAdminAction = !AdminActionTrue
@@ -434,11 +446,14 @@ namespace APIs.Controllers
                     
                     string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
 
+                    var user = await _userService.GetUser(submitterID);
+                    string username = user.Name;
+
                     var logDto = new CreateActivityLogDto
                     {
                         userID = submitterID,
                         changeType = "Added",
-                        description = $"User {submitterID} added blob {assetName} (Blob ID: {blobID}) into project {projectName} (Project ID: {projectID}).",
+                        description = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).",
                         projID = projectID,
                         assetID = blobID,
                         isAdminAction = !AdminActionTrue
@@ -492,11 +507,14 @@ namespace APIs.Controllers
                     
                         var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
+                        var user = await _userService.GetUser(submitterID);
+                        string username = user.Name;
+
                         var logDto = new CreateActivityLogDto
                         {
                             userID = MOCKEDUSERID,
                             changeType = "Removed",
-                            description = $"User {MOCKEDUSERID} removed tags [{string.Join(", ", tagNames)}] from Blob {assetName} (Blob ID: {blobId}).",
+                            description = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId}).",
                             projID = 0, // no project
                             assetID = blobId,
                             isAdminAction = !AdminActionTrue
@@ -529,11 +547,14 @@ namespace APIs.Controllers
                         string tagDescription = string.Join(", ", tagNames);
                         string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
+                        var user = await _userService.GetUser(submitterID);
+                        string username = user.Name;
+
                         var logDto = new CreateActivityLogDto
                         {
                             userID = MOCKEDUSERID,
                             changeType = "Removed",
-                            description = $"User {MOCKEDUSERID} removed tags [{tagDescription}] from Blob {assetName} (Blob ID: {blobId}).",
+                            description = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{tagDescription}] from Asset {assetName} (Asset ID: {blobId}).",
                             projID = 0, // no project
                             assetID = blobId,
                             isAdminAction = !AdminActionTrue
