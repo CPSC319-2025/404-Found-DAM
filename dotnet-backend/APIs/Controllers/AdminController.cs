@@ -70,7 +70,7 @@ namespace APIs.Controllers
 
                     // Manually set Content-Disposition Header to instruct the browser to download the file  
                     context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await _userService.GetUser(requesterID);
                     string username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -130,7 +130,7 @@ namespace APIs.Controllers
                     var projectID = project.projectID;
 
                     // add log
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await _userService.GetUser(MOCKEDUSERID);
                     string username = user.Name;
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -177,7 +177,7 @@ namespace APIs.Controllers
                     var projectName = project.name;
 
                     // add log (done)
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await _userService.GetUser(reqeusterID);
                     string username = user.Name;
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
@@ -225,7 +225,7 @@ namespace APIs.Controllers
                     var project = await _projectService.GetProject(projectID);
                     var theProjectName = project.name;
 
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await _userService.GetUser(reqeusterID);
                     string username = user.Name;
 
                     string addedUsers = string.Join(", ", 
@@ -304,7 +304,7 @@ namespace APIs.Controllers
                     string addedAdmins = string.Join(", ", adminDetails);
                     string addedUsers = string.Join(", ", userDetails);
 
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await _userService.GetUser(theUserID);
                     string username = user.Name;
 
                     string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
@@ -351,7 +351,7 @@ namespace APIs.Controllers
                 var theProjectName = project.name;
                 string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
-                var user = await _userService.GetUser(submitterID);
+                var user = await _userService.GetUser(MOCKEDUSERID);
                 string username = user.Name;
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
@@ -390,9 +390,9 @@ namespace APIs.Controllers
                     // add log (done)
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
 
-                    var user = await _userService.GetUser(userID);
+                    var user = await _userService.GetUser(MOCKEDUSERID);
                     var username = user.Name;
-                    var projectName = await _projectService.GetProjectNameByIdAsync(proejectID);
+                    var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
@@ -427,7 +427,7 @@ namespace APIs.Controllers
 
                 var project = await _projectService.GetProject(projectID);
                 var projectName = project.name;
-                var user = await _userService.GetUser(userID);
+                var user = await _userService.GetUser(MOCKEDUSERID);
                 var username = user.Name;
                 // add log (done)
                 await _activityLogService.AddLogAsync(new CreateActivityLogDto

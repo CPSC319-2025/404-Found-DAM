@@ -229,7 +229,7 @@ namespace APIs.Controllers
 
 
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
-                var user = await _userService.GetUser(submitterID);
+                var user = await _userService.GetUser(submitterId);
                 string username = user.Name;
                 foreach (var blobID in request.BlobIDs) {
                     var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);

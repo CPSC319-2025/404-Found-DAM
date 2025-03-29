@@ -307,7 +307,7 @@ namespace APIs.Controllers
                 ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
 
 
-                var user = await _userService.GetUser(submitterID);
+                var user = await _userService.GetUser(MOCKEDUSERID);
                 string username = user.Name;
 
                 // add log (todo)
@@ -395,7 +395,7 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
-                var user = await _userService.GetUser(submitterID);
+                var user = await _userService.GetUser(MOCKEDUSERID);
                 string username = user.Name;
 
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
@@ -507,7 +507,7 @@ namespace APIs.Controllers
                     
                         var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                        var user = await _userService.GetUser(submitterID);
+                        var user = await _userService.GetUser(MOCKEDUSERID);
                         string username = user.Name;
 
                         var logDto = new CreateActivityLogDto
@@ -547,7 +547,7 @@ namespace APIs.Controllers
                         string tagDescription = string.Join(", ", tagNames);
                         string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                        var user = await _userService.GetUser(submitterID);
+                        var user = await _userService.GetUser(MOCKEDUSERID);
                         string username = user.Name;
 
                         var logDto = new CreateActivityLogDto
