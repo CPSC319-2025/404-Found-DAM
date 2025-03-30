@@ -342,7 +342,7 @@ namespace APIs.Controllers
                 if (verboseLogs) {
                     updateDescription = $"{username} (User ID: {submitterID})";
                 } else {
-                    updateDescription = $"{user.Email} modified "
+                    updateDescription = $"{user.Email} modified ";
                 }
                 if (verboseLogs) {
                     updateDescription += $"Project ID: {projectID}";

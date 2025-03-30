@@ -664,9 +664,9 @@ namespace APIs.Controllers
                             };
 
                             await activityLogService.AddLogAsync(logDto);
-                        } catch (Exception ex) {
-                            Console.WriteLog("Failed to add log - PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]")
                         }
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]");
                     }
 
                     return Results.Ok(new
@@ -700,6 +700,7 @@ namespace APIs.Controllers
 
                             var user = await userService.GetUser(MOCKEDUSERID);
                             string username = user.Name;
+                            string theDescription = "";
 
                             if (verboseLogs) {
                                 theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
@@ -722,17 +723,17 @@ namespace APIs.Controllers
                             };
                             
                             await activityLogService.AddLogAsync(logDto);
+                        }
                         } catch (Exception ex) {
                             Console.WriteLine("Failed to add log - PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)");
                         }
-                    }
 
-                    return Results.Ok(new
-                    {
-                        message = "All specified associations were successfully removed.",
-                        removedAssociations = result.RemovedAssociations
-                    });
-                }
+                        return Results.Ok(new
+                        {
+                            message = "All specified associations were successfully removed.",
+                            removedAssociations = result.RemovedAssociations
+                        });
+                    }
                 else
                 {
                     return Results.BadRequest(new { message = "No associations were specified in the request." });
