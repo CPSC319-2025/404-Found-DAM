@@ -58,28 +58,30 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Admins",
     type: "select",
     isMultiSelect: true,
-    required: false
+    required: false,
   },
   {
     name: "users",
     label: "Users",
     type: "select",
-    isMultiSelect: true
+    isMultiSelect: true,
   },
 ];
 
 export default function ProjectsPage() {
   const { user } = useUser();
 
+  // state variables related to projects
+
+  const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
+  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [query, setQuery] = useState<string>("");
 
-  const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [projectList, setProjectList] = useState<ProjectCardProps[]>([]);
+  // state variables for the form
 
-  const [formFields, setFormFields] = useState<FormFieldType[]>(newProjectFormFields);
-
+  const [formFields, setFormFields] =
+    useState<FormFieldType[]>(newProjectFormFields);
   const [allUsers, setAllUsers] = useState<User[]>([]);
-
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
 
@@ -95,7 +97,9 @@ export default function ProjectsPage() {
           prev.filter((user) => user.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setRegularUserOptions((prev) => [...prev, userToAddBack!]);
       }
     } else {
@@ -104,13 +108,15 @@ export default function ProjectsPage() {
           prev.filter((admin) => admin.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setAdminOptions((prev) => [...prev, userToAddBack!]);
       }
     }
-  }
+  };
 
-  const fetchProjects = async () => {
+  const fetchAllProjects = async () => {
     try {
       const response = await fetchWithAuth("projects");
       if (!response.ok) {
@@ -119,7 +125,7 @@ export default function ProjectsPage() {
         );
       }
       const data = (await response.json()) as GetAllProjectsResponse;
-
+      console.log("All Projects", data);
       return data.fullProjectInfos.map(
         (project: Project) =>
           ({
@@ -158,7 +164,8 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await fetchWithAuth("projects", {
+      const response = await 
+      ("projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,8 +187,8 @@ export default function ProjectsPage() {
       setNewProjectModalOpen(false);
       toast.success("Created new project successfully.");
 
-      const projects = await fetchProjects();
-      setProjectList(projects);
+      const projects = await fetchAllProjects();
+      setAllProjects(projects);
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
@@ -189,9 +196,9 @@ export default function ProjectsPage() {
   };
 
   const doSearch = async () => {
-    const projects = await fetchProjects();
+    const projects = await fetchAllProjects();
     if (!query.trim()) {
-      setProjectList(projects);
+      setAllProjects(projects);
       return;
     }
 
@@ -209,7 +216,7 @@ export default function ProjectsPage() {
       )
     );
 
-    setProjectList(filteredProjects);
+    setAllProjects(filteredProjects);
   };
 
   const fetchUsers = async () => {
@@ -225,15 +232,29 @@ export default function ProjectsPage() {
       console.error("[Diagnostics] Error fetching users: ", error);
       return [] as User[];
     }
-  }
+  };
+
+  const loadProjects = async () => {
+    const projects = await fetchAllProjects();
+    setAllProjects(projects);
+  };
 
   useEffect(() => {
-    fetchProjects().then((projects) => setProjectList(projects));
+    loadProjects();
     fetchUsers().then((users) => {
       setAllUsers(users);
       setAdminOptions(users);
       setRegularUserOptions(users);
-    })
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchAllProjects().then((projects) => setAllProjects(projects));
+    fetchUsers().then((users) => {
+      setAllUsers(users);
+      setAdminOptions(users);
+      setRegularUserOptions(users);
+    });
   }, []);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
@@ -241,7 +262,7 @@ export default function ProjectsPage() {
     const updatedFormFields = [...newProjectFormFields];
 
     updatedFormFields.forEach((field) => {
-      if (field.name === 'admins') {
+      if (field.name === "admins") {
         field.options = adminOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -249,7 +270,7 @@ export default function ProjectsPage() {
         field.onChange = onUserChange;
       }
 
-      if (field.name === 'users') {
+      if (field.name === "users") {
         field.options = regularUserOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -259,7 +280,6 @@ export default function ProjectsPage() {
     });
 
     setFormFields(updatedFormFields);
-
   }, [adminOptions, regularUserOptions]);
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -313,16 +333,31 @@ export default function ProjectsPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+      
+//   const myProjects = allProjects.filter((project) =>
+//     project.userNames.includes("Isabella Sanchez")
+//   );
+
+//   const filteredAllProjects = allProjects.filter(
+//     (project) => !project.userNames.includes("Isabella Sanchez")
+//   );
+//   const myProjects = allProjects; // TODO
+
+//   const filteredAllProjects = []; // TODO
+
+//   const overallProjectsExist = allProjects.length > 0 || myProjects.length > 0;
 
   return (
     <div className="p-6 min-h-screen">
+      {/* header: Always display search bar for all users and "New Project" button if superadmin */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search... <press enter or click outside>"
           className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
           onChange={(e) => setQuery(e.target.value)}
           onBlur={doSearch}
+          onKeyDown={(e) => e.key === "Enter" && doSearch()}
         />
         <div>
           {user?.superadmin && (
@@ -343,21 +378,62 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
-      <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-        {projectList.map((project) => (
-          <div key={project.projectID} className="w-full h-full">
-            <ProjectCard
-              id={String(project.projectID)}
-              name={project.name}
-              creationTime={project.creationTime}
-              assetCount={project.assetCount}
-              admins={project.admins}
-              userNames={project.userNames}
-            />
+
+      {/* case 1: there are no projects overall */}
+      {projects && projects.length < 1 && (
+        <div className="flex flex-col items-center justify-center h-64">
+          <p className="text-2xl text-gray-500">No projects to display!</p>
+        </div>
+      )}
+
+      {/* else display the project sections */}
+      {projects && projects.length > 0 && (
+        <>
+          {/* My Projects */}
+          <div>
+            <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
+            {myProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+                {myProjects.map((project) => (
+                  <div key={project.projectID} className="w-full h-full">
+                    <ProjectCard
+                      id={String(project.projectID)}
+                      name={project.name}
+                      creationTime={project.creationTime}
+                      assetCount={project.assetCount}
+                      userNames={project.userNames}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-lg text-gray-500">
+                No projects assigned to you
+              </p>
+            )}
           </div>
-        ))}
-      </div>
+
+          {/* All Projects Section filtering projects not belonging to me */}
+<!--           {filteredAllProjects.length > 0 && (
+            <div className="mt-8">
+              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+                {filteredAllProjects.map((project) => (
+                  <div key={project.projectID} className="w-full h-full">
+                    <ProjectCard
+                      id={String(project.projectID)}
+                      name={project.name}
+                      creationTime={project.creationTime}
+                      assetCount={project.assetCount}
+                      userNames={project.userNames}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )} -->
+        </>
+      )}
 
       {newProjectModalOpen && (
         <GenericForm

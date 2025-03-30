@@ -156,14 +156,13 @@ namespace Infrastructure.DataAccess
             }   
         }
 
-        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb(int requesterID)
+        public async Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb()
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
             // Get projectmemberhips associated with the requester
             var requesterProjectMemberships = await _context.ProjectMemberships
                 .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
-                .Where(pm => pm.UserID == requesterID) // Filter by requesterID first
                 .Include(pm => pm.Project)
                     .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
                 .ToListAsync();
@@ -404,13 +403,25 @@ namespace Infrastructure.DataAccess
 
                 // Process each custom metadata from the request.
                 foreach (var cm in req.CustomMetadata) {
-                    // Check if the metadata already exists (update if found).
-                    var existing = currentMetadata.FirstOrDefault(pm => pm.FieldName.ToLower() == cm.FieldName.ToLower());
-                    if (existing != null) {
-                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType newFieldType)) {
-                            if (existing.FieldType != newFieldType && existing.AssetMetadata.Any()) {
-                                throw new InvalidOperationException("Cannot change the metadatafield type because it is currently in use by one or more assets.");
+                    if (req.CustomMetadata.Count(x => string.Equals(x.FieldName, cm.FieldName, StringComparison.OrdinalIgnoreCase)) > 1)
+                    {
+                        throw new InvalidOperationException($"Cannot have duplicate metadata field name: '{cm.FieldName}'.");
+                    }
+                    
+                    var existing = currentMetadata.FirstOrDefault(pm => 
+                        string.Equals(pm.FieldName, cm.FieldName, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (existing != null)
+                    {
+                        if (Enum.TryParse(cm.FieldType, true, out ProjectMetadataField.FieldDataType newFieldType))
+                        {
+                            bool isFieldInUse = _context.AssetMetadata.Any(am => am.FieldID == existing.FieldID);
+
+                            if (existing.FieldType != newFieldType && isFieldInUse)
+                            {
+                                throw new InvalidOperationException("Cannot change the metadata field type because it is currently in use by one or more assets.");
                             }
+
                             existing.IsEnabled = cm.IsEnabled;
                             existing.FieldType = newFieldType;
                         }
