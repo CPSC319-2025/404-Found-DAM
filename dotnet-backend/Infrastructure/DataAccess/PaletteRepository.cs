@@ -384,6 +384,76 @@ namespace Infrastructure.DataAccess {
             };
         }
 
+        public async Task<List<int>> GetProjectTagIdsAsync(int projectId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            var tagIds = await context.ProjectTags
+                .Where(pt => pt.ProjectID == projectId)
+                .Select(pt => pt.TagID)
+                .ToListAsync();
+
+            return tagIds;
+        }
+
+        public async Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            // Check if asset exists
+            var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == blobId);
+            if (asset == null)
+            {
+                return new AssignProjectTagsResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    Message = $"Asset with BlobID {blobId} not found"
+                };
+            }
+
+            var result = new AssignProjectTagsResult
+            {
+                BlobId = blobId,
+                Success = true,
+                Message = "Successfully assigned project tags to asset"
+            };
+
+            foreach (var tagId in tagIds)
+            {
+                // Check if tag exists
+                var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagID == tagId);
+                if (tag == null)
+                {
+                    continue;
+                }
+                
+                // Check if association already exists
+                bool associationExists = await AssetTagAssociationExistsAsync(blobId, tagId);
+                if (!associationExists)
+                {
+                    // Create new association
+                    var assetTag = new AssetTag
+                    {
+                        BlobID = blobId,
+                        Asset = asset,
+                        TagID = tagId,
+                        Tag = tag
+                    };
+                    
+                    await context.AssetTags.AddAsync(assetTag);
+                    result.AssignedTagIds.Add(tagId);
+                }
+            }
+
+            if (result.AssignedTagIds.Any())
+            {
+                await context.SaveChangesAsync();
+            }
+
+            return result;
+        }
+
         public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId)  {
             using var _context = _contextFactory.CreateDbContext();
             try 

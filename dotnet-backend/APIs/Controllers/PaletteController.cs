@@ -103,6 +103,31 @@ namespace APIs.Controllers
         .WithName("AssignTagToAsset")
         .WithOpenApi();
 
+        // Assign all project tags to an asset
+        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.AssignProjectTagsToAssetAsync(request);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignProjectTagsToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignProjectTagsToAsset")
+        .WithOpenApi();
+
         }
 
         private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)

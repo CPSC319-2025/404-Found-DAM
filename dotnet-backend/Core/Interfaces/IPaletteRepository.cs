@@ -22,6 +22,8 @@ namespace Core.Interfaces  {
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
+        Task<List<int>> GetProjectTagIdsAsync(int projectId);
+        Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds);
 
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
     }

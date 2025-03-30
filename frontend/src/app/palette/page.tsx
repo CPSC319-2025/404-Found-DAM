@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import FileTable from "./components";
+import UploadModal from "./components/UploadModal";
 import { 
   fetchPaletteAssets, 
   fetchBlobDetails, 
@@ -55,7 +56,7 @@ export default function PalettePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const didFetchRef = useRef(false);
-  
+  const [showModal, setShowModal] = useState(false); // New upload window for modal visibility
   // Upload status for drag and drop
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -265,6 +266,10 @@ export default function PalettePage() {
     accept: { "image/*": [], "video/*": [] },
   });
 
+  const handleUploadNewDesign = useCallback(() => {
+    setShowModal(true);
+  }, []);
+
   // Submit selected assets
   const handleSubmitAssets = useCallback(async () => {
     if (selectedIndices.length === 0) {
@@ -381,6 +386,22 @@ export default function PalettePage() {
         >
           Submit Assets
         </button>
+
+        <button
+          onClick={handleUploadNewDesign}
+          className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          New Upload Design
+        </button>
+        
+        {showModal && (
+          <UploadModal 
+            projects={projects}
+            closeModal={() => setShowModal(false)}
+            createFileMetadata={createFileMetadata}
+            fetchAndUpdateBlobDetails={fetchAndUpdateBlobDetails}
+          />
+        )}
       </div>
     </div>
   );

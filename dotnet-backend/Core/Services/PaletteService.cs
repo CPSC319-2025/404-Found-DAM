@@ -210,5 +210,33 @@ namespace Core.Services
                 throw;
             }
         }
+
+        public async Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(AssignProjectTagsToAssetReq request)
+        {
+            try
+            {
+                // Get all tag IDs for the project
+                var tagIds = await _paletteRepository.GetProjectTagIdsAsync(request.ProjectId);
+                
+                if (tagIds == null || !tagIds.Any())
+                {
+                    return new AssignProjectTagsResult
+                    {
+                        Success = false,
+                        BlobId = request.BlobId,
+                        Message = $"No tags found for project {request.ProjectId}"
+                    };
+                }
+
+                // Assign all project tags to the asset
+                var result = await _paletteRepository.AssignProjectTagsToAssetAsync(request.BlobId, tagIds);
+                return result;
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error assigning project tags to asset: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

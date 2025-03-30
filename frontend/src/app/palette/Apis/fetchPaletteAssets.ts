@@ -142,7 +142,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
     // Filter out null values and return
     return fetchedFiles.filter(file => file !== null) as FileMetadata[];
   } catch (err) {
-    console.error("Error fetching palette assets:", err);
+    console.log("The Palette is empty");
     return [];
   }
 } 
