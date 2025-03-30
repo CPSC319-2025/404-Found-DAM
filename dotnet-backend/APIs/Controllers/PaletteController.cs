@@ -403,7 +403,7 @@ namespace APIs.Controllers
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Deleted",
-                    description = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}).",
+                    description = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}) from their palette.",
                     projID = 0, // Assuming no specific project is associated here
                     assetID = deleteRequest.Name,
                     isAdminAction = !AdminActionTrue
