@@ -480,11 +480,11 @@ namespace APIs.Controllers
                             string theDescription = $"{userEmail} created project {theProjectName} and added admins ({addedAdmins}) and users ({addedUsers}).";
 
                             if (logDebug) {
-                                theDescription += "[Add Log called by AdminController.CreateProjects]";
+                                theDescription += "[Add Log called by AdminController.CreateProjects VERBOSE LOGS ON";
                                 Console.WriteLine(theDescription);
                             }
 
-                            Console.WriteLine("theDescription: " + theDescription);
+                            // Console.WriteLine("theDescription: " + theDescription);
 
                             await activityLogService.AddLogAsync(new CreateActivityLogDto
                             {

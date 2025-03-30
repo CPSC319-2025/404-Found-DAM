@@ -451,6 +451,8 @@ namespace APIs.Controllers
                 string name = request.Form["Name"].ToString();
                 int userId = int.Parse(request.Form["UserId"].ToString());
 
+                
+
                 if (string.IsNullOrEmpty(name))
                 {
                     return Results.BadRequest("Name and Type are required");
@@ -462,6 +464,7 @@ namespace APIs.Controllers
                     Name = name,
                     UserId = userId
                 };
+                var assetName = projectService.GetAssetNameByBlobIdAsync(deleteRequest.Name); // for activity log
 
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
@@ -471,13 +474,16 @@ namespace APIs.Controllers
 
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
 
+
                 string theDescription = "";
                 try {
 
+                    
+
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}) from their palette.";
+                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
                     } else {
-                        theDescription = $"{user.Email} deleted asset {deleteRequest.Name} from their palette";
+                        theDescription = $"{user.Email} deleted asset {assetName} from their palette";
                     }
                     if (logDebug) {
                         theDescription += "[Add log called by PaletteController.DeletePaletteAsset]";
@@ -552,7 +558,7 @@ namespace APIs.Controllers
 
                             theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
                         } else {
-                            theDescription = $"{user.Email} added {assetName} into project {projectID}";
+                            theDescription = $"{user.Email} added {assetName} into project {projectName}";
                         }
 
                         if (logDebug) {
