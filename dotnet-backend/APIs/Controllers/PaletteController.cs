@@ -13,6 +13,8 @@ namespace APIs.Controllers
 
         private const bool logDebug = true;
 
+        private const bool verboseLogs = false;
+
         // PUT /palette/assets/{assetId} edit asset in the pallete
         // DELETE /projects/assign-assets  delete an asset from palette
 
@@ -139,26 +141,36 @@ namespace APIs.Controllers
 
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
 
-                    var tagName = await paletteService.GetTagNameByIdAsync(request.TagId);
-                    var user = await userService.GetUser(userID);
-                    string username = user.Name;
+                    try {
+                        var tagName = await paletteService.GetTagNameByIdAsync(request.TagId);
+                        var user = await userService.GetUser(userID);
+                        string username = user.Name;
+                        string assetName = await paletteService.GetAssetNameByBlobIdAsync(request.BlobId);
 
-                    var theDescription = $"{username} (User ID: {userID}) assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
+                        string theDescription = "";
 
-                    if (logDebug) {
-                        theDescription += "[Add Log called by PaletteController - pallete asset tag endpoint]";
-                        Console.WriteLine(theDescription);
+                        if (verboseLogs) {
+                            theDescription = $"{username} (User ID: {userID}) assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
+                        } else {
+                            theDescription = $"{user.Email} assigned tag {tagName} to {assetName}";
+                        }
 
+                        if (logDebug) {
+                            theDescription += "[Add Log called by PaletteController - pallete asset tag endpoint]";
+                            Console.WriteLine(theDescription);
+                        }
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = userID,
+                            changeType = "Assigned",
+                            description = theDescription,
+                            projID = 0, // Assuming no specific project is associated here
+                            assetID = request.BlobId,
+                            isAdminAction = AdminActionTrue
+                        });
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - PaletteController - pallete asset tag endpoint");
                     }
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        userID = userID,
-                        changeType = "Assigned",
-                        description = theDescription,
-                        projID = 0, // Assuming no specific project is associated here
-                        assetID = request.BlobId,
-                        isAdminAction = AdminActionTrue
-                    });
                     return Results.Ok(result);
                 }
                 else
@@ -343,26 +355,7 @@ namespace APIs.Controllers
                 string username = user.Name;
                 
 
-                // add log (todo)
-                foreach (var file in request.Form.Files)
-                {
-                    var theDescription = $"{username} (User ID: {MOCKEDUSERID}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
-
-                    if (logDebug) {
-                        theDescription += "[Add log called by PaletteController.UploadAssets]";
-                        Console.WriteLine(theDescription);
-                    }
-                    var logDto = new CreateActivityLogDto
-                    {
-                        userID = MOCKEDUSERID,
-                        changeType = "Uploaded",
-                        description = theDescription,
-                        projID = 0, // Assuming no specific project is associated here
-                        assetID = file.FileName,
-                        isAdminAction = !AdminActionTrue
-                    };
-                    await activityLogService.AddLogAsync(logDto);
-                }
+                
             
                 List<ProcessedAsset> SuccessfulUploads = new List<ProcessedAsset>();
                 List<ProcessedAsset> FailedUploads = new List<ProcessedAsset>();
@@ -397,6 +390,36 @@ namespace APIs.Controllers
                 } 
                 else 
                 {
+                    // add log (done)
+                    try 
+                    {
+                        foreach (var file in SuccessfulUploads)
+                        {
+                            string theDescription = "";
+                            if (verboseLogs) {
+                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
+                            } else {
+                                theDescription = $"{user.Email} uploaded {file.FileName} to their palette";
+                            }
+
+                            if (logDebug) {
+                                theDescription += "[Add log called by PaletteController.UploadAssets]";
+                                Console.WriteLine(theDescription);
+                            }
+                            var logDto = new CreateActivityLogDto
+                            {
+                                userID = MOCKEDUSERID,
+                                changeType = "Uploaded",
+                                description = theDescription,
+                                projID = 0, // Assuming no specific project is associated here
+                                assetID = file.FileName,
+                                isAdminAction = !AdminActionTrue
+                            };
+                            await activityLogService.AddLogAsync(logDto);
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - PaletteController.UploadAssets");
+                    }
                     Console.WriteLine($"res: {res}");
                     return Results.Ok(res);
                 }
@@ -448,21 +471,32 @@ namespace APIs.Controllers
 
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
 
-                var theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}) from their palette.";
-                if (logDebug) {
-                    theDescription += "[Add log called by PaletteController.DeletePaletteAsset]";
-                    Console.WriteLine(theDescription);
+                string theDescription = "";
+                try {
+
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {deleteRequest.Name} (Asset ID: {deleteRequest.Name}) from their palette.";
+                    } else {
+                        theDescription = $"{user.Email} deleted asset {deleteRequest.Name} from their palette";
+                    }
+                    if (logDebug) {
+                        theDescription += "[Add log called by PaletteController.DeletePaletteAsset]";
+                        Console.WriteLine(theDescription);
+                    }
+                    var logDto = new CreateActivityLogDto
+                    {
+                        userID = MOCKEDUSERID,
+                        changeType = "Deleted",
+                        description = theDescription,
+                        projID = 0, // Assuming no specific project is associated here
+                        assetID = deleteRequest.Name,
+                        isAdminAction = !AdminActionTrue
+                    };
+                    await activityLogService.AddLogAsync(logDto);
+
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to add log - PaletteController.DeletePaletteAsset");
                 }
-                var logDto = new CreateActivityLogDto
-                {
-                    userID = MOCKEDUSERID,
-                    changeType = "Deleted",
-                    description = theDescription,
-                    projID = 0, // Assuming no specific project is associated here
-                    assetID = deleteRequest.Name,
-                    isAdminAction = !AdminActionTrue
-                };
-                await activityLogService.AddLogAsync(logDto);
 
 
 
@@ -501,34 +535,45 @@ namespace APIs.Controllers
 
 
                  // add log (done)
-                 foreach (var blobID in req.blobIDs)
-                {
-                    string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
+                try {
 
-                    
-                    string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
-
-                    var user = await userService.GetUser(submitterID);
-                    string username = user.Name;
-
-                    var theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
-
-                    if (logDebug) {
-                        theDescription += "[Add Log called by PaletteController.SubmitAssets]";
-                        Console.WriteLine(theDescription);
-                    }
-
-                    var logDto = new CreateActivityLogDto
+                    foreach (var blobID in req.blobIDs)
                     {
-                        userID = submitterID,
-                        changeType = "Added",
-                        description = theDescription,
-                        projID = projectID,
-                        assetID = blobID,
-                        isAdminAction = !AdminActionTrue
-                    };
+                        string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
 
-                    await activityLogService.AddLogAsync(logDto);
+                        
+                        string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
+
+                        var user = await userService.GetUser(submitterID);
+                        string username = user.Name;
+                        string theDescription = "";
+
+                        if (verboseLogs) {
+
+                            theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                        } else {
+                            theDescription = $"{user.Email} added {assetName} into project {projectID}";
+                        }
+
+                        if (logDebug) {
+                            theDescription += "[Add Log called by PaletteController.SubmitAssets]";
+                            Console.WriteLine(theDescription);
+                        }
+
+                        var logDto = new CreateActivityLogDto
+                        {
+                            userID = submitterID,
+                            changeType = "Added",
+                            description = theDescription,
+                            projID = projectID,
+                            assetID = blobID,
+                            isAdminAction = !AdminActionTrue
+                        };
+
+                        await activityLogService.AddLogAsync(logDto);
+                    }
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to add log - PaletteController.SubmitAssets");
                 }
 
                  
@@ -577,37 +622,51 @@ namespace APIs.Controllers
 
 
                     // add log (done)
-                    foreach (var blobId in request.BlobIds)
-                    {
-                        var tagNames = new List<string>();
-                        foreach (var tagId in request.TagIds)
+                    try {
+                        foreach (var blobId in request.BlobIds)
                         {
-                            var tagName = await paletteService.GetTagNameByIdAsync(tagId);
-                            tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                            var tagNames = new List<string>();
+                            foreach (var tagId in request.TagIds)
+                            {
+                                var tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                                if (verboseLogs) {
+                                    tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                                } else {
+                                    tagNames.Add($"{tagName}");
+                                }
+                            }
+                        
+                            var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
+
+                            var user = await userService.GetUser(MOCKEDUSERID);
+                            string username = user.Name;
+
+                            string theDescription = "";
+                            if (verboseLogs) {
+
+                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                            } else {
+                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
+                            }
+                            if (logDebug) {
+                                theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]";
+                                Console.WriteLine(theDescription);
+                            }
+
+                            var logDto = new CreateActivityLogDto
+                            {
+                                userID = MOCKEDUSERID,
+                                changeType = "Removed",
+                                description = theDescription,
+                                projID = 0, // no project
+                                assetID = blobId,
+                                isAdminAction = !AdminActionTrue
+                            };
+
+                            await activityLogService.AddLogAsync(logDto);
+                        } catch (Exception ex) {
+                            Console.WriteLog("Failed to add log - PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]")
                         }
-                    
-                        var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
-
-                        var user = await userService.GetUser(MOCKEDUSERID);
-                        string username = user.Name;
-
-                        var theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
-                        if (logDebug) {
-                            theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]";
-                            Console.WriteLine(theDescription);
-                        }
-
-                        var logDto = new CreateActivityLogDto
-                        {
-                            userID = MOCKEDUSERID,
-                            changeType = "Removed",
-                            description = theDescription,
-                            projID = 0, // no project
-                            assetID = blobId,
-                            isAdminAction = !AdminActionTrue
-                        };
-
-                        await activityLogService.AddLogAsync(logDto);
                     }
 
                     return Results.Ok(new
@@ -621,39 +680,51 @@ namespace APIs.Controllers
                 {
 
                     // add log (done)
-                    foreach (var blobId in request.BlobIds)
-                    {
-                        var tagNames = new List<string>();
-                        
-                        foreach (var tagId in request.TagIds)
+                    try {
+                        foreach (var blobId in request.BlobIds)
                         {
-                            string tagName = await paletteService.GetTagNameByIdAsync(tagId);
-                            tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                            var tagNames = new List<string>();
+                            
+                            foreach (var tagId in request.TagIds)
+                            {
+                                string tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                                if (verboseLogs) {
+                                    tagNames.Add($"{tagName} (Tag ID: {tagId})");
+                                } else {
+                                    tagNames.Add($"{tagName}");
+                                }
+                            }
+
+                            string tagDescription = string.Join(", ", tagNames);
+                            string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
+
+                            var user = await userService.GetUser(MOCKEDUSERID);
+                            string username = user.Name;
+
+                            if (verboseLogs) {
+                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                            } else {
+                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
+                            }
+                            if (logDebug) {
+                                theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets] - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)";
+                                Console.WriteLine(theDescription);
+                            }
+
+                            var logDto = new CreateActivityLogDto
+                            {
+                                userID = MOCKEDUSERID,
+                                changeType = "Removed",
+                                description = theDescription,
+                                projID = 0, // no project
+                                assetID = blobId,
+                                isAdminAction = !AdminActionTrue
+                            };
+                            
+                            await activityLogService.AddLogAsync(logDto);
+                        } catch (Exception ex) {
+                            Console.WriteLine("Failed to add log - PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)");
                         }
-
-                        string tagDescription = string.Join(", ", tagNames);
-                        string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
-
-                        var user = await userService.GetUser(MOCKEDUSERID);
-                        string username = user.Name;
-
-                        var theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
-                        if (logDebug) {
-                            theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets] - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)";
-                            Console.WriteLine(theDescription);
-                        }
-
-                        var logDto = new CreateActivityLogDto
-                        {
-                            userID = MOCKEDUSERID,
-                            changeType = "Removed",
-                            description = theDescription,
-                            projID = 0, // no project
-                            assetID = blobId,
-                            isAdminAction = !AdminActionTrue
-                        };
-                        
-                        await activityLogService.AddLogAsync(logDto);
                     }
 
                     return Results.Ok(new

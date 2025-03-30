@@ -18,6 +18,8 @@ namespace APIs.Controllers
 
         private const bool logDebug = true;
 
+        private const bool verboseLogs = false;
+
         // private static IActivityLogService _activityLogService;
         // private static IProjectService _projectService;
 
@@ -85,23 +87,36 @@ namespace APIs.Controllers
 
                     // Manually set Content-Disposition Header to instruct the browser to download the file  
                     context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
-                    var user = await userService.GetUser(requesterID);
-                    string username = user.Name;
-                    string theDescription = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})";
-                    if (logDebug) {
-                        theDescription += " [Add Log done by AdminController.ExportProject]";
-                        Console.WriteLine(theDescription);
+                    
+                    try {
+                        var user = await userService.GetUser(requesterID);
+                        string username = user.Name;
+                        string userEmail = user.Email;
+                        string theDescription = "";
+
+
+                        if (verboseLogs) {
+                            theDescription = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})";
+                        } else {
+                            theDescription = $"{userEmail} exported project {fileName}";
+                        }
+                        if (logDebug) {
+                            theDescription += " [Add Log done by AdminController.ExportProject]";
+                            Console.WriteLine(theDescription);
+                        }
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            // Add log (done)
+                            userID = requesterID,
+                            changeType = "Export",
+                            description = theDescription,
+                            projID = projectID, // would it be a problem (scope wise) if this was just called projectID (no "the")
+                            assetID = "",
+                            isAdminAction = AdminActionTrue
+                        });
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - AdminController.ExportProject");
                     }
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        // Add log (done)
-                        userID = requesterID,
-                        changeType = "Export",
-                        description = theDescription,
-                        projID = projectID, // would it be a problem (scope wise) if this was just called projectID (no "the")
-                        assetID = "",
-                        isAdminAction = AdminActionTrue
-                    });
                     return result;
                 }
             }
@@ -156,12 +171,22 @@ namespace APIs.Controllers
                     var projectID = project.projectID;
 
                     // add log
-                    var user = await userService.GetUser(MOCKEDUSERID);
-                    string username = user.Name;
-                    string theDescription = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})";
-                    if (logDebug) {
-                        theDescription += "[Add Log called by AdminController.ImportProject]";
-                        Console.WriteLine(theDescription);
+                    try {
+                        var user = await userService.GetUser(MOCKEDUSERID);
+                        string username = user.Name;
+                        string userEmail = user.Email;
+                        string theDescription = "";
+                        if (verboseLogs) {
+                            theDescription = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})";
+                        } else {
+                            theDescription = $"{userEmail} imported project {projectName}";
+                        }
+                        if (logDebug) {
+                            theDescription += "[Add Log called by AdminController.ImportProject]";
+                            Console.WriteLine(theDescription);
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - AdminController.ImportProject");
                     }
                     await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
@@ -214,25 +239,37 @@ namespace APIs.Controllers
                     var projectName = project.name;
 
                     // add log (done)
-                    var user = await userService.GetUser(reqeusterID);
-                    string username = user.Name;
-                    string removedUsers = string.Join(", ", 
-                        (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
-                    string theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
-                    // string description = $"Removed users: {removedUsers}";
-                    if (logDebug) {
-                        theDescription += "[Add Log called by AdminController.DeleteUsersFromProject]";
-                        Console.WriteLine(theDescription);
+                    try {
+                        var user = await userService.GetUser(reqeusterID);
+                        string username = user.Name;
+                        string userEmail = user.Email;
+                        var removedUsers = string.Join(", ", 
+                            (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>())
+                            .Select(async userId => (await userService.GetUser(userId)).Email)
+                            .Select(task => task.Result));
+                        string theDescription = "";
+                        if (verboseLogs) {
+                        string theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
+                        } else {
+                            theDescription = $"{userEmail} removed users {removedUsers} from project: {projectNamee}";
+                        }
+                        // string description = $"Removed users: {removedUsers}";
+                        if (logDebug) {
+                            theDescription += "[Add Log called by AdminController.DeleteUsersFromProject]";
+                            Console.WriteLine(theDescription);
+                        }
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = reqeusterID,
+                            changeType = "Remove Users",
+                            description = theDescription,
+                            projID = projectID,
+                            assetID = "",
+                            isAdminAction = AdminActionTrue
+                        });
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to write log - AdminController.DeleteUsersFromProject");
                     }
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        userID = reqeusterID,
-                        changeType = "Remove Users",
-                        description = theDescription,
-                        projID = projectID,
-                        assetID = "",
-                        isAdminAction = AdminActionTrue
-                    });
                     return Results.Ok(result);
                 }
             }
@@ -271,15 +308,32 @@ namespace APIs.Controllers
 
                     // add log (done)
 
+                    try {
+
                     var project = await projectService.GetProject(projectID);
                     var theProjectName = project.name;
 
                     var user = await userService.GetUser(reqeusterID);
                     string username = user.Name;
 
-                    string addedUsers = string.Join(", ", 
-                        (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
-                    string theDescription = $"{username} (User ID: {reqeusterID}) added users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
+                    var addedAdmins = string.Join(", ", 
+                        (req.addAsAdmin ?? new List<int>())
+                        .Select(async userId => (await userService.GetUser(userId)).Email)
+                        .Select(task => task.Result));
+
+                    var addedUsers = string.Join(", ", 
+                        (req.addAsRegular ?? new List<int>())
+                        .Select(async userId => (await userService.GetUser(userId)).Email)
+                        .Select(task => task.Result));
+
+                    string theDescription = "";
+
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {reqeusterID}) added admins ({addedAdmins}) and users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
+                    } else {
+                        theDescription = $"{userEmail} added admins ({addedAdmins} and users ({addedUsers}) into {theProjectName}";
+
+                    }
                     // string description = $"Added users: {addedUsers}";
                     if (logDebug) {
                         theDescription += "[Add Log called by AdminController.AddUsersToProject]";
@@ -294,6 +348,9 @@ namespace APIs.Controllers
                         assetID = "",
                         isAdminAction = AdminActionTrue
                     });
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - AdminController.AddUsersToProject");
+                    }
                     return Results.Ok(result);
                 }
             }
@@ -338,66 +395,107 @@ namespace APIs.Controllers
 
                 int theUserID = MOCKEDUSERID;
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
-                Console.WriteLine("here");
 
-                foreach (var createProjectResEntry in result) 
-                {
-                    int theProjectID = createProjectResEntry.createdProjectID;
-                    var getProjectDto = await projectService.GetProject(theProjectID);
+                try {
+                    if (verboseLogs) {
+                        foreach (var createProjectResEntry in result) 
+                        {
+                            int theProjectID = createProjectResEntry.createdProjectID;
+                            var getProjectDto = await projectService.GetProject(theProjectID);
 
-                    Console.WriteLine("288");
-                    var theProjectName = getProjectDto.name;
+                            var theProjectName = getProjectDto.name;
+
+                            var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
+                            var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
+
+                            var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => 
+                            {
+                                var admin = await userService.GetUser(adminID);
+                                return $"{admin.Name} (User ID: {adminID})";
+                            }));
+
+                            var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
+                            {
+                                var user = await userService.GetUser(userID);
+                                return $"{user.Name} (User ID: {userID})";
+                            }));
+
+                            string addedAdmins = string.Join(", ", adminDetails);
+                            string addedUsers = string.Join(", ", userDetails);
+
+                            var user = await userService.GetUser(theUserID);
+                            string username = user.Name;
 
 
+                            string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                            // string addedUsers = string.Join(", ", userIDs);
 
-                    // Collect admin and user IDs
-                    var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
-                    var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
+                            // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
 
-                    var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => 
-                    {
-                        var admin = await userService.GetUser(adminID);
-                        return $"{admin.Name} (User ID: {adminID})";
-                    }));
+                            if (logDebug) {
+                                theDescription += "[Add Log called by AdminController.CreateProjects]";
+                                Console.WriteLine(theDescription);
+                            }
 
-                    var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
-                    {
-                        var user = await userService.GetUser(userID);
-                        return $"{user.Name} (User ID: {userID})";
-                    }));
-                    Console.WriteLine("308");
+                            Console.WriteLine("theDescription: " + theDescription);
 
-                    string addedAdmins = string.Join(", ", adminDetails);
-                    string addedUsers = string.Join(", ", userDetails);
+                            await activityLogService.AddLogAsync(new CreateActivityLogDto
+                            {
+                                userID = theUserID,
+                                changeType = "Create",
+                                description = theDescription,
+                                projID = theProjectID,
+                                assetID = "",
+                                isAdminAction = AdminActionTrue
+                            });
+                        }
+                    } else {
 
-                    Console.WriteLine("313");
+                        int theProjectID = createProjectResEntry.createdProjectID;
+                        var getProjectDto = await projectService.GetProject(theProjectID);
+                        var theProjectName = getProjectDto.name;
 
-                    var user = await userService.GetUser(theUserID);
-                    Console.WriteLine("316");
-                    string username = user.Name;
-                    Console.WriteLine("318");
+                        var adminEmails = await Task.WhenAll(req.SelectMany(r => r.admins ?? new List<int>()).Select(async adminID => 
+                        {
+                            var admin = await userService.GetUser(adminID);
+                            return admin.Email;
+                        }));
 
-                    string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
-                    // string addedUsers = string.Join(", ", userIDs);
+                        var userEmails = await Task.WhenAll(req.SelectMany(r => r.users ?? new List<int>()).Select(async userID => 
+                        {
+                            var user = await userService.GetUser(userID);
+                            return user.Email;
+                        }));
 
-                    // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                        string addedAdmins = string.Join(", ", adminEmails);
+                        string addedUsers = string.Join(", ", userEmails);
 
-                    if (logDebug) {
-                        theDescription += "[Add Log called by AdminController.CreateProjects]";
-                        Console.WriteLine(theDescription);
+                        var user = await userService.GetUser(theUserID);
+                        string username = user.Name;
+                        string userEmail = user.Email;
+
+                        string theDescription = $"{userEmail} created project {theProjectName} and added admins ({addedAdmins}) and users ({addedUsers}).";
+
+                        if (logDebug) {
+                            theDescription += "[Add Log called by AdminController.CreateProjects]";
+                            Console.WriteLine(theDescription);
+                        }
+
+                        Console.WriteLine("theDescription: " + theDescription);
+
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = theUserID,
+                            changeType = "Create",
+                            description = theDescription,
+                            projID = theProjectID,
+                            assetID = "",
+                            isAdminAction = AdminActionTrue
+                        });
+
                     }
-
-                    Console.WriteLine("theDescription: " + theDescription);
-
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        userID = theUserID,
-                        changeType = "Create",
-                        description = theDescription,
-                        projID = theProjectID,
-                        assetID = "",
-                        isAdminAction = AdminActionTrue
-                    });
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to create log - AdminController.CreateProjects");
                 }
 
                 return Results.Ok(result); 
@@ -433,29 +531,39 @@ namespace APIs.Controllers
 
                 List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(projectID, req);
                 // add log (done)
-                var project = await projectService.GetProject(projectID);
-                var theProjectName = project.name;
-                string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
-                // string description = $"Added metadata fields: {metadataDescriptions}";
-                var user = await userService.GetUser(MOCKEDUSERID);
-                string username = user.Name;
+                try {
+                    var project = await projectService.GetProject(projectID);
+                    var theProjectName = project.name;
+                    string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
+                    // string description = $"Added metadata fields: {metadataDescriptions}";
+                    var user = await userService.GetUser(MOCKEDUSERID);
+                    string username = user.Name;
+                    string userEmail = user.Email;
 
-                var theDescription = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
-                if (logDebug) {
-                    theDescription += "[Add Log called by AdminController.AddMetaDataFieldsToProject]";
-                    Console.WriteLine(theDescription);
+                    string theDescription = "";
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
+                    } else {
+                        theDescription = $"{userEmail} added metadata ({metadataDescriptions}) to project: {theProjectName}";
+                    }
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.AddMetaDataFieldsToProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                    
+            
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = MOCKEDUSERID,
+                        changeType = "Add Metadata",
+                        description = theDescription,
+                        projID = projectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
+                    });
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to add log - AdminController.AddMetaDataFieldsToProject");
                 }
-
-        
-                await activityLogService.AddLogAsync(new CreateActivityLogDto
-                {
-                    userID = MOCKEDUSERID,
-                    changeType = "Add Metadata",
-                    description = theDescription,
-                    projID = projectID,
-                    assetID = "",
-                    isAdminAction = AdminActionTrue
-                });
                 return Results.Ok(result); 
             }
             catch (ArgumentException ex) 
@@ -482,32 +590,49 @@ namespace APIs.Controllers
             
             string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
             
+
             if (normalizedRoleString == "admin" || normalizedRoleString == "regular")
             {
                 try 
                 {
+                    
                     ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
                     // add log (done)
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
 
-                    var user = await userService.GetUser(MOCKEDUSERID);
-                    var username = user.Name;
-                    var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                    var theDescription = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {username} (User ID: {userID}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
+                    try {
+                        var user = await userService.GetUser(MOCKEDUSERID);
+                        var username = user.Name;
+                        var projectName = await projectService.GetProjectNameByIdAsync(projectID);
 
-                    if (logDebug) {
-                        theDescription += "[Add Log called by AdminController.ModifyRole]";
-                        Console.WriteLine(theDescription);
+                        var theIDOfTheUserWhoseRoleWasChanged = result.userID
+                        var theUserWhoseRoleWasChanged = await userService.GetUser(theUserWhoseRoleWasChanged);
+                        var theEmailOfTheUserWhoseRoleWasChanged = theUserWhoseRoleWasChanged.Email;
+
+
+                        string theDescription = "";
+                        if (verboseLogs) {
+                            theDescription = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {theIDOfTheUserWhoseRoleWasChanged.Name} (User ID: {theIDOfTheUserWhoseRoleWasChanged}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
+                        } else {
+                            theDescription = $"{user.Email} changed role of {theEmailOfTheUserWhoseRoleWasChanged} to {normalizedRoleString} in {projectName}";
+                        }
+
+                        if (logDebug) {
+                            theDescription += "[Add Log called by AdminController.ModifyRole]";
+                            Console.WriteLine(theDescription);
+                        }
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = MOCKEDUSERID,
+                            changeType = "Modify Role",
+                            description = theDescription,
+                            projID = projectID,
+                            assetID = "",
+                            isAdminAction = AdminActionTrue
+                        });
+                    } catch (Exception ex) {
+                        Console.WriteLine("Failed to add log - AdminController.ModifyRole");
                     }
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        userID = MOCKEDUSERID,
-                        changeType = "Modify Role",
-                        description = theDescription,
-                        projID = projectID,
-                        assetID = "",
-                        isAdminAction = AdminActionTrue
-                    });
                     return Results.Ok(result);
                 }
                 catch (DataNotFoundException ex) 
@@ -542,21 +667,31 @@ namespace APIs.Controllers
                 var projectName = project.name;
                 var user = await userService.GetUser(MOCKEDUSERID);
                 var username = user.Name;
-                var theDescription = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
-                if (logDebug) {
-                    theDescription += "[Add Log called by AdminController.ToggleMetadataCategoryActivation]";
-                    Console.WriteLine(theDescription);
+                string theDescription = "";
+
+                try {
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
+                    } else {
+                        theDescription = $"{user.Email} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName}";
+                    }
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.ToggleMetadataCategoryActivation]";
+                        Console.WriteLine(theDescription);
+                    }
+                    // add log (done)
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = MOCKEDUSERID,
+                        changeType = "Toggle Metadata Activation",
+                        description = theDescription,
+                        projID = projectID,
+                        assetID = "",
+                        isAdminAction = AdminActionTrue
+                    });
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to add log - AdminController.ToggleMetadataCategoryActivation");
                 }
-                // add log (done)
-                await activityLogService.AddLogAsync(new CreateActivityLogDto
-                {
-                    userID = MOCKEDUSERID,
-                    changeType = "Toggle Metadata Activation",
-                    description = theDescription,
-                    projID = projectID,
-                    assetID = "",
-                    isAdminAction = AdminActionTrue
-                });
 
                 return Results.Ok(result);
             }

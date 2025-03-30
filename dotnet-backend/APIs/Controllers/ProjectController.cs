@@ -20,6 +20,7 @@ namespace APIs.Controllers
         private const bool adminActionTrue = true;
 
         private const bool logDebug = true;
+        private const bool verboseLogs = false;
 
         // private static IActivityLogService _activityLogService;
         // private static IProjectService _projectService;
@@ -189,27 +190,36 @@ namespace APIs.Controllers
                 if (activityLogService == null) {
                     return Results.StatusCode(500);
                 }
-                foreach (var projectID in req.projectIDs)
+                try
                 {
-                    var user = await userService.GetUser(submitterID);
-                    string username = user.Name;
-                    var project = await projectService.GetProject(projectID);
-                    var projectName = project.name;
-                    var theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
-
-                    if (logDebug) {
-                        theDescription += "[Add Log called by ProjectController.ArchiveProjects]";
-                        Console.WriteLine(theDescription);
-                    }
-                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    foreach (var projectID in req.projectIDs)
                     {
-                        userID = submitterID, 
-                        changeType = "Archived",
-                        description = theDescription,
-                        projID = projectID,
-                        assetID = "", 
-                        isAdminAction = adminActionTrue
-                    });
+                        var user = await userService.GetUser(submitterID);
+                        string username = user.Name;
+                        var project = await projectService.GetProject(projectID);
+                        var projectName = project.name;
+                        string theDescription = "";
+                        if (verboseLogs) {
+                            theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
+                        } else {
+                            theDescription = $"{user.Email} archived project {projectName}";
+                        }
+
+                        if (logDebug) {
+                            theDescription += "[Add Log called by ProjectController.ArchiveProjects]";
+                            Console.WriteLine(theDescription);
+                        }
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = submitterID, 
+                            changeType = "Archived",
+                            description = theDescription,
+                            projID = projectID,
+                            assetID = "", 
+                            isAdminAction = adminActionTrue
+                        });
+                    }
+
 
 
                 //     UserID = logDto.userID,
@@ -218,6 +228,8 @@ namespace APIs.Controllers
                 // ProjectID = logDto.projectID,
                 // AssetID = logDto.assetID,
                 // IsAdminAction = logDto.isAdminAction
+                } catch (Exception ex) {
+                    Console.WriteLine("Failed to add log - ProjectController.ArchiveProjects");
                 }
                 return Results.Ok(result);
 
@@ -326,15 +338,22 @@ namespace APIs.Controllers
                 // var updateDescription = new StringBuilder();
                 var user = await userService.GetUser(submitterID);
                 string username = user.Name;
-                var updateDescription = $"{username} (User ID: {submitterID})";
-                updateDescription += $"Project ID: {projectID}";
+                string updateDescription = "";
+                if (verboseLogs) {
+                    updateDescription = $"{username} (User ID: {submitterID})";
+                } else {
+                    updateDescription = $"{user.Email} modified "
+                }
+                if (verboseLogs) {
+                    updateDescription += $"Project ID: {projectID}";
+                }
 
                 var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                updateDescription += $"Project Name: {projectName}";
+                updateDescription += $"project: {projectName}. ";
 
                 if (!string.IsNullOrEmpty(req.Location))
                 {
-                    updateDescription += $"Location: {req.Location}";
+                    updateDescription += $"Location: {req.Location} ";
                 }
 
                 if (req.Memberships != null && req.Memberships.Any())
@@ -344,8 +363,13 @@ namespace APIs.Controllers
                     {
                         var getUserDto = await userService.GetUser(membership.UserID);
                         var memberUserName = getUserDto.Name;
+                        var memberUserEmail = getUserDto.Email;
 
-                        updateDescription += $"- {memberUserName} (User ID: {membership.UserID})";
+                        if (verboseLogs) {
+                            updateDescription += $"- {memberUserName} (User ID: {membership.UserID}) ";
+                        } else {
+                            updateDescription += $"- {memberUserEmail} ";
+                        }
                     }
                 }
 
@@ -363,7 +387,7 @@ namespace APIs.Controllers
                     updateDescription += "Custom Metadata: ";
                     foreach (var customMetadataDto in req.CustomMetadata) // met
                     {
-                        updateDescription += $"- {customMetadataDto.FieldName}: {customMetadataDto.FieldValue}";
+                        updateDescription += $"- {customMetadataDto.FieldName} ";
                     }
                 }
 
