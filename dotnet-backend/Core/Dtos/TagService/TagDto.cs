@@ -5,5 +5,10 @@ namespace Core.Dtos
         public int? TagID { get; set; }
         public string Name { get; set; }
     }
+
+    public class CreateTagDto
+    {
+        public string Name { get; set; }
+    }
     
 }

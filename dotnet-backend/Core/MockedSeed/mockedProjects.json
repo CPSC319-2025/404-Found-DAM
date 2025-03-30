@@ -15,7 +15,7 @@
       "description": "Building a comprehensive data analysis tool.",
       "active": true
     },
-    "tags": ["data", "analytics", "platform"]
+    "tags": ["data", "analytics", "platform", "legacy"]
   },
   {
     "defaultMetadata": {
