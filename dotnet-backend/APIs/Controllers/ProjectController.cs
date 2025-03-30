@@ -323,60 +323,60 @@ namespace APIs.Controllers
                     return Results.StatusCode(500);
                 }
 
-                var updateDescription = new StringBuilder();
+                // var updateDescription = new StringBuilder();
                 var user = await userService.GetUser(submitterID);
                 string username = user.Name;
-                updateDescription.AppendLine($"{username} (User ID: {submitterID})");
-                updateDescription.AppendLine($"Project ID: {projectID}");
+                var updateDescription = $"{username} (User ID: {submitterID})";
+                updateDescription += $"Project ID: {projectID}";
 
                 var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                updateDescription.AppendLine($"Project Name: {projectName}");
+                updateDescription += $"Project Name: {projectName}";
 
                 if (!string.IsNullOrEmpty(req.Location))
                 {
-                    updateDescription.AppendLine($"Location: {req.Location}");
+                    updateDescription += $"Location: {req.Location}";
                 }
 
                 if (req.Memberships != null && req.Memberships.Any())
                 {
-                    updateDescription.AppendLine("Memberships: ");
+                    updateDescription += "Memberships: ";
                     foreach (var membership in req.Memberships)
                     {
                         var getUserDto = await userService.GetUser(membership.UserID);
                         var memberUserName = getUserDto.Name;
 
-                        updateDescription.AppendLine($"- {memberUserName} (User ID: {membership.UserID})");
+                        updateDescription += $"- {memberUserName} (User ID: {membership.UserID})";
                     }
                 }
 
                 if (req.Tags != null && req.Tags.Any())
                 {
-                    updateDescription.AppendLine("Tags: ");
+                    updateDescription += "Tags: ";
                     foreach (var tag in req.Tags)
                     {
-                        updateDescription.AppendLine($"- {tag.Name}");
+                        updateDescription += $"- {tag.Name}";
                     }
                 }
 
                 if (req.CustomMetadata != null && req.CustomMetadata.Any())
                 {
-                    updateDescription.AppendLine("Custom Metadata: ");
+                    updateDescription += "Custom Metadata: ";
                     foreach (var customMetadataDto in req.CustomMetadata) // met
                     {
-                        updateDescription.AppendLine($"- {customMetadataDto.FieldName}: {customMetadataDto.FieldValue}");
+                        updateDescription += $"- {customMetadataDto.FieldName}: {customMetadataDto.FieldValue}";
                     }
                 }
 
                 if (logDebug) {
-                    updateDescription.AppendLine("[Add Log called by ProjectController.UpdateProject]");
-                    Console.WriteLine(updateDescription.ToString());
+                    updateDescription += "[Add Log called by ProjectController.UpdateProject]";
+                    Console.WriteLine(updateDescription);
                 }
 
                 await activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = submitterID,
                     changeType = "Updated",
-                    description = updateDescription.ToString(),
+                    description = updateDescription,
                     projID = projectID,
                     assetID = "", // No assetID for project update
                     isAdminAction = adminActionTrue
