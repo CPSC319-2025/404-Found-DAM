@@ -278,12 +278,17 @@ namespace APIs.Controllers
             {
                 int theUserID = MOCKEDUSERID;
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
+                Console.WriteLine("here");
 
                 foreach (var createProjectResEntry in result) 
                 {
                     int theProjectID = createProjectResEntry.createdProjectID;
                     var getProjectDto = await _projectService.GetProject(theProjectID);
+
+                    Console.WriteLine("288");
                     var theProjectName = getProjectDto.name;
+
+
 
                     // Collect admin and user IDs
                     var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
@@ -300,17 +305,24 @@ namespace APIs.Controllers
                         var user = await _userService.GetUser(userID);
                         return $"{user.Name} (User ID: {userID})";
                     }));
+                    Console.WriteLine("308");
 
                     string addedAdmins = string.Join(", ", adminDetails);
                     string addedUsers = string.Join(", ", userDetails);
 
+                    Console.WriteLine("313");
+
                     var user = await _userService.GetUser(theUserID);
+                    Console.WriteLine("316");
                     string username = user.Name;
+                    Console.WriteLine("318");
 
                     string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
                     // string addedUsers = string.Join(", ", userIDs);
 
                     // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+
+                    Console.WriteLine("theDescription: " + theDescription);
 
                     await _activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
