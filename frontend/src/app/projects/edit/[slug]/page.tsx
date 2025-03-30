@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import GenericForm, {
   FormData,
-  CustomMetadataField, Field as FormFieldType,
-  ChangeType
+  CustomMetadataField,
+  Field as FormFieldType,
+  ChangeType,
 } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
@@ -48,9 +49,8 @@ const editProjectFormFields: FormFieldType[] = [
   {
     name: "tags",
     label: "Tags",
-    type: "text",
-    isMulti: true,
-    placeholder: "Add tags (Press Enter to add one)",
+    type: "select",
+    isMultiSelect: true,
   },
   {
     name: "metadata",
@@ -71,7 +71,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [formDisabled, setFormDisabled] = useState(true);
 
-  const [formFields, setFormFields] = useState<FormFieldType[]>(editProjectFormFields);
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
+
+  const [formFields, setFormFields] = useState<FormFieldType[]>(
+    editProjectFormFields
+  );
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
@@ -82,14 +86,33 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [formData, setFormData] = useState<FormData>({});
 
-  const onUserChange = (changeItem: { id: number, name: string }, fieldName: string, changeType: ChangeType) => {
+  const fetchTags = async (): Promise<string[]> => {
+    try {
+      const response = await fetchWithAuth("/tags");
+      if (!response.ok) throw new Error("Failed to fetch tags");
+
+      const tags: string[] = await response.json();
+      return tags;
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      return [];
+    }
+  };
+
+  const onUserChange = (
+    changeItem: { id: number; name: string },
+    fieldName: string,
+    changeType: ChangeType
+  ) => {
     if (fieldName === "admins") {
       if (changeType === "select") {
         setRegularUserOptions((prev) =>
           prev.filter((user) => user.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setRegularUserOptions((prev) => [...prev, userToAddBack!]);
       }
     } else {
@@ -98,42 +121,51 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           prev.filter((admin) => admin.userID !== changeItem.id)
         );
       } else {
-        const userToAddBack = allUsers.find((user) => user.userID === changeItem.id);
+        const userToAddBack = allUsers.find(
+          (user) => user.userID === changeItem.id
+        );
         setAdminOptions((prev) => [...prev, userToAddBack!]);
       }
     }
-  }
+  };
 
   const onSubmit = (updatedFormData: FormData) => {
     let anyDeletions = false;
 
-    const metadataFields = formFields.find((field) => field.name === "metadata");
+    const metadataFields = formFields.find(
+      (field) => field.name === "metadata"
+    );
 
     if (updatedFormData?.metadata && metadataFields) {
       const oldMetadata = metadataFields.value as CustomMetadataField[];
       const newMetadata = updatedFormData.metadata as CustomMetadataField[];
 
       anyDeletions = oldMetadata.some(
-        (oldField) => !newMetadata.some((newField) => newField.id === oldField.id)
+        (oldField) =>
+          !newMetadata.some((newField) => newField.id === oldField.id)
       );
     }
 
-    let confirmMessages = [];
+    const confirmMessages = [];
 
     if (anyDeletions) {
-      confirmMessages.push("Warning: any data related to deleted metadata will be lost.");
+      confirmMessages.push(
+        "Warning: any data related to deleted metadata will be lost."
+      );
     }
 
-    confirmMessages.push(" Any disabled custom metadata fields will become unusable.");
+    confirmMessages.push(
+      " Any disabled custom metadata fields will become unusable."
+    );
 
     setConfirmMessages(confirmMessages);
     setConfirmPopup(true);
     setFormData(updatedFormData);
-  }
+  };
 
   const onConfirmSubmit = () => {
-    handleEditProject(formData)
-  }
+    handleEditProject(formData);
+  };
 
   const handleEditProject = async (updatedFormData: FormData) => {
     setConfirmPopup(false);
@@ -141,39 +173,41 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     const admins = (updatedFormData.admins as number[]).map((id) => {
       return {
         userID: id,
-        role: "Admin"
-      }
-    })
+        role: "Admin",
+      };
+    });
 
     const regularUsers = (updatedFormData.users as number[]).map((id) => {
       return {
         userID: id,
-        role: "Regular"
-      }
+        role: "Regular",
+      };
     });
 
     const memberships = admins.concat(regularUsers);
 
-    const customMetadata = (updatedFormData.metadata as CustomMetadataField[]).map((field) => {
+    const customMetadata = (
+      updatedFormData.metadata as CustomMetadataField[]
+    ).map((field) => {
       return {
         fieldName: field.name,
         fieldType: field.type,
         isEnabled: field.enabled,
-      }
+      };
     });
 
     const tags = (updatedFormData.tags as string[]).map((tag) => {
       return {
-        name: tag
-      }
-    })
+        name: tag,
+      };
+    });
 
     const updatedProject = {
       location: updatedFormData.location,
       memberships,
       tags,
-      customMetadata
-    }
+      customMetadata,
+    };
 
     setFormDisabled(true);
 
@@ -183,7 +217,9 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     });
 
     if (!response.ok) {
-      console.error(`Failed to update project (Status: ${response.status} - ${response.statusText}`);
+      console.error(
+        `Failed to update project (Status: ${response.status} - ${response.statusText}`
+      );
       setFormDisabled(false);
       setLoading(false);
 
@@ -211,7 +247,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       console.error("[Diagnostics] Error fetching users: ", error);
       return [] as User[];
     }
-  }
+  };
 
   const fetchProject = async () => {
     const response = await fetchWithAuth(`projects/${params.slug}`);
@@ -230,44 +266,54 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const onLoad = () => {
-    fetchUsers().then((users) => {
-      setAllUsers(users);
-      setAdminOptions(users);
-      setRegularUserOptions(users);
-
-      return fetchProject();
-    })
-      .then((project) => {
+    fetchUsers()
+      .then((users) => {
+        setAllUsers(users);
+        setAdminOptions(users);
+        setRegularUserOptions(users);
+        // Now fetch tags
+        return fetchTags();
+      })
+      .then((tags) => {
+        // Set state for tags and pass them along in the chain
+        setTagOptions(tags);
+        return fetchProject().then((project) => ({ project, tags }));
+      })
+      .then(({ project, tags }) => {
         const updatedFormFields = [...editProjectFormFields];
 
-        setProjectName(project.name!)
+        setProjectName(project.name!);
 
         updatedFormFields.forEach((field) => {
-          if (field.name === 'location') {
+          if (field.name === "location") {
             field.value = project.location;
           }
 
-          if (field.name === 'tags') {
+          if (field.name === "tags") {
             field.value = project.tags.map((tag) => tag.name);
+            field.options = tags.map((tagName) => ({
+              id: tagName,
+              name: tagName,
+            }));
           }
 
-          if (field.name === 'admins') {
+          if (field.name === "admins") {
             field.value = project.admins.map((admin) => admin.userID);
           }
 
-          if (field.name === 'users') {
+          if (field.name === "users") {
             field.value = project.regularUsers.map((user) => user.userID);
           }
 
-          if (field.name === 'metadata') {
+          if (field.name === "metadata") {
             field.value = project.metadataFields.map((metadata) => {
               return {
                 id: String(metadata.fieldID),
                 name: metadata.fieldName,
                 type: metadata.fieldType,
-                enabled: metadata.isEnabled
-              } as CustomMetadataField
-            })
+                enabled: metadata.isEnabled,
+              } as CustomMetadataField;
+            });
           }
         });
 
@@ -284,28 +330,31 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           prev.filter((user) => !selectedAdmins.includes(user.userID))
         );
 
-        if (user?.superadmin) {
+        if (
+          user?.superadmin ||
+          project.admins.find((admin) => admin.userID === user!.userID)
+        ) {
           setFormDisabled(false);
-        } else {
-          if (project.admins.find(admin => admin.userID === user!.userID)) {
-            setFormDisabled(false);
-          }
         }
 
         setLoading(false);
       })
-  }
+      .catch((error) => {
+        console.error("Error in onLoad:", error);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    onLoad()
-  }, [])
+    onLoad();
+  }, []);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
     const updatedFormFields = [...editProjectFormFields];
 
     updatedFormFields.forEach((field) => {
-      if (field.name === 'admins') {
+      if (field.name === "admins") {
         field.options = adminOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -313,7 +362,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         field.onChange = onUserChange;
       }
 
-      if (field.name === 'users') {
+      if (field.name === "users") {
         field.options = regularUserOptions.map((user) => ({
           id: user.userID,
           name: `${user.name} (${user.email})`,
@@ -323,7 +372,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     });
 
     setFormFields(updatedFormFields);
-
   }, [adminOptions, regularUserOptions]);
 
   const onCancel = () => {
@@ -346,12 +394,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       {!loading && (
         <GenericForm
           title=""
-          isModal={false}
+          isModal={true}
           fields={formFields}
           onSubmit={onSubmit}
           onCancel={onCancel}
           submitButtonText="Save"
           disabled={formDisabled}
+          disableOutsideClose={confirmPopup}
         />
       )}
 

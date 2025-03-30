@@ -345,42 +345,45 @@ namespace Infrastructure.DataAccess
                     }
                 }
             }
-
-            if (req.Tags != null) {
+            
+            if (req.Tags != null) 
+            {
+                // Get current tag associations
                 var currentTags = project.ProjectTags.ToList();
+                //build a set of requested tag names
                 var reqTagNames = req.Tags.Select(t => t.Name.ToLower()).ToHashSet();
 
-
+                //remove associations for tags that are not in the request.
                 foreach (var pt in currentTags) {
                     if (!reqTagNames.Contains(pt.Tag.Name.ToLower())) {
                         _context.ProjectTags.Remove(pt);
+                        //remove asset tag associations for this project
                         foreach (var asset in project.Assets) {
                             var assetTag = asset.AssetTags.FirstOrDefault(at => at.TagID == pt.TagID);
                             if (assetTag != null)
                                 _context.AssetTags.Remove(assetTag);
                         }
-                        _context.Tags.Remove(pt.Tag);
                     }
                 }
 
+                //process each tag in the request.
                 foreach (var tagDto in req.Tags) {
-                    var existingTag = await _context.Tags.FirstOrDefaultAsync(t => t.Name.ToLower() == tagDto.Name.ToLower());
-                    if (existingTag == null) {
-                        existingTag = new Core.Entities.Tag { Name = tagDto.Name };
-                        _context.Tags.Add(existingTag);
-                        await _context.SaveChangesAsync();
+                    //look up the tag in the Tags table 
+                    var existingTag = await _context.Tags
+                        .FirstOrDefaultAsync(t => t.Name.ToLower() == tagDto.Name.ToLower());
+                    if (existingTag != null) {
+                        //if there is not already an association add it
+                        if (!currentTags.Any(pt => pt.TagID == existingTag.TagID)) {
+                            _context.ProjectTags.Add(new ProjectTag {
+                                ProjectID = projectID,
+                                TagID = existingTag.TagID,
+                                Project = project,
+                                Tag = existingTag
+                            });
+                        }
                     }
-
-                    if (!currentTags.Any(pt => pt.TagID == existingTag.TagID)) {
-                        _context.ProjectTags.Add(new ProjectTag {
-                            ProjectID = projectID,
-                            TagID = existingTag.TagID,
-                            Project = project,
-                            Tag = existingTag
-                        });
-                    }
+                    // If the tag doesn't exist skip it (unlikely to happen since we are selecting from tags table)
                 }
-
             }
 
             if (req.CustomMetadata != null) {

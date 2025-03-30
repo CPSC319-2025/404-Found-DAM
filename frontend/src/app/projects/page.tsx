@@ -12,6 +12,10 @@ import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
 
+import LoadingSpinner from "@/app/components/LoadingSpinner";
+
+import PopupModal from "@/app/components/ConfirmModal";
+
 interface ProjectCardProps {
   projectID: number;
   name: string;
@@ -24,6 +28,16 @@ interface GetAllProjectsResponse {
   projectCount: number;
   fullProjectInfos: Project[];
 }
+
+const addTagFormFields: FormFieldType[] = [
+  {
+    name: "newTag",
+    label: "New Tag",
+    type: "text",
+    placeholder: "Enter new tag name",
+    required: true,
+  },
+];
 
 const newProjectFormFields: FormFieldType[] = [
   {
@@ -50,9 +64,8 @@ const newProjectFormFields: FormFieldType[] = [
   {
     name: "tags",
     label: "Tags",
-    type: "text",
-    isMulti: true,
-    placeholder: "Add tags (Press Enter to add one)",
+    type: "select",
+    isMultiSelect: true,
     required: false,
   },
   {
@@ -72,21 +85,42 @@ const newProjectFormFields: FormFieldType[] = [
 
 export default function ProjectsPage() {
   const { user } = useUser();
-
-  // state variables related to projects
+  const [loading, setLoading] = useState<boolean>(true);
+  const [query, setQuery] = useState<string>("");
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
-  const [query, setQuery] = useState<string>("");
-
-  // state variables for the form
+  const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
 
   const [formFields, setFormFields] =
     useState<FormFieldType[]>(newProjectFormFields);
+
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [regularUserOptions, setRegularUserOptions] = useState<User[]>([]);
   const [adminOptions, setAdminOptions] = useState<User[]>([]);
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
 
+  const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
+  const [configuredTags, setConfiguredTags] = useState<string[]>([]);
+
+  const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
+  const [pendingConfigureFormData, setPendingConfigureFormData] =
+    useState<FormData | null>(null);
+
+  // Global Tags
+  const fetchTags = async () => {
+    try {
+      const response = await fetchWithAuth("tags");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tags: ${response.statusText}`);
+      }
+      // returns an array of tag names (strings)
+      const data = await response.json();
+      setTagOptions(data);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
   const onUserChange = (
     changeItem: { id: number; name: string },
     fieldName: string,
@@ -126,7 +160,6 @@ export default function ProjectsPage() {
         );
       }
       const data = (await response.json()) as GetAllProjectsResponse;
-      console.log("All Projects", data);
       return data.fullProjectInfos.map(
         (project: Project) =>
           ({
@@ -144,6 +177,35 @@ export default function ProjectsPage() {
       return [] as ProjectCardProps[];
     }
   };
+
+  const handleSubmitConfigureTags = async (formData: FormData) => {
+    const updatedTags = (formData.tags as string[])
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    try {
+      const response = await fetchWithAuth("tags", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTags.map((name) => ({ name }))),
+      });
+
+      if (!response.ok) throw new Error("Failed to update tags");
+
+      toast.success("Tags updated");
+      setConfigureTagsOpen(false);
+      fetchTags(); // refresh local tag options
+    } catch (error) {
+      console.error("Error replacing tags", error);
+      toast.error("Failed to update tags");
+    }
+  };
+
+  useEffect(() => {
+    if (addTagsModalOpen) {
+      fetchTags();
+    }
+  }, [addTagsModalOpen]);
 
   const handleAddProject = async (formData: FormData) => {
     const payload = [
@@ -211,8 +273,6 @@ export default function ProjectsPage() {
 
     const data = await response.json();
 
-    console.log(data);
-
     const filteredProjects = projects.filter((p: ProjectCardProps) =>
       data.projects.some(
         (project: Project) => project.projectID === p.projectID
@@ -236,29 +296,27 @@ export default function ProjectsPage() {
       return [] as User[];
     }
   };
+  useEffect(() => {
+    setLoading(true);
 
-  const loadProjects = async () => {
-    const projects = await fetchAllProjects();
-    setAllProjects(projects);
+    // Fetch all projects (for filtering "My Projects") AND all users
+    Promise.all([fetchAllProjects(), fetchUsers()])
+      .then(([projects, users]) => {
+        setAllProjects(projects);
+        setAllUsers(users);
+        setAdminOptions(users);
+        setRegularUserOptions(users);
+      })
+      .catch((error) => {
+        console.error("Error loading initial data:", error);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onSubmitConfigureTags = (formData: FormData) => {
+    setPendingConfigureFormData(formData);
+    setConfirmConfigurePopup(true);
   };
-
-  useEffect(() => {
-    loadProjects();
-    fetchUsers().then((users) => {
-      setAllUsers(users);
-      setAdminOptions(users);
-      setRegularUserOptions(users);
-    });
-  }, []);
-
-  useEffect(() => {
-    fetchAllProjects().then((projects) => setAllProjects(projects));
-    fetchUsers().then((users) => {
-      setAllUsers(users);
-      setAdminOptions(users);
-      setRegularUserOptions(users);
-    });
-  }, []);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
@@ -280,10 +338,16 @@ export default function ProjectsPage() {
         }));
         field.onChange = onUserChange;
       }
+      if (field.name === "tags") {
+        field.options = tagOptions.map((tag: string) => ({
+          id: tag,
+          name: tag,
+        }));
+      }
     });
 
     setFormFields(updatedFormFields);
-  }, [adminOptions, regularUserOptions]);
+  }, [adminOptions, regularUserOptions, tagOptions]);
 
   const myProjects = allProjects.filter((project) =>
     project.userNames.includes("Isabella Sanchez")
@@ -307,16 +371,31 @@ export default function ProjectsPage() {
           onBlur={doSearch}
           onKeyDown={(e) => e.key === "Enter" && doSearch()}
         />
-        {user?.superadmin && (
+        <div>
           <button
-            onClick={() => setNewProjectModalOpen(true)}
+            onClick={async () => {
+              const response = await fetchWithAuth("tags");
+              const tags = await response.json();
+              setConfiguredTags(tags);
+              setConfigureTagsOpen(true);
+            }}
             className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
           >
-            New Project
+            Configure Tags
           </button>
-        )}
+          {user?.superadmin && (
+            <button
+              onClick={() => {
+                fetchTags();
+                setNewProjectModalOpen(true);
+              }}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              New Project
+            </button>
+          )}
+        </div>
       </div>
-
       {/* case 1: there are no projects overall */}
       {!overallProjectsExist && (
         <div className="flex flex-col items-center justify-center h-64">
@@ -381,6 +460,49 @@ export default function ProjectsPage() {
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"
         />
+      )}
+      {configureTagsOpen && (
+        <GenericForm
+          title="Configure Tags"
+          fields={[
+            {
+              name: "tags",
+              label: "Tag List",
+              type: "text",
+              isMulti: true,
+              required: false,
+              value: configuredTags,
+            },
+          ]}
+          onSubmit={onSubmitConfigureTags} // use our new handler here
+          onCancel={() => setConfigureTagsOpen(false)}
+          confirmRemoval={true}
+          confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
+          submitButtonText="Update Tags"
+          disableOutsideClose={confirmConfigurePopup}
+        />
+      )}
+
+      {confirmConfigurePopup && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Confirm Tag Changes"
+            isOpen={true}
+            onClose={() => {
+              // Only clear the confirmation popup state, leaving the GenericForm open.
+              setConfirmConfigurePopup(false);
+            }}
+            onConfirm={async () => {
+              if (pendingConfigureFormData) {
+                await handleSubmitConfigureTags(pendingConfigureFormData);
+              }
+              setConfirmConfigurePopup(false);
+            }}
+            messages={[
+              "Are you sure you would like to make these changes? This may cause unexpected project and asset changes across the system.",
+            ]}
+          />
+        </div>
       )}
     </div>
   );
