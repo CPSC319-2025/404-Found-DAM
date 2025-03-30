@@ -19,15 +19,19 @@ namespace APIs.Controllers
 
         private const bool adminActionTrue = true;
 
-        private static IActivityLogService _activityLogService;
-        private static IProjectService _projectService;
-        private static IUserService _userService;
-        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
-        {
-            _activityLogService = activityLogService;
-            _projectService = projectService;
-            _userService = userService;
-        }
+        private const bool logDebug = true;
+
+        // private static IActivityLogService _activityLogService;
+        // private static IProjectService _projectService;
+        // private static IUserService _userService;
+        // public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
+        // {
+        //     _activityLogService = activityLogService;
+        //     _projectService = projectService;
+        //     _userService = userService;
+        // }
+
+
 
         public static void MapProjectEndpoints(this WebApplication app)
         {
@@ -49,6 +53,12 @@ namespace APIs.Controllers
                .WithName("GetMyProjects")
                .WithOpenApi();
 
+
+        }
+
+        private static IServiceProvider GetServiceProvider(HttpContext context)
+        {
+            return context.RequestServices; // for activity log
 
         }
 
@@ -157,26 +167,41 @@ namespace APIs.Controllers
             }        
         }
 
-        private static async Task<IResult> ArchiveProjects(ArchiveProjectsReq req, IProjectService projectService)
+        private static async Task<IResult> ArchiveProjects(ArchiveProjectsReq req, IProjectService projectService, HttpContext context)
         {
             // May need to add varification to check if client data is bad.
+
+            if (logDebug) {
+                Console.WriteLine("ProjectController.ArchiveProjects - START");
+            }
             try 
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                // var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
 
                 int submitterID = MOCKEDUSERID;
 
-                if (_activityLogService == null) {
+                if (activityLogService == null) {
                     return Results.StatusCode(500);
                 }
                 foreach (var projectID in req.projectIDs)
                 {
-                    var user = await _userService.GetUser(submitterID);
+                    var user = await userService.GetUser(submitterID);
                     string username = user.Name;
                     var project = await projectService.GetProject(projectID);
                     var projectName = project.name;
                     var theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+
+                    if (logDebug) {
+                        theDescription += "[Add Log called by ProjectController.ArchiveProjects]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = submitterID, 
                         changeType = "Archived",
@@ -212,10 +237,18 @@ namespace APIs.Controllers
             }
         }
         
-        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsWithProjectReq request, IProjectService projectService, ILogger<Program> logger)
+        private static async Task<IResult> AssociateAssetsWithProject(int projectID, AssociateAssetsWithProjectReq request, IProjectService projectService, ILogger<Program> logger, HttpContext context)
         {
+            if (logDebug) {
+                Console.WriteLine("ProjectController.AssociateAssetWithProject - START");
+            }
             try
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                // var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
                 // Ensure the projectID in the route matches the one in the request.
                 if (projectID != request.ProjectID)
                 {
@@ -229,21 +262,28 @@ namespace APIs.Controllers
 
 
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
-                var user = await _userService.GetUser(submitterId);
+                var user = await userService.GetUser(submitterId);
                 string username = user.Name;
                 foreach (var blobID in request.BlobIDs) {
                     var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
                     var theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
-                    {
-                        userID = submitterId,
-                        changeType = "Added",
-                        description = theDescription,
-                        projID = projectID,
-                        assetID = blobID,
-                        isAdminAction = !adminActionTrue
-                    });
+                    if (false) { // duplicate log - same as PaletteController.SubmitAssets.
+                        if (logDebug) {
+                            theDescription += "[Add Log called by ProjectController.AssociateAssetsWithProject]";
+                            Console.WriteLine(theDescription);
+                        }
+                    
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = submitterId,
+                            changeType = "Added",
+                            description = theDescription,
+                            projID = projectID,
+                            assetID = blobID,
+                            isAdminAction = !adminActionTrue
+                        });
+                    }
                 }
                 return Results.Ok(new
                 {
@@ -265,25 +305,31 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService)
+        private static async Task<IResult> UpdateProject(int projectID, UpdateProjectReq req, IProjectService projectService, HttpContext context)
         {
+
+            // Get services from IServiceProvider
+            var serviceProvider = GetServiceProvider(context);
+            var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+            // var projectService = serviceProvider.GetRequiredService<IProjectService>();
+            var userService = serviceProvider.GetRequiredService<IUserService>();
             try
             {
                 var result = await projectService.UpdateProject(projectID, req);
 
                 int submitterID = MOCKEDUSERID;
 
-                if (_activityLogService == null) {
+                if (activityLogService == null) {
                     return Results.StatusCode(500);
                 }
 
                 var updateDescription = new StringBuilder();
-                var user = await _userService.GetUser(submitterID);
+                var user = await userService.GetUser(submitterID);
                 string username = user.Name;
                 updateDescription.AppendLine($"{username} (User ID: {submitterID})");
                 updateDescription.AppendLine($"Project ID: {projectID}");
 
-                var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
+                var projectName = await projectService.GetProjectNameByIdAsync(projectID);
                 updateDescription.AppendLine($"Project Name: {projectName}");
 
                 if (!string.IsNullOrEmpty(req.Location))
@@ -296,7 +342,7 @@ namespace APIs.Controllers
                     updateDescription.AppendLine("Memberships: ");
                     foreach (var membership in req.Memberships)
                     {
-                        var getUserDto = await _userService.GetUser(membership.UserID);
+                        var getUserDto = await userService.GetUser(membership.UserID);
                         var memberUserName = getUserDto.Name;
 
                         updateDescription.AppendLine($"- {memberUserName} (User ID: {membership.UserID})");
@@ -321,13 +367,18 @@ namespace APIs.Controllers
                     }
                 }
 
-                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                if (logDebug) {
+                    updateDescription.AppendLine("[Add Log called by ProjectController.UpdateProject]");
+                    Console.WriteLine(updateDescription.ToString());
+                }
+
+                await activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = submitterID,
                     changeType = "Updated",
                     description = updateDescription.ToString(),
                     projID = projectID,
-                    assetID = null, // No assetID for project update
+                    assetID = "", // No assetID for project update
                     isAdminAction = adminActionTrue
                 });
 

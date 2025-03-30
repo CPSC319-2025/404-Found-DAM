@@ -16,17 +16,19 @@ namespace APIs.Controllers
 
         private const bool AdminActionTrue = true;
 
-        private static IActivityLogService _activityLogService;
-        private static IProjectService _projectService;
+        private const bool logDebug = true;
 
-        private static IUserService _userService;
+        // private static IActivityLogService _activityLogService;
+        // private static IProjectService _projectService;
 
-        public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
-        {
-            _activityLogService = activityLogService;
-            _projectService = projectService;
-            _userService = userService;
-        }
+        // private static IUserService _userService;
+
+        // public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
+        // {
+        //     _activityLogService = activityLogService;
+        //     _projectService = projectService;
+        //     _userService = userService;
+        // }
         public static void MapAdminEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials:
@@ -47,10 +49,23 @@ namespace APIs.Controllers
             // app.MapPatch("/projects/{projectID}/permissions", UpdateProjectAccessControl).WithName("UpdateProjectAccessControl").WithOpenApi();
         }
 
+        private static IServiceProvider GetServiceProvider(HttpContext context)
+        {
+            return context.RequestServices; // for activity log
+
+        }
+
         private static async Task<IResult> ExportProject(int projectID, IAdminService adminService, HttpContext context)
         {
+
+            
             try 
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
                 // TODO: Check requester is a super admin in DB
                 int requesterID = MOCKEDUSERID;
 
@@ -70,14 +85,19 @@ namespace APIs.Controllers
 
                     // Manually set Content-Disposition Header to instruct the browser to download the file  
                     context.Response.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") { FileName = fileName }.ToString();
-                    var user = await _userService.GetUser(requesterID);
+                    var user = await userService.GetUser(requesterID);
                     string username = user.Name;
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    string theDescription = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})";
+                    if (logDebug) {
+                        theDescription += " [Add Log done by AdminController.ExportProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         // Add log (done)
                         userID = requesterID,
                         changeType = "Export",
-                        description = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})",
+                        description = theDescription,
                         projID = projectID, // would it be a problem (scope wise) if this was just called projectID (no "the")
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -107,10 +127,16 @@ namespace APIs.Controllers
                 - The imported excel file extension is .xlsx, which is zipped.
                 - The project Excel file must adhere to the format seen in the provided example, or the operation will fail and return an error to the user                       -  
         */
-        private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService)
+        private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService, HttpContext context)
         {
             try 
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
                 if (file == null || file.Length == 0)
                 {
                     return Results.BadRequest("Empty file");
@@ -130,13 +156,18 @@ namespace APIs.Controllers
                     var projectID = project.projectID;
 
                     // add log
-                    var user = await _userService.GetUser(MOCKEDUSERID);
+                    var user = await userService.GetUser(MOCKEDUSERID);
                     string username = user.Name;
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    string theDescription = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})";
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.ImportProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Import",
-                        description = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})",
+                        description = theDescription,
                         projID = projectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -159,10 +190,16 @@ namespace APIs.Controllers
             } 
         }        
 
-        private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService) 
+        private static async Task<IResult> DeleteUsersFromProject(int projectID, DeleteUsersFromProjectReq req, IAdminService adminService, HttpContext context) 
         {
             try 
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
                 if ((req.removeFromAdmins == null || req.removeFromAdmins.Count == 0) &&
                     (req.removeFromRegulars == null || req.removeFromRegulars.Count == 0))
                 {
@@ -173,17 +210,21 @@ namespace APIs.Controllers
                     int reqeusterID = MOCKEDUSERID;
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
 
-                    var project = await _projectService.GetProject(projectID);
+                    var project = await projectService.GetProject(projectID);
                     var projectName = project.name;
 
                     // add log (done)
-                    var user = await _userService.GetUser(reqeusterID);
+                    var user = await userService.GetUser(reqeusterID);
                     string username = user.Name;
                     string removedUsers = string.Join(", ", 
                         (req.removeFromAdmins ?? new List<int>()).Concat(req.removeFromRegulars ?? new List<int>()));
                     string theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
                     // string description = $"Removed users: {removedUsers}";
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.DeleteUsersFromProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = reqeusterID,
                         changeType = "Remove Users",
@@ -206,10 +247,18 @@ namespace APIs.Controllers
             }            
         }
 
-        private static async Task<IResult> AddUsersToProject(int projectID, AddUsersToProjectReq req, IAdminService adminService) 
+        private static async Task<IResult> AddUsersToProject(int projectID, AddUsersToProjectReq req, IAdminService adminService, HttpContext context) 
         {
             try 
             {
+
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
+
                 if ((req.addAsAdmin == null || req.addAsAdmin.Count == 0) &&
                     (req.addAsRegular == null || req.addAsRegular.Count == 0))
                 {
@@ -222,17 +271,21 @@ namespace APIs.Controllers
 
                     // add log (done)
 
-                    var project = await _projectService.GetProject(projectID);
+                    var project = await projectService.GetProject(projectID);
                     var theProjectName = project.name;
 
-                    var user = await _userService.GetUser(reqeusterID);
+                    var user = await userService.GetUser(reqeusterID);
                     string username = user.Name;
 
                     string addedUsers = string.Join(", ", 
                         (req.addAsAdmin ?? new List<int>()).Concat(req.addAsRegular ?? new List<int>()));
                     string theDescription = $"{username} (User ID: {reqeusterID}) added users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
                     // string description = $"Added users: {addedUsers}";
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.AddUsersToProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = reqeusterID,
                         changeType = "Add Users",
@@ -272,10 +325,17 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> CreateProjects(List<CreateProjectsReq> req, IAdminService adminService)
+        private static async Task<IResult> CreateProjects(List<CreateProjectsReq> req, IAdminService adminService, HttpContext context)
         {
             try 
             {
+
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
                 int theUserID = MOCKEDUSERID;
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
                 Console.WriteLine("here");
@@ -283,7 +343,7 @@ namespace APIs.Controllers
                 foreach (var createProjectResEntry in result) 
                 {
                     int theProjectID = createProjectResEntry.createdProjectID;
-                    var getProjectDto = await _projectService.GetProject(theProjectID);
+                    var getProjectDto = await projectService.GetProject(theProjectID);
 
                     Console.WriteLine("288");
                     var theProjectName = getProjectDto.name;
@@ -296,13 +356,13 @@ namespace APIs.Controllers
 
                     var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => 
                     {
-                        var admin = await _userService.GetUser(adminID);
+                        var admin = await userService.GetUser(adminID);
                         return $"{admin.Name} (User ID: {adminID})";
                     }));
 
                     var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
                     {
-                        var user = await _userService.GetUser(userID);
+                        var user = await userService.GetUser(userID);
                         return $"{user.Name} (User ID: {userID})";
                     }));
                     Console.WriteLine("308");
@@ -312,7 +372,7 @@ namespace APIs.Controllers
 
                     Console.WriteLine("313");
 
-                    var user = await _userService.GetUser(theUserID);
+                    var user = await userService.GetUser(theUserID);
                     Console.WriteLine("316");
                     string username = user.Name;
                     Console.WriteLine("318");
@@ -322,9 +382,14 @@ namespace APIs.Controllers
 
                     // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
 
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.CreateProjects]";
+                        Console.WriteLine(theDescription);
+                    }
+
                     Console.WriteLine("theDescription: " + theDescription);
 
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = theUserID,
                         changeType = "Create",
@@ -353,23 +418,40 @@ namespace APIs.Controllers
         }
 
 
-        private static async Task<IResult> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req, IAdminService adminService)
+        private static async Task<IResult> AddMetaDataFieldsToProject(int projectID, List<AddMetadataReq> req, IAdminService adminService, HttpContext context)
         {
             try 
             {
+                if (logDebug) {
+                    Console.WriteLine("AddMetaDataFieldsToProject - START");
+                }
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
                 List<AddMetadataRes> result = await adminService.AddMetaDataFieldsToProject(projectID, req);
                 // add log (done)
-                var project = await _projectService.GetProject(projectID);
+                var project = await projectService.GetProject(projectID);
                 var theProjectName = project.name;
                 string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                 // string description = $"Added metadata fields: {metadataDescriptions}";
-                var user = await _userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(MOCKEDUSERID);
                 string username = user.Name;
-                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+
+                var theDescription = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
+                if (logDebug) {
+                    theDescription += "[Add Log called by AdminController.AddMetaDataFieldsToProject]";
+                    Console.WriteLine(theDescription);
+                }
+
+        
+                await activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Add Metadata",
-                    description = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})",
+                    description = theDescription,
                     projID = projectID,
                     assetID = "",
                     isAdminAction = AdminActionTrue
@@ -390,8 +472,14 @@ namespace APIs.Controllers
             }         
         }
 
-        private static async Task<IResult> ModifyRole(int projectID, int userID, ModifyRoleReq req, IAdminService adminService)
+        private static async Task<IResult> ModifyRole(int projectID, int userID, ModifyRoleReq req, IAdminService adminService, HttpContext context)
         { 
+            // Get services from IServiceProvider
+            var serviceProvider = GetServiceProvider(context);
+            var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+            var projectService = serviceProvider.GetRequiredService<IProjectService>();
+            var userService = serviceProvider.GetRequiredService<IUserService>();
+            
             string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
             
             if (normalizedRoleString == "admin" || normalizedRoleString == "regular")
@@ -402,14 +490,20 @@ namespace APIs.Controllers
                     // add log (done)
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
 
-                    var user = await _userService.GetUser(MOCKEDUSERID);
+                    var user = await userService.GetUser(MOCKEDUSERID);
                     var username = user.Name;
-                    var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
-                    await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                    var projectName = await projectService.GetProjectNameByIdAsync(projectID);
+                    var theDescription = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {username} (User ID: {userID}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
+
+                    if (logDebug) {
+                        theDescription += "[Add Log called by AdminController.ModifyRole]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
                         userID = MOCKEDUSERID,
                         changeType = "Modify Role",
-                        description = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {username} (User ID: {userID}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})",
+                        description = theDescription,
                         projID = projectID,
                         assetID = "",
                         isAdminAction = AdminActionTrue
@@ -431,22 +525,34 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> ToggleMetadataCategoryActivation(int projectID, int fieldID, ToggleMetadataStateReq req, IAdminService adminService)
+        private static async Task<IResult> ToggleMetadataCategoryActivation(int projectID, int fieldID, ToggleMetadataStateReq req, IAdminService adminService, HttpContext context)
         {
+
             try 
             {
+
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
                 ToggleMetadataStateRes result = await adminService.ToggleMetadataCategoryActivation(projectID, fieldID, req.enabled);
 
-                var project = await _projectService.GetProject(projectID);
+                var project = await projectService.GetProject(projectID);
                 var projectName = project.name;
-                var user = await _userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(MOCKEDUSERID);
                 var username = user.Name;
+                var theDescription = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
+                if (logDebug) {
+                    theDescription += "[Add Log called by AdminController.ToggleMetadataCategoryActivation]";
+                    Console.WriteLine(theDescription);
+                }
                 // add log (done)
-                await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                await activityLogService.AddLogAsync(new CreateActivityLogDto
                 {
                     userID = MOCKEDUSERID,
                     changeType = "Toggle Metadata Activation",
-                    description = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})",
+                    description = theDescription,
                     projID = projectID,
                     assetID = "",
                     isAdminAction = AdminActionTrue
