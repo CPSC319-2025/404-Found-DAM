@@ -160,7 +160,6 @@ export default function ProjectsPage() {
         );
       }
       const data = (await response.json()) as GetAllProjectsResponse;
-      console.log("All Projects", data);
       return data.fullProjectInfos.map(
         (project: Project) =>
           ({
@@ -273,8 +272,6 @@ export default function ProjectsPage() {
     }
 
     const data = await response.json();
-
-    console.log(data);
 
     const filteredProjects = projects.filter((p: ProjectCardProps) =>
       data.projects.some(
@@ -390,7 +387,6 @@ export default function ProjectsPage() {
             <button
               onClick={() => {
                 fetchTags();
-                console.log("line 316", tagOptions);
                 setNewProjectModalOpen(true);
               }}
               className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
