@@ -80,6 +80,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization();
+
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
 // only developer working on this task. 

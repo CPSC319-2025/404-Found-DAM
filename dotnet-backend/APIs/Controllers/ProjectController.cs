@@ -104,12 +104,12 @@ namespace APIs.Controllers
             } 
         }
 
-        private static async Task<IResult> GetAllProjects(IProjectService projectService)
+        private static async Task<IResult> GetAllProjects(IProjectService projectService, HttpContext context)
         {
             try 
             {
-                // TODO: replace MOCKEDUSERID with authenticated userID
-                int userID = MOCKEDUSERID;
+                int userID = Convert.ToInt32(context.Items["userId"]);
+                
                 GetAllProjectsRes result = await projectService.GetAllProjects(userID);
                 return Results.Ok(result);
             }
