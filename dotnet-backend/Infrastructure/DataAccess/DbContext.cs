@@ -46,7 +46,8 @@ namespace Infrastructure.DataAccess {
                 .HasIndex(p => p.Name);
 
             modelBuilder.Entity<Tag>()
-                .HasIndex(t => t.Name);
+                .HasIndex(t => t.Name)
+                .IsUnique();
 
             modelBuilder.Entity<ProjectTag>()
                 .HasIndex(pt => new { pt.ProjectID, pt.TagID });
@@ -60,7 +61,7 @@ namespace Infrastructure.DataAccess {
                     UserID = 1,
                     Name = "userTest",
                     Email = "userTest@example.com",
-                    PasswordHash = "hashed_password_here", // A proper hash should be here.
+                    PasswordHash = "AQAAAAIAAYagAAAAEJUsEQ+L7D9znNxLO6g9+Hr7QMereAnXK/SHFLUTqkpH67y8L7R4Uj78pVmY3/hyjg==",
                     IsSuperAdmin = true,
                 });
 

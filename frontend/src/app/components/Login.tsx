@@ -21,7 +21,7 @@ export default function Login({ setUser }: LoginProps) {
       const user = await getUserFromToken();
       setUser(user);
     } catch (error) {
-      toast.error((error as Error).message);
+      toast.error((error as Error).message, { toastId: "LoginError" });
     }
   };
 

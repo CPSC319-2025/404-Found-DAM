@@ -21,6 +21,15 @@ body {
   padding: 0 !important;
 }
 
+fieldset:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.disabledButton:disabled {
+  opacity: 0.5;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
