@@ -104,13 +104,10 @@ namespace APIs.Controllers
             } 
         }
 
-        private static async Task<IResult> GetAllProjects(IProjectService projectService, HttpContext context)
+        private static async Task<IResult> GetAllProjects(IProjectService projectService)
         {
             try 
             {
-                int userID = Convert.ToInt32(context.Items["userId"]);
-                
-                GetAllProjectsRes result = await projectService.GetAllProjects(userID);
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 

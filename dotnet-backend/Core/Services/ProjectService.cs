@@ -232,7 +232,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<GetAllProjectsRes> GetAllProjects(int requesterID) 
+        public async Task<GetAllProjectsRes> GetAllProjects() 
         {
             try 
             {
@@ -241,7 +241,7 @@ namespace Core.Services
                 List<ProjectMembership> retrievedProjectMemberships;
 
                 (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
-                    await _repository.GetAllProjectsInDb(requesterID);
+                    await _repository.GetAllProjectsInDb();
 
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 

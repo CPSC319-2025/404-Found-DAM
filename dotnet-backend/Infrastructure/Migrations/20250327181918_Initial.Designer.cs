@@ -12,26 +12,23 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DAMDbContext))]
-    [Migration("20250323211738_AddPasswordHash")]
-    partial class AddPasswordHash
+    [Migration("20250327181918_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.2")
+                .HasAnnotation("ProductVersion", "9.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("Core.Entities.Asset", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BlobID"));
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -67,8 +64,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.AssetMetadata", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .HasColumnType("int");
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("FieldID")
                         .HasColumnType("int");
@@ -86,8 +83,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.AssetTag", b =>
                 {
-                    b.Property<int>("BlobID")
-                        .HasColumnType("int");
+                    b.Property<string>("BlobID")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("TagID")
                         .HasColumnType("int");
@@ -124,26 +121,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("Logs");
-                });
-
-            modelBuilder.Entity("Core.Entities.MetadataField", b =>
-                {
-                    b.Property<int>("FieldID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FieldID"));
-
-                    b.Property<string>("FieldName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("FieldType")
-                        .HasColumnType("int");
-
-                    b.HasKey("FieldID");
-
-                    b.ToTable("MetadataFields");
                 });
 
             modelBuilder.Entity("Core.Entities.Project", b =>
@@ -206,22 +183,28 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.ProjectMetadataField", b =>
                 {
-                    b.Property<int>("ProjectID")
-                        .HasColumnType("int");
-
                     b.Property<int>("FieldID")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("FieldValue")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FieldID"));
+
+                    b.Property<string>("FieldName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("FieldType")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.HasKey("ProjectID", "FieldID");
+                    b.Property<int>("ProjectID")
+                        .HasColumnType("int");
 
-                    b.HasIndex("FieldID");
+                    b.HasKey("FieldID");
+
+                    b.HasIndex("ProjectID");
 
                     b.ToTable("ProjectMetadataFields");
                 });
@@ -300,7 +283,7 @@ namespace Infrastructure.Migrations
                             IsSuperAdmin = true,
                             LastUpdated = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "userTest",
-                            PasswordHash = "hashed_password_here"
+                            PasswordHash = "AQAAAAIAAYagAAAAEJUsEQ+L7D9znNxLO6g9+Hr7QMereAnXK/SHFLUTqkpH67y8L7R4Uj78pVmY3/hyjg=="
                         });
                 });
 
@@ -327,7 +310,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Entities.MetadataField", "MetadataField")
+                    b.HasOne("Core.Entities.ProjectMetadataField", "ProjectMetadataField")
                         .WithMany("AssetMetadata")
                         .HasForeignKey("FieldID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -335,7 +318,7 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Asset");
 
-                    b.Navigation("MetadataField");
+                    b.Navigation("ProjectMetadataField");
                 });
 
             modelBuilder.Entity("Core.Entities.AssetTag", b =>
@@ -389,19 +372,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.ProjectMetadataField", b =>
                 {
-                    b.HasOne("Core.Entities.MetadataField", "MetadataField")
-                        .WithMany("ProjectMetadataFields")
-                        .HasForeignKey("FieldID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Entities.Project", "Project")
                         .WithMany("ProjectMetadataFields")
                         .HasForeignKey("ProjectID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("MetadataField");
 
                     b.Navigation("Project");
                 });
@@ -432,13 +407,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("AssetTags");
                 });
 
-            modelBuilder.Entity("Core.Entities.MetadataField", b =>
-                {
-                    b.Navigation("AssetMetadata");
-
-                    b.Navigation("ProjectMetadataFields");
-                });
-
             modelBuilder.Entity("Core.Entities.Project", b =>
                 {
                     b.Navigation("Assets");
@@ -448,6 +416,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("ProjectMetadataFields");
 
                     b.Navigation("ProjectTags");
+                });
+
+            modelBuilder.Entity("Core.Entities.ProjectMetadataField", b =>
+                {
+                    b.Navigation("AssetMetadata");
                 });
 
             modelBuilder.Entity("Core.Entities.Tag", b =>
