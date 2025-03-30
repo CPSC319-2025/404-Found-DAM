@@ -80,6 +80,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization();
+
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
 // only developer working on this task. 
@@ -98,7 +100,10 @@ app.UseCors("AllowReactApp");
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthorization();
+
+app.UseMiddleware<APIs.Middleware.AuthMiddleware>();
+
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
