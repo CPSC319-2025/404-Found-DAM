@@ -27,11 +27,56 @@ namespace Infrastructure.DataAccess
         )
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            var tagNames = tagList.Select(tag => tag.Name).ToList();
+            
+            List<Tag> existingTags = await _context.Tags
+                .Where(t => tagNames.Contains(t.Name))
+                .ToListAsync();
+
+            List<Tag> tagsToCreate = tagList
+                .Where(tag => !existingTags.Any(existingTag => existingTag.Name == tag.Name))
+                .ToList();
+
+            if (tagsToCreate.Any())
+            {
+                await _context.Tags.AddRangeAsync(tagsToCreate);
+            }
+
+            foreach (var tag in tagsToCreate)
+            {
+                Console.WriteLine($"Creating Tag: {tag.Name}, Tag ID: {tag.TagID}");
+            }
+
+            var updatedProjectTagList = new List<ProjectTag>();
+            foreach (var projectTag in projectTagList)
+            {
+                Tag tag = existingTags.FirstOrDefault(t => t.Name == projectTag.Tag.Name);
+
+                if (tag == null)
+                {
+                    tag = tagsToCreate.FirstOrDefault(t => t.Name == projectTag.Tag.Name);
+                    if (tag != null)
+                    {
+                        _context.Tags.Add(tag);
+                    }
+                }
+
+                if (tag != null)
+                {
+                    var newProjectTag = new ProjectTag
+                    {
+                        Tag = tag,
+                        Project = projectList[0]
+                    };
+
+                    updatedProjectTagList.Add(newProjectTag);
+                }
+            }
 
             List<(User, ProjectMembership.UserRoleType)> existentUserAndRoleList = new List<(User, ProjectMembership.UserRoleType)>();
             List<UserCustomInfo> nonExistentUsers = new List<UserCustomInfo>();
 
-            // Get users if in the DB, or put into nonexistent list
             foreach (ImportUserProfile profile in importUserProfileList)
             {
                 User? user = await _context.Users.FirstOrDefaultAsync(u =>
@@ -56,9 +101,7 @@ namespace Infrastructure.DataAccess
                     nonExistentUsers.Add(nonExistentUser);
                 }
             }
-                
-        
-            // Create projectMembershipList
+
             List<ProjectMembership> projectMembershipList = new List<ProjectMembership>();
             foreach ((User, ProjectMembership.UserRoleType) ur in existentUserAndRoleList)
             {
@@ -69,18 +112,14 @@ namespace Infrastructure.DataAccess
                     UserRole = ur.Item2
                 };
                 projectMembershipList.Add(pm);
-            };
+            }
 
-            // Store
-            await _context.Tags.AddRangeAsync(tagList);
             await _context.Projects.AddRangeAsync(projectList);
-            await _context.ProjectTags.AddRangeAsync(projectTagList);
+            await _context.ProjectTags.AddRangeAsync(updatedProjectTagList);
             await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
 
             await _context.SaveChangesAsync();
-            // Console.WriteLine("imported");
 
-            // Retrieve new Project's ID
             List<int> newProjectIDs = projectList.Select(p => p.ProjectID).ToList();
             return (newProjectIDs[0], nonExistentUsers);
         }

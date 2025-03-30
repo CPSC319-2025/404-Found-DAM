@@ -419,7 +419,6 @@ export default function ProjectsPage() {
 
   return (
     <div className="p-6 min-h-screen">
-      {/* header: Always display search bar for all users and "New Project" button if superadmin */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
         <input
           type="text"
@@ -465,21 +464,21 @@ export default function ProjectsPage() {
         </div>
       </div>
       {/* case 1: there are no projects overall */}
-      {projects && projects.length < 1 && (
+      {allProjects && allProjects.length < 1 && (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-2xl text-gray-500">No projects to display!</p>
         </div>
       )}
 
       {/* else display the project sections */}
-      {projects && projects.length > 0 && (
+      {allProjects && allProjects.length > 0 && (
         <>
           {/* My Projects */}
           <div>
             <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
-            {myProjects.length > 0 ? (
+            {allProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {myProjects.map((project) => (
+                {allProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -487,6 +486,7 @@ export default function ProjectsPage() {
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
+                      admins={project.admins}
                     />
                   </div>
                 ))}
@@ -499,24 +499,24 @@ export default function ProjectsPage() {
           </div>
 
           {/* All Projects Section filtering projects not belonging to me */}
-<!--           {filteredAllProjects.length > 0 && (
-            <div className="mt-8">
-              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
-              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {filteredAllProjects.map((project) => (
-                  <div key={project.projectID} className="w-full h-full">
-                    <ProjectCard
-                      id={String(project.projectID)}
-                      name={project.name}
-                      creationTime={project.creationTime}
-                      assetCount={project.assetCount}
-                      userNames={project.userNames}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )} -->
+          {/* {filteredAllProjects.length > 0 && (*/}
+          {/*  <div className="mt-8">*/}
+          {/*    <h1 className="text-2xl font-semibold mb-4">All Projects</h1>*/}
+          {/*    <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">*/}
+          {/*      {filteredAllProjects.map((project) => (*/}
+          {/*        <div key={project.projectID} className="w-full h-full">*/}
+          {/*          <ProjectCard*/}
+          {/*            id={String(project.projectID)}*/}
+          {/*            name={project.name}*/}
+          {/*            creationTime={project.creationTime}*/}
+          {/*            assetCount={project.assetCount}*/}
+          {/*            userNames={project.userNames}*/}
+          {/*          />*/}
+          {/*        </div>*/}
+          {/*      ))}*/}
+          {/*    </div>*/}
+          {/*  </div>*/}
+          {/*)}*/}
         </>
       )}
               
