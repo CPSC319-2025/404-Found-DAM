@@ -12,6 +12,17 @@ export interface Tag {
   name: string;
 }
 
+export interface Log {
+  change_id: number;
+  user: number;
+  description: string;
+  change_type: string;
+  asset_id: string;
+  project_id: number;
+  isAdminAction: boolean;
+  timestamp: string;
+}
+
 export interface ProjectMetadataField {
   fieldID: number;
   fieldName: string;
@@ -47,7 +58,8 @@ export interface Asset {
 
 export interface Pagination {
   pageNumber: number;
-  assetsPerPage: number;
-  totalAssetsReturned: number;
+  assetsPerPage?: number;
+  logsPerPage?: number;
+  totalAssetsReturned?: number;
   totalPages: number;
 }

@@ -10,195 +10,202 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/solid";
 import Pagination from "@mui/material/Pagination";
+import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/types";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
-interface Log {
-  id: string;
-  user: { userId: string; name: string };
-  asset?: { blobId: string; filename: string };
-  project: { projectId: string; name: string };
-  action: string;
-  timestamp: string;
-}
+// interface Log {
+//   id: string;
+//   user: { userId: string; name: string };
+//   asset?: { blobId: string; filename: string };
+//   project: { projectId: string; name: string };
+//   action: string;
+//   timestamp: string;
+// }
 
 interface User {
   userId: string;
   name: string;
 }
 
-const TempUsers: User[] = [
-  { userId: "1", name: "John" },
-  { userId: "2", name: "Luke" },
-  { userId: "3", name: "Admin Aaron" },
-];
+interface PaginatedLogs {
+  logs: Log[];
+  pagination: PaginationType;
+}
 
-const TempProjects = [
-  { projectId: "1", name: "Project 1" },
-  { projectId: "2", name: "Project 2" },
-];
+// const TempUsers: User[] = [
+//   { userId: "1", name: "John" },
+//   { userId: "2", name: "Luke" },
+//   { userId: "3", name: "Admin Aaron" },
+// ];
 
-const TempAssets = [
-  { blobId: "1", filename: "Asset1.png" },
-  { blobId: "2", filename: "Asset2.png" },
-];
+// const TempProjects = [
+//   { projectId: "1", name: "Project 1" },
+//   { projectId: "2", name: "Project 2" },
+// ];
 
-const TempLogs: Log[] = [
-  {
-    id: "1",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "2",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "3",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "4",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "5",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "6",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "7",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "8",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "9",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "10",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "11",
-    user: TempUsers[2],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "12",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-];
+// const TempAssets = [
+//   { blobId: "1", filename: "Asset1.png" },
+//   { blobId: "2", filename: "Asset2.png" },
+// ];
+
+// const TempLogs: Log[] = [
+//   {
+//     id: "1",
+//     user: TempUsers[0],
+//     asset: {
+//       blobId: "1",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Uploaded",
+//     timestamp: "2011-10-05T14:48:00.000Z",
+//   },
+//   {
+//     id: "2",
+//     user: TempUsers[0],
+//     asset: {
+//       blobId: "1",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Uploaded",
+//     timestamp: "2011-10-05T14:48:00.000Z",
+//   },
+//   {
+//     id: "3",
+//     user: TempUsers[0],
+//     asset: {
+//       blobId: "1",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Uploaded",
+//     timestamp: "2011-10-05T14:48:00.000Z",
+//   },
+//   {
+//     id: "4",
+//     user: TempUsers[1],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "5",
+//     user: TempUsers[1],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "6",
+//     user: TempUsers[1],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "7",
+//     user: TempUsers[1],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "8",
+//     user: TempUsers[1],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "9",
+//     user: TempUsers[2],
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Modified tags",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "10",
+//     user: TempUsers[2],
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Modified tags",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "11",
+//     user: TempUsers[2],
+//     asset: {
+//       blobId: "2",
+//       filename: "file1.jpg",
+//     },
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Downloaded",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+//   {
+//     id: "12",
+//     user: TempUsers[2],
+//     project: {
+//       projectId: "1",
+//       name: "Project 1",
+//     },
+//     action: "Modified tags",
+//     timestamp: "2011-10-07T11:48:00.000Z",
+//   },
+// ];
 
 interface ItemsProps {
   currentItems?: Log[];
@@ -344,29 +351,51 @@ const LogsTable = () => {
     setCurrentItems(items);
   };
 
-  const fetchLogs = async (page: number, filters: {}) => {
-    console.log("Fetching logs with filters: ", filters);
-    // TODO: await fetch logs
+  const fetchLogs = async (page: number) => {
+    const queryParams = new URLSearchParams({
+      pageSize: String(10),
+      pageNumber: String(page),
+      userID: String(selectedUser),
+      projectID: String(selectedProject),
+      assetID: selectedAsset,
+    }).toString();
+    const response = await fetchWithAuth(
+      `logs?${queryParams}`
+    );
+
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch assets (Status: ${response.status} - ${response.statusText})`
+      );
+      return { assets: [], totalPages: 0 };
+    }
+
+    const data = (await response.json()) as PaginatedLogs;
+
     return {
-      items: TempLogs.slice(
-        page * itemsPerPage - itemsPerPage,
-        page * itemsPerPage
-      ),
-      totalPages: totalPages,
+      assets: data.assets,
+      totalPages: data.pagination.totalPages,
     };
   };
 
   useEffect(() => {
-    fetchLogs(1, {
-      selectedUser,
-      selectedAsset,
-      selectedProject,
-      selectedDate,
-    }).then(({ items, totalPages }) => {
+    setCurrentPage(1);
+    fetchLogs(1).then(({ items, totalPages }) => {
       setCurrentItems(items);
       setTotalPages(totalPages);
     });
   }, [selectedUser, selectedAsset, selectedProject, selectedDate]);
+
+  // useEffect(() => {
+  //   getProject()
+  //     .then((project: ProjectWithTags) => {
+  //       setUsers(project.admins.concat(project.regularUsers));
+  //       setTags(project.tags);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error fetching project:", error);
+  //     });
+  // }, []);
 
   return (
     <>

@@ -77,10 +77,10 @@ namespace APIs.Controllers
 
             return Results.Ok(new
             {
-                currentPage = pageNumber,
-                totalPages = totalPages,
-                pageSize = pageSize,
-                totalRecords = totalRecords,
+                pageNumber,
+                totalPages,
+                logsPerPage = pageSize,
+                totalLogs = totalRecords,
                 data = paginatedLogs
             });
         }
