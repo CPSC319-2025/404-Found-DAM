@@ -98,7 +98,10 @@ app.UseCors("AllowReactApp");
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthorization();
+
+app.UseMiddleware<APIs.Middleware.AuthMiddleware>();
+
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
