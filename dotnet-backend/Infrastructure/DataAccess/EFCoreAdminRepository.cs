@@ -539,7 +539,9 @@ namespace Infrastructure.DataAccess
                         {
                             if (!tagLookup.TryGetValue(tagName.ToLower(), out Tag? existingTag))
                             {
-                                throw new Exception($"Tag '{tagName}' does not exist. All tags must be pre-configured.");
+                                existingTag = new Tag { Name = tagName };
+                                tagList.Add(existingTag);
+                                tagLookup[tagName.ToLower()] = existingTag;
                             }
 
                             var newProjectTag = new ProjectTag
@@ -564,11 +566,11 @@ namespace Infrastructure.DataAccess
                 // Console.WriteLine("done");
                 return projectList;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // Console.WriteLine(ex.Message);
                 await transaction.RollbackAsync(); // Undo any changes made within a database transaction
-                throw new Exception("Failed to create projects");
+                throw new Exception("Failed to create projects" + e.Message);
             }
         }
 
