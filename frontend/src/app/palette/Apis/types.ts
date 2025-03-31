@@ -1,15 +1,17 @@
+import { User } from "@/app/types";
 /**
  * Interface for project information
  */
 export interface Project {
   projectID: number;
   projectName: string;
+  active: boolean;
   location: string;
   description: string;
   creationTime: string;
   assetCount: number;
-  adminNames: string[];
-  regularUserNames: string[];
+  admins: User[];
+  regularUsers: User[];
 }
 
 /**

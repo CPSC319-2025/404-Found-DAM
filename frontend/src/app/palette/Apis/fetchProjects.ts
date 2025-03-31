@@ -10,15 +10,15 @@ export async function fetchProjects(): Promise<Project[]> {
     const res = await fetchWithAuth("projects");
     
     if (!res.ok) {
-      console.error("Failed to fetch project logs:", res.status);
+      console.error("Failed to fetch project:", res.status);
       return [];
     }
-    
+
     const data = await res.json();
-    
+
     // Return the projects array if it exists, otherwise empty array
     if (data.fullProjectInfos) {
-      return data.fullProjectInfos;
+      return data.fullProjectInfos.filter((p: Project) => p.active);
     } else {
       console.warn("No 'logs' found in response:", data);
       return [];

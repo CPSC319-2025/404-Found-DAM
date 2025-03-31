@@ -10,10 +10,6 @@ export async function submitAssets(projectId: string, blobIds: string[]): Promis
   try {
     const response = await fetchWithAuth(`palette/${projectId}/submit-assets`, {
       method: "PATCH",
-      headers: {
-        Authorization: "Bearer MY_TOKEN",
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ blobIDs: blobIds }), // e.g. { "blobIDs": [123, 456] }
     })
 

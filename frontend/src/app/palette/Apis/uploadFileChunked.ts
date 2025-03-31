@@ -12,29 +12,29 @@ export async function uploadFileChunked(
   callbacks: UploadProgressCallbacks
 ): Promise<string | undefined> {
   const { onProgress, onSuccess, onError } = callbacks;
-  
+
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
   const totalChunks = Math.ceil(file.size / chunkSize);
   const chunkProgress = 100 / totalChunks;
   let chunkNumber = 0;
   let start = 0;
   let end = chunkSize;
-  let lastResponse: { 
-    blobId?: string; 
-    message?: string; 
-    chunkNumber?: number; 
-    totalChunks?: number; 
-    fileName?: string 
+  let lastResponse: {
+    blobId?: string;
+    message?: string;
+    chunkNumber?: number;
+    totalChunks?: number;
+    fileName?: string
   } | null = null;
 
   try {
     while (start < file.size) {
       // Adjust end to not exceed file size
       end = Math.min(start + chunkSize, file.size);
-      
+
       // Slice the file to get the current chunk
       const chunk = file.slice(start, end);
-      
+
       // Create form data for this chunk
       const formData = new FormData();
       formData.append("file", chunk, "chunk");
@@ -44,7 +44,8 @@ export async function uploadFileChunked(
 
       const response = await fetchWithAuth("upload/chunk", {
         method: "POST",
-        body: formData,
+        body: formData as BodyInit,
+        headers: {}
       })
 
       if (!response.ok) {

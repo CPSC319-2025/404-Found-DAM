@@ -60,10 +60,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
   try {
     // First, get metadata for all files
     const response = await fetchWithAuth(`palette/assets?decompress=true`, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer MY_TOKEN",
-      },
+      method: "GET"
     })
 
     if (!response.ok) {
@@ -99,9 +96,6 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
       // Download each file individually with decompression done on the server
       const fileResponse = await fetchWithAuth(`palette/assets/${blobId}?decompress=true`, {
         method: "GET",
-        headers: {
-          Authorization: "Bearer MY_TOKEN",
-        }
       })
       
       if (!fileResponse.ok) {

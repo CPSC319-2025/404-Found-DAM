@@ -256,7 +256,7 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some(user => user.userID === user?.userID)
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
         )
       );
     } catch (error) {
@@ -271,7 +271,7 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some(user => user.userID === user?.userID)
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
         )
       );
       return;
@@ -296,7 +296,7 @@ export default function ProjectsPage() {
     setAllProjects(filteredProjects);
     setMyProjects(
       filteredProjects.filter((p: ProjectCardProps) =>
-        p.allUsers?.some(user => user.userID === user?.userID)
+        p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
       )
     );
   };
@@ -325,7 +325,7 @@ export default function ProjectsPage() {
         setAllProjects(projects);
         setMyProjects(
           projects.filter((p: ProjectCardProps) =>
-            p.allUsers?.some(user => user.userID === user?.userID)
+            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
           )
         );
         setAllUsers(users as User[]);

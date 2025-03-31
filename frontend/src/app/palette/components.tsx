@@ -13,8 +13,6 @@ interface Project {
   description: string;
   creationTime: string;
   assetCount: number;
-  adminNames: string[];
-  regularUserNames: string[];
 }
 
 type FileTableProps = {
@@ -200,10 +198,6 @@ export default function FileTable({
     try {
       const response = await fetchWithAuth(`projects/${newProjectID}/associate-assets`, {
         method: "PATCH",
-        headers: {
-          Authorization: "Bearer MY_TOKEN",
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           projectID: parseInt(newProjectID),
           blobIDs: [fileMeta.blobId],

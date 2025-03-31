@@ -19,18 +19,8 @@ import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/t
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
-interface User {
-  userId: string;
-  name: string;
-}
-
 interface PaginatedLogs extends PaginationType {
   data: Log[];
-}
-
-interface LogVerbose extends Log {
-  userInfo: User;
-  project: Project;
 }
 
 interface ItemsProps {
@@ -63,7 +53,7 @@ function getIconForChangeType(changeType: string) {
 function Items({ currentItems }: ItemsProps) {
   return (
     <div className="grid bg-gray-50 overflow-y-auto mt-4 p-4">
-      {currentItems && currentItems.map((log: LogVerbose) => {
+      {currentItems && currentItems.map((log: Log) => {
         const IconComponent = getIconForChangeType(log.change_type);
 
         return (
@@ -90,7 +80,7 @@ function Items({ currentItems }: ItemsProps) {
 const LogsTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [currentItems, setCurrentItems] = useState<LogVerbose[]>([]);
+  const [currentItems, setCurrentItems] = useState<Log[]>([]);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedProject, setSelectedProject] = useState<number>(0);
@@ -183,13 +173,8 @@ const LogsTable = () => {
     setUsers(verboseUsers);
 
     const { logs, totalPages } = await getLogs(page);
-    const verboseLogs: LogVerbose[] = logs.map((log) => ({
-      ...log,
-      userInfo: users.find((user) => user.userID === log.user) || null,
-      project: projects.find((project) => project.projectID === log.project_id) || null,
-    }));
 
-    setCurrentItems(verboseLogs);
+    setCurrentItems(logs);
     setTotalPages(totalPages);
   }
 
