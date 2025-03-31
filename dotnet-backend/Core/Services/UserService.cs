@@ -39,7 +39,7 @@ namespace Core.Services
             {
                 Id = user.UserID,
                 Name = user.Name,
-                Email = user.Name,
+                Email = user.Email,
                 Roles = roles
             };
         }

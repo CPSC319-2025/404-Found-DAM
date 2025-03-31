@@ -210,5 +210,17 @@ namespace Core.Services
                 throw;
             }
         }
+        public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
+        {
+            return await _paletteRepository.GetAssetNameByBlobIdAsync(blobID);
+        }
+
+        public async Task<string?> GetProjectNameByIdAsync(int projectID) {
+            return await _paletteRepository.GetProjectNameByIdAsync(projectID);
+        }
+
+        public async Task<string?> GetTagNameByIdAsync(int tagID) {
+            return await _paletteRepository.GetTagNameByIdAsync(tagID);
+        }
     }
 }

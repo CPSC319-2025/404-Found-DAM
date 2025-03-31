@@ -19,6 +19,9 @@ namespace Core.Interfaces
         Task<List<Asset>> GetProjectAndAssetsInDb(int projectID);
         Task UpsertAssetMetadataAsync(string imageId, int fieldId, JsonElement fieldValueElement);
         Task<List<Project>> GetProjectsForUserInDb(int userId);
+        Task<string?> GetAssetNameByBlobIdAsync(string blobID);
+        Task<string?> GetTagNameByIdAsync(int tagId);
+        Task<string?> GetProjectNameByIdAsync(int projectID);
     }
 
 }

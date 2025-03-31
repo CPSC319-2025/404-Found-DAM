@@ -7,6 +7,7 @@ import { useUser } from "@/app/context/UserContext";
 import { User } from "@/app/types";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
 interface ProjectCardProps {
   id: string;
@@ -27,8 +28,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const { user } = useUser();
   const router = useRouter();
-  //format creationTime into readable string
-  const formattedCreationTime = new Date(creationTime).toLocaleString();
+  const formattedCreationTime = convertUtcToLocal(creationTime);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);

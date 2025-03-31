@@ -23,6 +23,10 @@ namespace Core.Interfaces  {
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
 
+        Task<string?> GetAssetNameByBlobIdAsync(string blobID);
+        Task<string?> GetTagNameByIdAsync(int tagId);
+        Task<string?> GetProjectNameByIdAsync(int projectID);
+
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
     }
 }

@@ -436,6 +436,18 @@ namespace Core.Services
             return result;
         }
 
+        public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
+        {
+            return await _repository.GetAssetNameByBlobIdAsync(blobID);
+        }
+
+        public async Task<string?> GetProjectNameByIdAsync(int projectID) {
+            return await _repository.GetProjectNameByIdAsync(projectID);
+        }
+
+        public async Task<string?> GetTagNameByIdAsync(int tagID) {
+            return await _repository.GetTagNameByIdAsync(tagID);
+        }
         public async Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID)
         {
             List<(string, string)> assetIdNameTuples = new List<(string, string)>();

@@ -308,7 +308,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             <option value="">Filter by User</option>
             {users.map((user: any) => (
               <option key={user.userID} value={user.userID}>
-                {user.name}
+                {user.name} ({user.email})
               </option>
             ))}
           </select>
