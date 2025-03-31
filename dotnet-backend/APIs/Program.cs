@@ -63,7 +63,7 @@ builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
-// Configure JWT Authentication // todo: temporarily commented out
+// Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -98,18 +98,6 @@ if (!builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
-
-// static dependency injection
-// using (var scope = app.Services.CreateScope())
-// {
-//     var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
-//     var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
-//     var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
-//     ProjectController.Initialize(activityLogService, projectService, userService);
-//     PaletteController.Initialize(activityLogService, userService);
-//     // AdminController.Initialize(activityLogService, projectService, userService);
-// }
-
 
 app.UseCors("AllowReactApp");
 
@@ -148,7 +136,7 @@ app.MapPaletteEndpoints();
 app.MapSearchEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
-app.MapActivityLogEndpoints(); // sean todo
+app.MapActivityLogEndpoints();
 app.MapFileUploadEndpoints();
 
 // Create/migrate database
