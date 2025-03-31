@@ -122,9 +122,7 @@ namespace APIs.Controllers
         {
             try 
             {
-                // TODO: replace MOCKEDUSERID with authenticated userID
-                int userID = MOCKEDUSERID;
-                GetAllProjectsRes result = await projectService.GetAllProjects(userID);
+                GetAllProjectsRes result = await projectService.GetAllProjects(); 
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
@@ -451,9 +449,9 @@ namespace APIs.Controllers
                 );
             }
         }        
-        private static async Task<IResult> GetMyProjects(IProjectService projectService)
+        private static async Task<IResult> GetMyProjects(IProjectService projectService, HttpContext context)
         {
-            int userId = MOCKEDUSERID;
+            int userId = Convert.ToInt32(context.Items["userId"]);
             List<GetProjectRes> result = await projectService.GetMyProjects(userId);
             return Results.Ok(result);
         }

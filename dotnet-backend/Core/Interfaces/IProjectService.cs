@@ -10,7 +10,7 @@ namespace Core.Interfaces
         Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs);
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<GetProjectRes> GetProject(int projectID);
-        Task<GetAllProjectsRes> GetAllProjects(int requesterID); 
+        Task<GetAllProjectsRes> GetAllProjects(); 
         Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int reqeusterID);
         Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req);
         Task<List<GetProjectRes>> GetMyProjects(int userId);

@@ -34,6 +34,7 @@ export interface ProjectMetadataField {
 export interface Project {
   projectID: number;
   projectName: string;
+  name?: string; // /projects/{id} returns this
   location: string;
   description: string;
   creationTime: string; // ISO
