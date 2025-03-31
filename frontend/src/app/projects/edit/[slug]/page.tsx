@@ -71,7 +71,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [formDisabled, setFormDisabled] = useState(true);
 
-  const [tagOptions, setTagOptions] = useState<string[]>([]);
+  // const [tagOptions, setTagOptions] = useState<string[]>([]);
 
   const [formFields, setFormFields] = useState<FormFieldType[]>(
     editProjectFormFields
@@ -131,6 +131,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const onSubmit = (updatedFormData: FormData) => {
     let anyDeletions = false;
+    let anyDisabled = false;
 
     const metadataFields = formFields.find(
       (field) => field.name === "metadata"
@@ -144,6 +145,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         (oldField) =>
           !newMetadata.some((newField) => newField.id === oldField.id)
       );
+
+      anyDisabled = oldMetadata.some(
+        (oldField) =>
+          oldField.enabled &&
+          newMetadata.some(
+            (newField) => newField.id === oldField.id && !newField.enabled
+          )
+      );
     }
 
     const confirmMessages = [];
@@ -154,9 +163,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       );
     }
 
-    confirmMessages.push(
-      " Any disabled custom metadata fields will become unusable."
-    );
+    if (anyDisabled) {
+      confirmMessages.push(
+        "Warning: any disabled custom metadata fields will become unusable."
+      );
+    }
 
     setConfirmMessages(confirmMessages);
     setConfirmPopup(true);
@@ -276,7 +287,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       })
       .then((tags) => {
         // Set state for tags and pass them along in the chain
-        setTagOptions(tags);
+        // setTagOptions(tags);
         return fetchProject().then((project) => ({ project, tags }));
       })
       .then(({ project, tags }) => {
@@ -331,8 +342,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         );
 
         if (
-          user?.superadmin ||
-          project.admins.find((admin) => admin.userID === user!.userID)
+          (user?.superadmin ||
+          project.admins.find((admin) => admin.userID === user!.userID)) && project.active
         ) {
           setFormDisabled(false);
         }
@@ -360,6 +371,9 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           name: `${user.name} (${user.email})`,
         }));
         field.onChange = onUserChange;
+        if (!user?.superadmin) {
+          field.disabled = true;
+        }
       }
 
       if (field.name === "users") {
@@ -394,7 +408,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       {!loading && (
         <GenericForm
           title=""
-          isModal={true}
+          isModal={false}
           fields={formFields}
           onSubmit={onSubmit}
           onCancel={onCancel}
