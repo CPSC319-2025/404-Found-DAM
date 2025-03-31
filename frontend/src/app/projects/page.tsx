@@ -110,7 +110,7 @@ export default function ProjectsPage() {
 
   const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
   const [pendingConfigureFormData, setPendingConfigureFormData] =
-    useState<FormData | null>(null);
+    useState<FormDataType | null>(null);
 
   // Global Tags
   const fetchTags = async () => {
@@ -186,7 +186,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleSubmitConfigureTags = async (formData: FormData) => {
+  const handleSubmitConfigureTags = async (formData: FormDataType) => {
     const updatedTags = (formData.tags as string[])
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
@@ -215,7 +215,7 @@ export default function ProjectsPage() {
     }
   }, [addTagsModalOpen]);
 
-  const handleAddProject = async (formData: FormData) => {
+  const handleAddProject = async (formData: FormDataType) => {
     const payload = [
       {
         defaultMetadata: {
@@ -234,8 +234,7 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await 
-      ("projects", {
+      const response = await fetchWithAuth("projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -341,7 +340,7 @@ export default function ProjectsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const onSubmitConfigureTags = (formData: FormData) => {
+  const onSubmitConfigureTags = (formData: FormDataType) => {
     setPendingConfigureFormData(formData);
     setConfirmConfigurePopup(true);
   };
@@ -519,6 +518,7 @@ export default function ProjectsPage() {
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
+                      admins={project.admins}
                     />
                   </div>
                 ))}
