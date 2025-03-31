@@ -179,61 +179,6 @@ namespace Infrastructure.DataAccess
             var projectMemberships = projects.SelectMany(p => p.ProjectMemberships).ToList();
 
             return (projects, users, projectMemberships);
-
-            /*using DAMDbContext _context = _contextFactory.CreateDbContext();
-
-            // Get projectmemberhips associated with the requester
-            // var requesterProjectMemberships = await _context.ProjectMemberships
-            //     .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
-            //     .Include(pm => pm.Project)
-            //         .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
-            //     .ToListAsync();
-            
-            var projects = await _context.Projects
-                .AsNoTracking()
-                .Include(p => p.ProjectMemberships)
-                .ToListAsync();
-            
-            if (projects.Any()) 
-            {
-                List<int> projectIDList = projects.Select(p => p.ProjectID).ToList();
-
-                List<Project> foundProjectList = new List<Project>();
-                HashSet<int> userIDSet = new HashSet<int>();
-                List<ProjectMembership> projectMemberships = new List<ProjectMembership>();
-
-                foreach (var pID in projectIDList) 
-                {
-                    // Eagerly load project and its collections.
-                    var project = await _context.Projects
-                        .Include(p => p.ProjectMemberships)
-                        .FirstOrDefaultAsync(p => p.ProjectID == pID);                    
-    
-                    // Collect all users' IDs via project p's projectMemberships, and add these projectMemberships
-                    if (project != null && !foundProjectList.Contains(project)) 
-                    {
-                        foreach (var pm in project.ProjectMemberships) 
-                        {
-                            // Console.WriteLine($"projectID: ${pID}, userID: ${pm.UserID}");
-                            userIDSet.Add(pm.UserID);
-                            projectMemberships.Add(pm);
-                        }  
-                        foundProjectList.Add(project);
-                    }       
-                }
-
-                // Get all users associated with and ensure no duplicated user by checking against userIDSet
-                var users = await _context.Users
-                    .AsNoTracking()
-                    .Where(u => userIDSet.Contains(u.UserID))
-                    .ToListAsync();
-                
-                return (foundProjectList, users, projectMemberships);
-            }
-            else 
-            {
-                return (new List<Project>(), new List<User>(), new List<ProjectMembership>());
-            }*/
         }
 
         // Get ALL assets of a project from database
