@@ -20,6 +20,7 @@ export async function removeFile(fileMeta: FileMetadata): Promise<boolean> {
 
   try {
     // Make the DELETE request with form data
+    console.log("calling removeFile with", fileMeta);
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset`, {
       method: "DELETE",
       body: formData,

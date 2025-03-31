@@ -1,6 +1,7 @@
 using Core.Interfaces;
 using Core.Dtos;
 
+
 namespace APIs.Controllers
 {
     public static class SearchController

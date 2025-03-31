@@ -14,6 +14,16 @@ namespace APIs.Controllers
     {
         private const int MOCKEDUSERID = 1;
 
+        private const bool verboseLogs = false;
+
+        private const bool logDebug = false;
+
+        private static IServiceProvider GetServiceProvider(HttpContext context)
+        {
+            return context.RequestServices; // for activity log
+
+        }
+
         public static void MapFileUploadEndpoints(this WebApplication app)
         {
             // Test endpoint to verify service is running
@@ -22,9 +32,9 @@ namespace APIs.Controllers
                 .WithOpenApi();
 
             // Endpoint for receiving file chunks
-            app.MapPost("/upload/chunk", async (HttpRequest request, IFileService fileService) =>
+            app.MapPost("/upload/chunk", async (HttpRequest request, IFileService fileService, HttpContext context) =>
             {
-                return await UploadChunk(request, fileService);
+                return await UploadChunk(request, fileService, context);
             })
             .WithName("UploadChunk")
             .WithOpenApi();
@@ -51,10 +61,18 @@ namespace APIs.Controllers
             .WithOpenApi();
         }
 
-        private static async Task<IResult> UploadChunk(HttpRequest request, IFileService fileService)
+        private static async Task<IResult> UploadChunk(HttpRequest request, IFileService fileService, HttpContext context)
         {
             try
             {
+
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
+
                 // Check if request has form data
                 if (!request.HasFormContentType || request.Form.Files.Count == 0)
                 {
@@ -102,6 +120,40 @@ namespace APIs.Controllers
                     
                     if (mergeResult.Success)
                     {
+                        Console.WriteLine("fileuploadcontroller.upload chunk mergeResult.Sucess");
+                        try
+                        {
+                            string theDescription = "";
+
+                            var user = await userService.GetUser(userId);
+                            var assetName = await projectService.GetAssetNameByBlobIdAsync(mergeResult.BlobId);
+
+                            if (verboseLogs) {
+                                theDescription = $"{userId} uploaded {assetName} to their palette"; // $"{userId} uploaded {formFile.FileName} to their palette";
+
+                            } else {
+                                theDescription = $"{user.Email} uploaded {assetName} to their palette";
+                            }
+
+                            if (logDebug) {
+                                theDescription += "[Add Log called by FileUploadController.UploadChunk - (result.IsLastChunk && result.AllChunksReceived)]";
+                                Console.WriteLine(theDescription);
+                            }
+
+                            var log = new CreateActivityLogDto
+                            {
+                                userID = MOCKEDUSERID,
+                                changeType = "Uploaded",
+                                description = theDescription,
+                                projID = 0, // no project
+                                assetID = mergeResult.BlobId,
+                                isAdminAction = false
+                            };
+
+                            activityLogService.AddLogAsync(log);
+                        } catch (Exception ex) {
+                            Console.WriteLine("Failed to write log - FileUploadController.UploadChunk");
+                        }
                         return Results.Ok(new
                         {
                             message = "File uploaded and merged successfully",
@@ -117,11 +169,14 @@ namespace APIs.Controllers
                             title: "Error merging chunks"
                         );
                     }
+
+                    
                 }
 
                 // For chunk uploads
                 if (result.IsLastChunk)
                 {
+                    Console.WriteLine("fileuploadcontroller.upload chunk result.IsLastChunk");
                     // Last chunk but not all chunks received yet
                     return Results.Ok(new
                     {
@@ -131,6 +186,7 @@ namespace APIs.Controllers
                         fileName = fileName
                     });
                 }
+                Console.WriteLine("fileuploadcontroller.upload chunk ELSE");
                 
                 return Results.Ok(new
                 {
