@@ -1,4 +1,4 @@
-export function convertUtcToLocal(utcDateString) {
+export function convertUtcToLocal(utcDateString: string): string {
   if (!utcDateString.endsWith('Z')) {
     utcDateString += 'Z';
   }

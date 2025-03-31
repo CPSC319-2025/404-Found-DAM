@@ -1,4 +1,5 @@
 import { BlobDetails } from './types';
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Fetches project and tags for a blob
@@ -7,9 +8,7 @@ import { BlobDetails } from './types';
  */
 export async function fetchBlobDetails(blobId: string): Promise<BlobDetails> {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`
-    );
+    const response = await fetchWithAuth(`/palette/blob/${blobId}/details`);
     
     if (!response.ok) {
       console.error(`Failed to fetch details for blob ${blobId}: ${response.status}`);

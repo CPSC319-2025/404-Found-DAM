@@ -20,6 +20,7 @@ interface ProjectCardProps {
   assetCount: number;
   admins: User[];
   userNames: string[];
+  allUsers?: User[];
 }
 
 interface GetAllProjectsResponse {
@@ -87,6 +88,7 @@ export default function ProjectsPage() {
   const [query, setQuery] = useState<string>("");
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
+  const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
 
@@ -174,6 +176,8 @@ export default function ProjectsPage() {
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
+            allUsers: project.admins
+              .concat(project.regularUsers)
           }) as ProjectCardProps
       );
     } catch (error) {
@@ -255,6 +259,11 @@ export default function ProjectsPage() {
 
       const projects = await fetchAllProjects();
       setAllProjects(projects);
+      setMyProjects(
+        projects.filter((p: ProjectCardProps) =>
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        )
+      );
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
@@ -265,6 +274,11 @@ export default function ProjectsPage() {
     const projects = await fetchAllProjects();
     if (!query.trim()) {
       setAllProjects(projects);
+      setMyProjects(
+        projects.filter((p: ProjectCardProps) =>
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        )
+      );
       return;
     }
 
@@ -283,6 +297,11 @@ export default function ProjectsPage() {
     );
 
     setAllProjects(filteredProjects);
+    setMyProjects(
+      filteredProjects.filter((p: ProjectCardProps) =>
+        p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+      )
+    );
   };
 
   const fetchUsers = async () => {
@@ -303,12 +322,18 @@ export default function ProjectsPage() {
     setLoading(true);
 
     // Fetch all projects (for filtering "My Projects") AND all users
+    // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
         setAllProjects(projects);
-        setAllUsers(users);
-        setAdminOptions(users);
-        setRegularUserOptions(users);
+        setMyProjects(
+          projects.filter((p: ProjectCardProps) =>
+            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          )
+        );
+        setAllUsers(users as User[]);
+        setAdminOptions(users as User[]);
+        setRegularUserOptions(users as User[]);
       })
       .catch((error) => {
         console.error("Error loading initial data:", error);
@@ -404,19 +429,6 @@ export default function ProjectsPage() {
     };
   }, []);
       
-//   const myProjects = allProjects.filter((project) =>
-//     project.userNames.includes("Isabella Sanchez")
-//   );
-
-//   const filteredAllProjects = allProjects.filter(
-//     (project) => !project.userNames.includes("Isabella Sanchez")
-//   );
-//   const myProjects = allProjects; // TODO
-
-//   const filteredAllProjects = []; // TODO
-
-//   const overallProjectsExist = allProjects.length > 0 || myProjects.length > 0;
-
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
@@ -463,22 +475,19 @@ export default function ProjectsPage() {
           )}
         </div>
       </div>
-      {/* case 1: there are no projects overall */}
       {allProjects && allProjects.length < 1 && (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-2xl text-gray-500">No projects to display!</p>
         </div>
       )}
 
-      {/* else display the project sections */}
       {allProjects && allProjects.length > 0 && (
         <>
-          {/* My Projects */}
           <div>
             <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
-            {allProjects.length > 0 ? (
+            {myProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {allProjects.map((project) => (
+                {myProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -498,29 +507,34 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          {/* All Projects Section filtering projects not belonging to me */}
-          {/* {filteredAllProjects.length > 0 && (*/}
-          {/*  <div className="mt-8">*/}
-          {/*    <h1 className="text-2xl font-semibold mb-4">All Projects</h1>*/}
-          {/*    <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">*/}
-          {/*      {filteredAllProjects.map((project) => (*/}
-          {/*        <div key={project.projectID} className="w-full h-full">*/}
-          {/*          <ProjectCard*/}
-          {/*            id={String(project.projectID)}*/}
-          {/*            name={project.name}*/}
-          {/*            creationTime={project.creationTime}*/}
-          {/*            assetCount={project.assetCount}*/}
-          {/*            userNames={project.userNames}*/}
-          {/*          />*/}
-          {/*        </div>*/}
-          {/*      ))}*/}
-          {/*    </div>*/}
-          {/*  </div>*/}
-          {/*)}*/}
+          {allProjects.length > 0 && (
+            <div className="mt-8">
+              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
+                {allProjects.map((project) => (
+                  <div key={project.projectID} className="w-full h-full">
+                    <ProjectCard
+                      id={String(project.projectID)}
+                      name={project.name}
+                      creationTime={project.creationTime}
+                      assetCount={project.assetCount}
+                      userNames={project.userNames}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
               
       <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
+
+      {query.trim() && (
+        <div>
+          <h1 className="text-2xl font-semibold mb-4">Found Assets</h1>
+        </div>
+      )}
 
       {newProjectModalOpen && (
         <GenericForm

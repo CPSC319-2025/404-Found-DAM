@@ -4,6 +4,7 @@ import React, { useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 interface Project {
   projectID: number;
@@ -12,8 +13,6 @@ interface Project {
   description: string;
   creationTime: string;
   assetCount: number;
-  adminNames: string[];
-  regularUserNames: string[];
 }
 
 type FileTableProps = {
@@ -66,21 +65,16 @@ export default function FileTable({
     // Call API to delete the tag
     async function deleteTag() {
       try {
-        console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
-        
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              BlobIds: [fileMeta.blobId],
-              TagIds: [tagIdToRemove]
-            })
-          }
-        );
+        const response = await fetchWithAuth(`/palette/assets/tags`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            BlobIds: [fileMeta.blobId],
+            TagIds: [tagIdToRemove]
+          })
+        });
 
         if (!response.ok) {
           console.error("Failed to delete tag:", response.status);
@@ -148,20 +142,16 @@ export default function FileTable({
     // Call the API to delete all tags from the backend if there are any
     if (fileMeta.tags.length > 0 && fileMeta.blobId) {
       try {
-        console.log(fileMeta.tags);
-        const deleteTagsResponse = fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              BlobIds: [fileMeta.blobId],
-              TagIds: fileMeta.tagIds
-            })
-          }
-        );
+        const deleteTagsResponse = fetchWithAuth(`palette/assets/tags`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            BlobIds: [fileMeta.blobId],
+            TagIds: fileMeta.tagIds
+          })
+        })
         console.log("Cleared all existing tags");
       } catch (err) {
         console.error("Error clearing tags:", err);
@@ -206,23 +196,16 @@ export default function FileTable({
 
     // Call the API to associate the asset with the project
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${newProjectID}/associate-assets`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: "Bearer MY_TOKEN",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectID: parseInt(newProjectID),
-            blobIDs: [fileMeta.blobId],
-            tagIDs: [],
-            metadataEntries: []
-          }),
-        }
-      );
-      
+      const response = await fetchWithAuth(`projects/${newProjectID}/associate-assets`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          projectID: parseInt(newProjectID),
+          blobIDs: [fileMeta.blobId],
+          tagIDs: [],
+          metadataEntries: []
+        }),
+      })
+
       if (!response.ok) {
         console.error("Associate asset failed:", response.status);
         return;
@@ -241,9 +224,7 @@ export default function FileTable({
 
     // Call the API to get asset details from the blobId
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${fileMeta.blobId}/details`
-      );
+      const response = await fetchWithAuth(`palette/blob/${fileMeta.blobId}/details`);
       
       if (response.ok) {
         const data = await response.json();

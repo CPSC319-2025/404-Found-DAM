@@ -16,6 +16,7 @@ import {
   UploadProgressCallbacks,
   Project
 } from "./Apis";
+import { useUser } from "@/app/context/UserContext";
 
 // Simple Button component
 const Button = ({ 
@@ -48,6 +49,7 @@ const Progress = ({
 );
 
 export default function PalettePage() {
+  const { user } = useUser();
   const router = useRouter();
   const { files, setFiles } = useFileContext();
 
@@ -141,7 +143,11 @@ export default function PalettePage() {
   useEffect(() => {
     const loadProjects = async () => {
       const projectsData = await fetchProjects();
-      setProjects(projectsData);
+      const userProjects = projectsData.filter((project) =>
+        project.admins.some((admin) => admin.userID === user?.userID) ||
+        project.regularUsers.some((regularUser) => regularUser.userID === user?.userID)
+      );
+      setProjects(userProjects);
     };
 
     loadProjects();

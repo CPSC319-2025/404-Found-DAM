@@ -1,4 +1,5 @@
 import { FileMetadata } from "@/app/context/FileContext";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Removes a file from the palette
@@ -21,11 +22,12 @@ export async function removeFile(fileMeta: FileMetadata): Promise<boolean> {
   try {
     // Make the DELETE request with form data
     console.log("calling removeFile with", fileMeta);
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset`, {
+    const response = await fetchWithAuth(`palette/asset`, {
       method: "DELETE",
       body: formData,
       // No need to set 'Content-Type'; fetch does it automatically for FormData
-    });
+    })
+
 
     if (!response.ok) {
       throw new Error(`Delete failed with status ${response.status}`);
