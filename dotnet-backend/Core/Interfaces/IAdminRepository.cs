@@ -14,6 +14,6 @@ namespace Core.Interfaces
         Task<List<User>> GetAllUsers();
         Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> AddUsersToProjectInDb(int reqeusterID, int projectID, AddUsersToProjectReq req);
         Task<(HashSet<int>, HashSet<int>, HashSet<int>, HashSet<int>)> DeleteUsersFromProjectInDb(int reqeusterID, int projectID, DeleteUsersFromProjectReq req);
-        Task<(int, List<UserCustomInfo>)> ImportProjectInDB(List<Project> projectList, List<ProjectTag> projectTagList, List<Tag> tagList, List<ImportUserProfile> importUserProfileList);
+        Task<(int, List<UserCustomInfo>)> ImportProjectInDB(List<Project> projectList, List<string> tagNameList, List<ImportUserProfile> importUserProfileList);
     }
 }

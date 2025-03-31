@@ -257,7 +257,7 @@ namespace Core.Services.Utils
             }
         }
 
-        public static (List<Project>, List<ProjectTag>, List<Tag>, List<ImportUserProfile>) CreateProjectForImport(ZipArchiveEntry entry) 
+        public static (List<Project>, List<string>, List<ImportUserProfile>) CreateProjectForImport(ZipArchiveEntry entry) 
         {
             // Console.WriteLine($"zipArchive entry full name: {entry.FullName}");
             using Stream entryStream = entry.Open();
@@ -271,8 +271,7 @@ namespace Core.Services.Utils
             var nonEmptyProjectSheetRows = wsProject.RowsUsed(); 
             
             List<Project> projectList = new List<Project>();
-            List<ProjectTag> projectTagList = new List<ProjectTag>();
-            List<Tag> tagList = new List<Tag>();
+            List<string> tagNames = new List<string>();
             List<ImportUserProfile> importUserProfileList = new List<ImportUserProfile>();
 
 
@@ -296,20 +295,10 @@ namespace Core.Services.Utils
                     };
                     projectList.Add(p);
 
-                    // Create ProjectTags and Tags
+                    // Collect tag names
                     string extractedProjectTagString = projectSheetRow.Cell(4).GetValue<string>();
-                    List<string> tagNames = extractedProjectTagString.Split(',').Select(tag => tag.Trim()).ToList();
-                    foreach (string tagName in tagNames)
-                    {
-                        Tag t = new Tag { Name = tagName };
-                        ProjectTag pt = new ProjectTag 
-                        {
-                            Project = p,
-                            Tag = t
-                        };
-                        projectTagList.Add(pt);
-                        tagList.Add(t);
-                    }
+                    tagNames = extractedProjectTagString.Split(',').Select(tag => tag.Trim()).ToList();
+                    
                 }
                 else if (projectSheetRowCount >= 4) 
                 {
@@ -328,7 +317,7 @@ namespace Core.Services.Utils
                 projectSheetRowCount++;
             }
 
-            return (projectList, projectTagList, tagList, importUserProfileList);
+            return (projectList, tagNames, importUserProfileList);
 
         }
 

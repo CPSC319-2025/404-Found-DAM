@@ -21,8 +21,7 @@ namespace Infrastructure.DataAccess
         public async Task<(int, List<UserCustomInfo>)> ImportProjectInDB
         (
             List<Project> projectList, 
-            List<ProjectTag> projectTagList, 
-            List<Tag> tagList, 
+            List<string> tagNameList,
             List<ImportUserProfile> importUserProfileList
         )
         {
@@ -30,6 +29,8 @@ namespace Infrastructure.DataAccess
 
             List<(User, ProjectMembership.UserRoleType)> existentUserAndRoleList = new List<(User, ProjectMembership.UserRoleType)>();
             List<UserCustomInfo> nonExistentUsers = new List<UserCustomInfo>();
+            List<ProjectTag> newProjectTagList = new List<ProjectTag>();
+            List<Tag> newGlobalTagList = new List<Tag>();
 
             // Get users if in the DB, or put into nonexistent list
             foreach (ImportUserProfile profile in importUserProfileList)
@@ -57,6 +58,52 @@ namespace Infrastructure.DataAccess
                 }
             }
                 
+            // Process tag names collected from the imported excel file.
+            // Add tag names that are not global to global tags first
+
+            var existingGlobalTags = await _context.Tags.ToListAsync(); // Retrive all global tags first
+
+            if (existingGlobalTags != null) 
+            {
+                foreach (string tagName in tagNameList)
+                {
+                    var tag = existingGlobalTags.FirstOrDefault(t => t.Name == tagName);
+
+                    if (tag == null) 
+                    {
+                        // No global tag with the name; create the global tag first
+                        tag = new Tag { Name = tagName };
+                        newGlobalTagList.Add(tag);
+                    }
+
+                    // Create ProjectTag
+                    ProjectTag pt = new ProjectTag 
+                    {
+                        Project = projectList[0],
+                        Tag = tag
+                    };
+                    newProjectTagList.Add(pt);
+                }
+            }
+            else 
+            {
+                // No global tags yet
+                foreach (string tagName in tagNameList)
+                {
+                    // Create Tag
+                    Tag tag = new Tag { Name = tagName };
+                    newGlobalTagList.Add(tag);
+
+                    // Create ProjectTag
+                    ProjectTag pt = new ProjectTag 
+                    {
+                        Project = projectList[0],
+                        Tag = tag
+                    };
+                    newProjectTagList.Add(pt);
+                }
+            }
+
         
             // Create projectMembershipList
             List<ProjectMembership> projectMembershipList = new List<ProjectMembership>();
@@ -72,11 +119,10 @@ namespace Infrastructure.DataAccess
             };
 
             // Store
-            await _context.Tags.AddRangeAsync(tagList);
+            await _context.Tags.AddRangeAsync(newGlobalTagList);
             await _context.Projects.AddRangeAsync(projectList);
-            await _context.ProjectTags.AddRangeAsync(projectTagList);
+            await _context.ProjectTags.AddRangeAsync(newProjectTagList);
             await _context.ProjectMemberships.AddRangeAsync(projectMembershipList);
-
             await _context.SaveChangesAsync();
             // Console.WriteLine("imported");
 

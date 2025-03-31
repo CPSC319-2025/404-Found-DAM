@@ -52,13 +52,12 @@ namespace Core.Services
             {
                 (
                     List<Project> projectList,
-                    List<ProjectTag> projectTagList,
-                    List<Tag> tagList,
+                    List<string> tagNameList, 
                     List<ImportUserProfile> importUserProfileList
                 ) = AdminServiceHelpers.CreateProjectForImport(xlsxEntry);
 
                 (int importedProjectID, List<UserCustomInfo> nonExistentUsers) 
-                    = await _adminRepository.ImportProjectInDB(projectList, projectTagList, tagList, importUserProfileList);
+                    = await _adminRepository.ImportProjectInDB(projectList, tagNameList, importUserProfileList);
 
                
                 GetProjectRes importedProjectInfo = await _projectService.GetProject(importedProjectID);
