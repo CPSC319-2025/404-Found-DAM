@@ -409,17 +409,32 @@ namespace APIs.Controllers
                             var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
                             var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
 
-                            var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => 
-                            {
-                                var admin = await userService.GetUser(adminID);
-                                return $"{admin.Name} (User ID: {adminID})";
-                            }));
+                            // var adminDetails = await Task.WhenAll(adminIDs.Select(async adminID => // does not work due to concurrency issues.
+                            // {
+                            //     var admin = await userService.GetUser(adminID);
+                            //     return $"{admin.Name} (User ID: {adminID})";
+                            // }));
 
-                            var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
+                            // var userDetails = await Task.WhenAll(userIDs.Select(async userID => 
+                            // {
+                            //     var user = await userService.GetUser(userID);
+                            //     return $"{user.Name} (User ID: {userID})";
+                            // }));
+
+                            var adminDetails = new List<string>();
+                            foreach (var adminID in adminIDs)
                             {
-                                var user = await userService.GetUser(userID);
-                                return $"{user.Name} (User ID: {userID})";
-                            }));
+                                var oneAddedAdmin = await userService.GetUser(adminID);
+                                adminDetails.Add($"{oneAddedAdmin.Name} (User ID: {adminID})");
+                            }
+
+                            var userDetails = new List<string>();
+                            foreach (var userID in userIDs)
+                            {
+                                var oneAddedUser = await userService.GetUser(userID);
+                                userDetails.Add($"{oneAddedUser.Name} (User ID: {userID})");
+                            }
+
 
                             string addedAdmins = string.Join(", ", adminDetails);
                             string addedUsers = string.Join(", ", userDetails);
@@ -458,17 +473,35 @@ namespace APIs.Controllers
                             var getProjectDto = await projectService.GetProject(theProjectID);
                             var theProjectName = getProjectDto.name;
 
-                            var adminEmails = await Task.WhenAll(req.SelectMany(r => r.admins ?? new List<int>()).Select(async adminID => 
-                            {
-                                var admin = await userService.GetUser(adminID);
-                                return admin.Email;
-                            }));
+                            var adminIDs = req.SelectMany(r => r.admins ?? new List<int>()).ToList();
+                            var userIDs = req.SelectMany(r => r.users ?? new List<int>()).ToList();
 
-                            var userEmails = await Task.WhenAll(req.SelectMany(r => r.users ?? new List<int>()).Select(async userID => 
+                            // var adminEmails = await Task.WhenAll(req.SelectMany(r => r.admins ?? new List<int>()).Select(async adminID => 
+                            // {
+                            //     var admin = await userService.GetUser(adminID);
+                            //     return admin.Email;
+                            // }));
+
+                            // var userEmails = await Task.WhenAll(req.SelectMany(r => r.users ?? new List<int>()).Select(async userID => 
+                            // {
+                            //     var user = await userService.GetUser(userID);
+                            //     return user.Email;
+                            // }));
+
+                            var adminEmails = new List<string>();
+                            foreach (var adminID in adminIDs)
                             {
-                                var user = await userService.GetUser(userID);
-                                return user.Email;
-                            }));
+                                var oneAddedAdmin = await userService.GetUser(adminID);
+                                adminEmails.Add($"{oneAddedAdmin.Email}"); // note: admin is still of type User
+                            }
+
+                            var userEmails = new List<string>();
+                            foreach (var userID in userIDs)
+                            {
+                                var oneAddedUser = await userService.GetUser(userID);
+                                userEmails.Add($"{oneAddedUser.Email}");
+                            }
+
 
                             string addedAdmins = string.Join(", ", adminEmails);
                             string addedUsers = string.Join(", ", userEmails);

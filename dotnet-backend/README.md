@@ -106,4 +106,3 @@ Interfaces: go into the Core/Interfaces folder
 Additionally, we are using DTO, e.g. CreateActivityLogDto.cs
 
 
-Activity Log mostly done.
