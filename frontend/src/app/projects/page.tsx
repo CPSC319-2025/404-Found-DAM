@@ -99,7 +99,7 @@ function Items({ currentItems }: { currentItems?: any[] } ) {
           </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-          {currentItems.map((asset: any) => (
+          {currentItems?.map((asset: any) => (
             <tr
               key={asset.blobID}
               className="hover:bg-gray-50"
@@ -432,7 +432,7 @@ export default function ProjectsPage() {
     setConfirmConfigurePopup(true);
   };
 
-  const handlePageChange = (_, page: number) => {
+  const handlePageChange = (_: any, page: number) => {
     setCurrentPage(page);
     const startIndex = (page - 1) * 10;
     const endIndex = startIndex + 10;
