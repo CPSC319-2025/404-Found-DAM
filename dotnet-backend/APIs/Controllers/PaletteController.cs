@@ -573,10 +573,14 @@ namespace APIs.Controllers
                         await activityLogService.AddLogAsync(logDto);
                     }
                 } catch (Exception ex) {
-                    Console.WriteLine("Failed to add log - PaletteController.SubmitAssets");
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                    return Results.Problem
+                    (
+                        detail: ex.Message,
+                        statusCode: 500,
+                        title: "Internal Server Error"
+                    );
                 }
-
-                 
                  return Results.Ok(result);
              }
 
