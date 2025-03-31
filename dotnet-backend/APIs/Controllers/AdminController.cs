@@ -44,7 +44,7 @@ namespace APIs.Controllers
             app.MapPost("/projects/{projectID}/add-users", AddUsersToProject).WithName("AddUsersToProject").WithOpenApi();
             app.MapPatch("/projects/{projectID}/remove-users", DeleteUsersFromProject).WithName("DeleteUsersFromProject").WithOpenApi();
             app.MapPost("/projects/{projectID}/export", ExportProject).WithName("ExportProject").WithOpenApi();
-            app.MapPost("/project/import", ImportProject).WithName("ImportProject").DisableAntiforgery();;
+            app.MapPost("/project/import", ImportProject).WithName("ImportProject").DisableAntiforgery();
 
             // TODO: Not implemented yet
             // app.MapDelete("/projects", DeleteProjects).WithName("DeleteProjects").WithOpenApi();

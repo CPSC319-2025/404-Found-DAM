@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, {
-  Field as FormFieldType,
-  FormData,
-  ChangeType,
-} from "@/app/components/GenericForm";
+import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
+import { useDropzone } from "react-dropzone";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
@@ -21,6 +18,7 @@ interface ProjectCardProps {
   name: string;
   creationTime: string;
   assetCount: number;
+  admins: User[];
   userNames: string[];
   allUsers?: User[];
 }
@@ -105,6 +103,11 @@ export default function ProjectsPage() {
   const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
   const [configuredTags, setConfiguredTags] = useState<string[]>([]);
 
+  const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
+  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(null);
+
+  const importFormRef = useRef<HTMLDivElement>(null);
+
   const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
   const [pendingConfigureFormData, setPendingConfigureFormData] =
     useState<FormData | null>(null);
@@ -169,6 +172,7 @@ export default function ProjectsPage() {
             name: project.projectName,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
+            admins: project.admins,
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
@@ -230,7 +234,8 @@ export default function ProjectsPage() {
       },
     ];
     try {
-      const response = await fetchWithAuth("projects", {
+      const response = await 
+      ("projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -277,9 +282,7 @@ export default function ProjectsPage() {
       return;
     }
 
-    const response = await fetchWithAuth(
-      `/search?query=${encodeURIComponent(query)}`
-    );
+    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
 
     if (!response.ok) {
       throw new Error("Failed to do search");
@@ -374,6 +377,58 @@ export default function ProjectsPage() {
     setFormFields(updatedFormFields);
   }, [adminOptions, regularUserOptions, tagOptions]);
 
+  const onDrop = (acceptedFiles: File[]) => {
+    setImportedProjectFile(acceptedFiles[0]);
+  }
+
+  const onSubmitZip = async () => {
+    const formData = new FormData();
+    formData.append("file", importedProjectFile!);
+
+    try {
+      const response = await fetchWithAuth("/project/import", {
+        method: "POST",
+        body: formData as BodyInit,
+        headers: {}
+      });
+
+      if (response.ok) {
+        setImportedProjectFile(null);
+        setImportProjectModalOpen(false);
+        toast.success("Imported project successfully.");
+
+        doSearch();
+      } else {
+        console.log("Error uploading file", response.status);
+        toast.error("Failed to import project. Make sure zip's content is valid.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: {
+      "application/x-zip-compressed": []
+    }
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (importFormRef.current && !importFormRef.current.contains(event.target as Node)) {
+        setImportProjectModalOpen(false);
+        setImportedProjectFile(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+      
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
@@ -386,17 +441,19 @@ export default function ProjectsPage() {
           onKeyDown={(e) => e.key === "Enter" && doSearch()}
         />
         <div>
-          <button
-            onClick={async () => {
-              const response = await fetchWithAuth("tags");
-              const tags = await response.json();
-              setConfiguredTags(tags);
-              setConfigureTagsOpen(true);
-            }}
-            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-          >
-            Configure Tags
-          </button>
+          {user?.superadmin && (
+            <button
+              onClick={async () => {
+                const response = await fetchWithAuth("tags");
+                const tags = await response.json();
+                setConfiguredTags(tags);
+                setConfigureTagsOpen(true);
+              }}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Configure Tags
+            </button>
+            )}
           {user?.superadmin && (
             <button
               onClick={() => {
@@ -406,6 +463,14 @@ export default function ProjectsPage() {
               className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
             >
               New Project
+            </button>
+          )}
+          {user?.superadmin && (
+            <button
+              onClick={() => setImportProjectModalOpen(true)}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Import Project
             </button>
           )}
         </div>
@@ -430,6 +495,7 @@ export default function ProjectsPage() {
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
+                      admins={project.admins}
                     />
                   </div>
                 ))}
@@ -461,6 +527,8 @@ export default function ProjectsPage() {
           )}
         </>
       )}
+              
+      <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
 
       {query.trim() && (
         <div>
@@ -477,6 +545,52 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
+
+      {importProjectModalOpen && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
+          <div ref={importFormRef} className="bg-white p-6 rounded shadow-lg w-200 max-h-screen overflow-y-auto">
+            <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
+              <div
+                {...getRootProps()}
+                className="border-2 border-dashed border-gray-300 p-8 rounded-lg mb-4 cursor-pointer"
+              >
+                <input {...getInputProps()} />
+                {isDragActive ? (
+                  <p className="text-xl text-teal-600">Drop the files here...</p>
+                ) : (
+                  <>
+                    <p className="text-xl mb-2">Drag and Drop here</p>
+                    <p className="text-gray-500 mb-4">or</p>
+                    <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
+                      Select file
+                    </button>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Zip only
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {importedProjectFile && (
+              <div>
+                <div className="py-2">
+                  <p>Uploaded Project Zip: <i>{importedProjectFile.name}</i></p>
+                </div>
+                <div className="flex justify-end py-2">
+                  <button
+                    className="bg-blue-500 text-white p-2 rounded float"
+                    onClick={() => onSubmitZip()}
+                  >
+                    Add Project
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {configureTagsOpen && (
         <GenericForm
           title="Configure Tags"
