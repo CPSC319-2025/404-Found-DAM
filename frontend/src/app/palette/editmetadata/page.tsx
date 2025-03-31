@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -47,7 +48,7 @@ export default function EditMetadataPage() {
   async function fetchBlobDetails(blobId: string) {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
+      const response = await fetchWithAuth(`palette/blob/${blobId}/details`);
       if (!response.ok) {
         throw new Error(`Failed to fetch blob details: ${response.status}`);
       }
@@ -79,7 +80,7 @@ export default function EditMetadataPage() {
   async function fetchProjectTags(projectId: string) {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}`);
+      const response = await fetchWithAuth(`projects/${projectId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch project data: ${response.status}`);
       }
@@ -122,7 +123,7 @@ export default function EditMetadataPage() {
         }
         
         // Call API to assign the tag to the asset
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/tag`, {
+        const response = await fetchWithAuth(`/palette/asset/tag`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -131,7 +132,7 @@ export default function EditMetadataPage() {
             BlobId: fileData.blobId,
             TagId: tagId
           })
-        });
+        })
         
         if (!response.ok) {
           throw new Error(`Failed to assign tag: ${response.status}`);
@@ -190,21 +191,16 @@ export default function EditMetadataPage() {
     async function deleteTag() {
       setIsLoading(true);
       try {
-        console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
-        
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              BlobIds: [fileData.blobId],
-              TagIds: [tagIdToRemove]
-            })
-          }
-        );
+        const response = await fetchWithAuth(`palette/assets/tags`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            BlobIds: [fileData.blobId],
+            TagIds: [tagIdToRemove]
+          })
+        });
 
         if (!response.ok) {
           console.error("Failed to delete tag:", response.status);

@@ -19,7 +19,7 @@ export async function uploadFileZstd(fileMeta: FileMetadata): Promise<string | u
     formData.append("files", compressedFile);
 
     // Send the request
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`, {
+    const response = await fetch(`palette/upload?toWebp=true`, {
       method: "POST",
       headers: {
         Authorization: "Bearer MY_TOKEN",

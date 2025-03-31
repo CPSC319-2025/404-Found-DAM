@@ -251,7 +251,8 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("TagID");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Tags");
                 });

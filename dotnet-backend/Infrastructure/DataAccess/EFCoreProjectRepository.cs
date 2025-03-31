@@ -160,17 +160,43 @@ namespace Infrastructure.DataAccess
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+            var projects = await _context.Projects
+                .Include(p => p.ProjectMemberships)
+                .Include(p => p.Assets)
+                .AsNoTracking()
+                .ToListAsync();
+
+            HashSet<int> userIDSet = projects
+                .SelectMany(p => p.ProjectMemberships)
+                .Select(pm => pm.UserID)
+                .ToHashSet();
+
+            var users = await _context.Users
+                .AsNoTracking()
+                .Where(u => userIDSet.Contains(u.UserID))
+                .ToListAsync();
+
+            var projectMemberships = projects.SelectMany(p => p.ProjectMemberships).ToList();
+
+            return (projects, users, projectMemberships);
+
+            /*using DAMDbContext _context = _contextFactory.CreateDbContext();
+
             // Get projectmemberhips associated with the requester
-            var requesterProjectMemberships = await _context.ProjectMemberships
-                .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
-                .Include(pm => pm.Project)
-                    .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
+            // var requesterProjectMemberships = await _context.ProjectMemberships
+            //     .AsNoTracking() // Disable tracking for readonly queries to improve efficiency
+            //     .Include(pm => pm.Project)
+            //         .ThenInclude(p => p.Assets) //  Load Assets collection associated with each loaded Project.
+            //     .ToListAsync();
+            
+            var projects = await _context.Projects
+                .AsNoTracking()
+                .Include(p => p.ProjectMemberships)
                 .ToListAsync();
             
-            if (requesterProjectMemberships.Any()) 
+            if (projects.Any()) 
             {
-                List<int> projectIDList = requesterProjectMemberships.Select(pm => pm.Project.ProjectID).ToList();
-                // Console.WriteLine($"projects' ID: {string.Join(", ", projectIDList)}");         
+                List<int> projectIDList = projects.Select(p => p.ProjectID).ToList();
 
                 List<Project> foundProjectList = new List<Project>();
                 HashSet<int> userIDSet = new HashSet<int>();
@@ -207,7 +233,7 @@ namespace Infrastructure.DataAccess
             else 
             {
                 return (new List<Project>(), new List<User>(), new List<ProjectMembership>());
-            }
+            }*/
         }
 
         // Get ALL assets of a project from database

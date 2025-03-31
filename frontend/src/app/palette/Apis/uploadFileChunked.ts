@@ -1,4 +1,5 @@
 import { UploadProgressCallbacks } from './types';
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Uploads a file in chunks for better reliability with large files
@@ -41,11 +42,11 @@ export async function uploadFileChunked(
       formData.append("totalChunks", totalChunks.toString());
       formData.append("originalname", file.name);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload/chunk`, {
+      const response = await fetchWithAuth("upload/chunk", {
         method: "POST",
         body: formData,
-      });
-      
+      })
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }

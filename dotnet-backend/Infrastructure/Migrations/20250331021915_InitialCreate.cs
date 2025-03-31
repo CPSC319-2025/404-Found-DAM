@@ -296,7 +296,8 @@ namespace Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Tags_Name",
                 table: "Tags",
-                column: "Name");
+                column: "Name",
+                unique: true);
         }
 
         /// <inheritdoc />

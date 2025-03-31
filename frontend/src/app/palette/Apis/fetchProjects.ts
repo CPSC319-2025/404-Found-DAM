@@ -1,4 +1,5 @@
 import { Project } from './types';
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Fetches all projects
@@ -6,7 +7,7 @@ import { Project } from './types';
  */
 export async function fetchProjects(): Promise<Project[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`);
+    const res = await fetchWithAuth("projects");
     
     if (!res.ok) {
       console.error("Failed to fetch project logs:", res.status);

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DAMDbContext))]
-    [Migration("20250328042117_InitialCreate")]
+    [Migration("20250331021915_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -254,7 +254,8 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("TagID");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Tags");
                 });
