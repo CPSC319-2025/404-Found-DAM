@@ -54,8 +54,8 @@ builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<IActivityLogService, ActivityLogService>(); // sean added
-builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>(); // sean added
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 
 
 
