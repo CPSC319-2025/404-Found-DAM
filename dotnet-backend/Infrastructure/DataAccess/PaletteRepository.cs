@@ -249,14 +249,10 @@ namespace Infrastructure.DataAccess {
                                  a.assetState = Asset.AssetStateType.SubmittedToProject;
                                  a.LastUpdated = DateTime.UtcNow;
                                  successfulSubmissions.Add(a.BlobID);
-                                 var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, a.FileName) }); 
-                                 await _blobStorageService.DeleteAsync(a, "palette-assets");
-                                 using (var memoryStream = new MemoryStream())
-                                 {
-                                     await file.First().CopyToAsync(memoryStream);
-                                     var fileBytes = memoryStream.ToArray();
-                                     await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a); // Upload the asset to blob storage again
-                                 }
+                                //  var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, a.FileName) }); 
+                                //  await _blobStorageService.DeleteAsync(a, "palette-assets");
+                                //  await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a);
+                                await _blobStorageService.MoveAsync("palette-assets", a.BlobID, "project-" + projectID + "-assets");
                              }
                          }
                          await _context.SaveChangesAsync();
