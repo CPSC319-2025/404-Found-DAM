@@ -6,16 +6,21 @@ import { useUser } from "@/app/context/UserContext";
 import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
-import { Project, User } from "@/app/types";
+import { Asset, Project, User } from "@/app/types";
 import { useDropzone } from "react-dropzone";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 import PopupModal from "@/app/components/ConfirmModal";
+import Pagination from "@mui/material/Pagination";
+import Image from "next/image";
+import { ArrowDownTrayIcon, PencilIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 interface ProjectCardProps {
   projectID: number;
   name: string;
+  archived: boolean;
   creationTime: string;
   assetCount: number;
   admins: User[];
@@ -27,16 +32,6 @@ interface GetAllProjectsResponse {
   projectCount: number;
   fullProjectInfos: Project[];
 }
-
-const addTagFormFields: FormFieldType[] = [
-  {
-    name: "newTag",
-    label: "New Tag",
-    type: "text",
-    placeholder: "Enter new tag name",
-    required: true,
-  },
-];
 
 const newProjectFormFields: FormFieldType[] = [
   {
@@ -82,9 +77,86 @@ const newProjectFormFields: FormFieldType[] = [
   },
 ];
 
+function Items({ currentItems }: { currentItems?: any[] } ) {
+  return (
+    <div className="items overflow-y-auto mt-4 rounded-lg p-4">
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              File Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Image
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Project
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+          {currentItems?.map((asset: any) => (
+            <tr
+              key={asset.blobID}
+              className="hover:bg-gray-50"
+            >
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">
+                  {asset.fileName}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="h-20 w-20 relative">
+                  <Image
+                    src={asset.src ?? ""}
+                    alt={`${asset.filename} thumbnail`}
+                    width={120}
+                    height={120}
+                    className="object-cover rounded w-full h-full"
+                  />
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium">
+                  <Link
+                    href={`/projects/${asset.projectID}`}
+                    className="hover:bg-gray-200 p-2 rounded text-blue-500"
+                  >
+                    {asset.projectName}
+                  </Link>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div className="flex gap-3">
+                  <button
+                    className="text-indigo-600 hover:text-indigo-900"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      alert("TODO: download");
+                      // TODO: EDIT LOGIC
+                    }}
+                  >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                        <ArrowDownTrayIcon className="h-5 w-5" />
+                      </span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsPage() {
   const { user } = useUser();
-  const [loading, setLoading] = useState<boolean>(true);
   const [query, setQuery] = useState<string>("");
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
@@ -111,6 +183,12 @@ export default function ProjectsPage() {
   const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
   const [pendingConfigureFormData, setPendingConfigureFormData] =
     useState<FormDataType | null>(null);
+
+  const [currentAssets, setCurrentAssets] = useState<any[]>([]);
+  const [paginatedAssets, setPaginatedAssets] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [searchDone, setSearchDone] = useState<boolean>(false);
 
   // Global Tags
   const fetchTags = async () => {
@@ -170,6 +248,7 @@ export default function ProjectsPage() {
           ({
             projectID: project.projectID,
             name: project.projectName,
+            archived: !project.active,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
             admins: project.admins,
@@ -278,6 +357,8 @@ export default function ProjectsPage() {
           p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
         )
       );
+      setCurrentAssets([]);
+      setSearchDone(false);
       return;
     }
 
@@ -301,6 +382,8 @@ export default function ProjectsPage() {
         p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
       )
     );
+    setCurrentAssets(data.assets);
+    setSearchDone(true);
   };
 
   const fetchUsers = async () => {
@@ -317,9 +400,14 @@ export default function ProjectsPage() {
       return [] as User[];
     }
   };
-  useEffect(() => {
-    setLoading(true);
 
+  useEffect(() => {
+    if (currentAssets.length > 0) {
+      handlePageChange(null, 1);
+    }
+  }, [currentAssets]);
+
+  useEffect(() => {
     // Fetch all projects (for filtering "My Projects") AND all users
     // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
@@ -337,13 +425,19 @@ export default function ProjectsPage() {
       .catch((error) => {
         console.error("Error loading initial data:", error);
       })
-      .finally(() => setLoading(false));
   }, []);
 
   const onSubmitConfigureTags = (formData: FormDataType) => {
     setPendingConfigureFormData(formData);
     setConfirmConfigurePopup(true);
   };
+
+  const handlePageChange = (_: any, page: number) => {
+    setCurrentPage(page);
+    const startIndex = (page - 1) * 10;
+    const endIndex = startIndex + 10;
+    setPaginatedAssets(currentAssets.slice(startIndex, endIndex));
+  }
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
@@ -431,14 +525,18 @@ export default function ProjectsPage() {
   return (
     <div className="p-6 min-h-screen">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-        <input
-          type="text"
-          placeholder="Search... <press enter or click outside>"
-          className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
-          onChange={(e) => setQuery(e.target.value)}
-          onBlur={doSearch}
-          onKeyDown={(e) => e.key === "Enter" && doSearch()}
-        />
+        <div className="flex flex-col w-1/3">
+          <label className="text-gray-700 text-sm font-medium">Search projects and assets</label>
+          <input
+            id="search"
+            type="text"
+            placeholder="<press enter or click outside>"
+            className="border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
+            onChange={(e) => setQuery(e.target.value)}
+            onBlur={doSearch}
+            onKeyDown={(e) => e.key === "Enter" && doSearch()}
+          />
+        </div>
         <div>
           {user?.superadmin && (
             <button
@@ -456,8 +554,9 @@ export default function ProjectsPage() {
           {user?.superadmin && (
             <button
               onClick={() => {
-                fetchTags();
-                setNewProjectModalOpen(true);
+                fetchTags().then(() => {
+                  setNewProjectModalOpen(true);
+                });
               }}
               className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
             >
@@ -491,6 +590,7 @@ export default function ProjectsPage() {
                     <ProjectCard
                       id={String(project.projectID)}
                       name={project.name}
+                      archived={project.archived}
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
@@ -515,6 +615,7 @@ export default function ProjectsPage() {
                     <ProjectCard
                       id={String(project.projectID)}
                       name={project.name}
+                      archived={project.archived}
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
@@ -527,12 +628,37 @@ export default function ProjectsPage() {
           )}
         </>
       )}
-              
-      <h1 className="text-2xl font-semibold mb-4 mt-4">Recent Assets</h1>
 
-      {query.trim() && (
-        <div>
-          <h1 className="text-2xl font-semibold mb-4">Found Assets</h1>
+      {searchDone && (
+        <div className="mt-8">
+          <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
+          {currentAssets && currentAssets.length < 1 && (
+            <div className="flex flex-col items-center justify-center h-64">
+              <p className="text-2xl text-gray-500">No assets found!</p>
+            </div>
+          )}
+          {currentAssets && currentAssets.length > 0 && (
+            <>
+              <Items currentItems={paginatedAssets} />
+              <Pagination
+                count={Math.ceil(currentAssets.length / 10)}
+                page={currentPage}
+                onChange={handlePageChange}
+                shape="rounded"
+                color="standard"
+                className="border border-gray-300"
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {!searchDone && (
+        <div className="mt-8">
+          <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
+          <div className="flex flex-col items-center justify-center h-64">
+            <p className="text-2xl text-gray-500">Use the search field above to find assets!</p>
+          </div>
         </div>
       )}
 
@@ -604,7 +730,7 @@ export default function ProjectsPage() {
               value: configuredTags,
             },
           ]}
-          onSubmit={onSubmitConfigureTags} // use our new handler here
+          onSubmit={onSubmitConfigureTags}
           onCancel={() => setConfigureTagsOpen(false)}
           confirmRemoval={true}
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
@@ -619,7 +745,6 @@ export default function ProjectsPage() {
             title="Confirm Tag Changes"
             isOpen={true}
             onClose={() => {
-              // Only clear the confirmation popup state, leaving the GenericForm open.
               setConfirmConfigurePopup(false);
             }}
             onConfirm={async () => {

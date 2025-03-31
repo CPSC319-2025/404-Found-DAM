@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import {
-  ViewfinderCircleIcon,
   ArrowUpTrayIcon,
-  UsersIcon,
-  UserIcon,
 } from "@heroicons/react/24/solid";
 import { RectangleGroupIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
@@ -36,16 +33,16 @@ const pages: Page[] = [
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
   },
-  ...(isSuperAdmin
-    ? [
-        {
-          path: "users",
-          title: "Users",
-          mobileTitle: "Users",
-          icon: <UsersIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
-        },
-      ]
-    : []),
+  // ...(isSuperAdmin
+  //   ? [
+  //       {
+  //         path: "users",
+  //         title: "Users",
+  //         mobileTitle: "Users",
+  //         icon: <UsersIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
+  //       },
+  //     ]
+  //   : []),
 ];
 export default function Navbar() {
   return (

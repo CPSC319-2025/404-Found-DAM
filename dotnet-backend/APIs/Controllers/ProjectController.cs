@@ -171,7 +171,7 @@ namespace APIs.Controllers
 
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
 
-                int submitterID = MOCKEDUSERID;
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (activityLogService == null) {
                     return Results.StatusCode(500);
