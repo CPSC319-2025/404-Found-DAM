@@ -173,24 +173,6 @@ namespace APIs.Controllers
                     
                 }
 
-                // Add log (done)
-                
-
-                // foreach (var file in request.Form.Files)
-                // {
-                //     var log = new CreateActivityLogDto
-                //     {
-                //         userID = MOCKEDUSERID,
-                //         changeType = "Uploaded",
-                //         description = $"Uploaded chunk {chunkNumber} of {formFile.FileName}",
-                //         projID = 0, // no project
-                //         assetID = file.
-                //         isAdminAction = false
-                //     };
-
-                //     activityLogService.AddLogAsync(log);
-                // }
-
                 // For chunk uploads
                 if (result.IsLastChunk)
                 {

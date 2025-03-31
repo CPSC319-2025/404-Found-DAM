@@ -22,18 +22,6 @@ namespace APIs.Controllers
         private const bool logDebug = false;
         private const bool verboseLogs = false;
 
-        // private static IActivityLogService _activityLogService;
-        // private static IProjectService _projectService;
-        // private static IUserService _userService;
-        // public static void Initialize(IActivityLogService activityLogService, IProjectService projectService, IUserService userService)
-        // {
-        //     _activityLogService = activityLogService;
-        //     _projectService = projectService;
-        //     _userService = userService;
-        // }
-
-
-
         public static void MapProjectEndpoints(this WebApplication app)
         {
             // TODO: Mostly done; need to check user credentials
@@ -220,21 +208,13 @@ namespace APIs.Controllers
                         });
                     }
 
-
-
-                //     UserID = logDto.userID,
-                // ChangeType = logDto.changeType,
-                // Description = logDto.description,
-                // ProjectID = logDto.projectID,
-                // AssetID = logDto.assetID,
-                // IsAdminAction = logDto.isAdminAction
                 } catch (Exception ex) {
                     Console.WriteLine("Failed to add log - ProjectController.ArchiveProjects");
                 }
                 return Results.Ok(result);
 
             }
-            catch (PartialSuccessException ex) // sean todo: what to do here?
+            catch (PartialSuccessException ex)
             {
                 return Results.Ok(ex.Message);
             }
