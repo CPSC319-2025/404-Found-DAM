@@ -70,6 +70,44 @@ namespace Infrastructure.DataAccess
             // Delete the blob
             return await blobClient.DeleteIfExistsAsync();
         }
+
+        public async Task<string> MoveAsync(string sourceContainer, string blobId, string targetContainer)
+        {
+
+            var blobServiceClient = new BlobServiceClient(_connectionString);
+            var sourceContainerClient = blobServiceClient.GetBlobContainerClient(sourceContainer);
+            var targetContainerClient = blobServiceClient.GetBlobContainerClient(targetContainer);
+            
+            BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobId);
+            BlobClient targetBlob = targetContainerClient.GetBlobClient(blobId);
+
+            if (!await sourceBlob.ExistsAsync())
+            {
+                Console.WriteLine("Source file not found!");
+                return null;
+            }
+
+            // Start Copy
+            await targetBlob.StartCopyFromUriAsync(sourceBlob.Uri);
+
+            // Wait for copy to complete
+            BlobProperties targetBlobProperties = await targetBlob.GetPropertiesAsync();
+            while (targetBlobProperties.CopyStatus == CopyStatus.Pending)
+            {
+                await Task.Delay(500);
+                targetBlobProperties = await targetBlob.GetPropertiesAsync();
+            }
+
+            // Delete source file after successful copy
+            if (targetBlobProperties.CopyStatus == CopyStatus.Success)
+            {
+                await sourceBlob.DeleteAsync();
+                Console.WriteLine($"File moved successfully");
+                return targetBlob.Uri.ToString(); 
+            }
+
+            return null;
+        }
         
         public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {

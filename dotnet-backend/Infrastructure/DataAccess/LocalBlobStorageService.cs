@@ -78,6 +78,12 @@ namespace Infrastructure.DataAccess
             
             compressedFiles.AddRange(files);
             return compressedFiles;
+        }
+
+        public async Task<string> MoveAsync(string sourceContainer, string blobId, string targetContainer)
+        {
+            // nothing to do here, just return true
+            return blobId;
         }  
     }
 }
