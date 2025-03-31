@@ -221,7 +221,7 @@ const LogsTable = () => {
             <option value="">Select Project</option>
             {projects.map((project: Project) => (
               <option key={project.projectID} value={project.projectID}>
-                {project.projectName} ({project.projectID})
+                {project.projectName} (ID: {project.projectID})
               </option>
             ))}
           </select>
