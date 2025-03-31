@@ -464,7 +464,7 @@ namespace APIs.Controllers
                     Name = name,
                     UserId = userId
                 };
-                var assetName = projectService.GetAssetNameByBlobIdAsync(deleteRequest.Name); // for activity log
+                var assetName = await projectService.GetAssetNameByBlobIdAsync(deleteRequest.Name); // for activity log
 
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
@@ -477,9 +477,6 @@ namespace APIs.Controllers
 
                 string theDescription = "";
                 try {
-
-                    
-
                     if (verboseLogs) {
                         theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
                     } else {
@@ -503,9 +500,6 @@ namespace APIs.Controllers
                 } catch (Exception ex) {
                     Console.WriteLine("Failed to add log - PaletteController.DeletePaletteAsset");
                 }
-
-
-
                 return Results.Ok(new {
                     fileName = deleteRequest.Name,
                 });
