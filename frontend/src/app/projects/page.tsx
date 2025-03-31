@@ -524,20 +524,27 @@ export default function ProjectsPage() {
       
   return (
     <div className="p-6 min-h-screen">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-        <div className="flex flex-col w-1/3">
-          <label className="text-gray-700 text-sm font-medium">Search projects and assets</label>
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+        <div className="w-full md:w-1/3 flex items-center">
           <input
             id="search"
             type="text"
-            placeholder="<press enter or click outside>"
-            className="border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
+            placeholder="Search projects and assets..."
+            className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
             onChange={(e) => setQuery(e.target.value)}
             onBlur={doSearch}
             onKeyDown={(e) => e.key === "Enter" && doSearch()}
           />
+          {query.trim() !== "" && (
+            <button
+              onClick={doSearch}
+              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600"
+            >
+              Search
+            </button>
+          )}
         </div>
-        <div>
+        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
             <button
               onClick={async () => {
@@ -550,7 +557,7 @@ export default function ProjectsPage() {
             >
               Configure Tags
             </button>
-            )}
+          )}
           {user?.superadmin && (
             <button
               onClick={() => {
@@ -657,7 +664,9 @@ export default function ProjectsPage() {
         <div className="mt-8">
           <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
           <div className="flex flex-col items-center justify-center h-64">
-            <p className="text-2xl text-gray-500">Use the search field above to find assets!</p>
+            <p className="text-2xl text-gray-500">
+              Use the search field above to find assets!
+            </p>
           </div>
         </div>
       )}
@@ -674,7 +683,10 @@ export default function ProjectsPage() {
 
       {importProjectModalOpen && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
-          <div ref={importFormRef} className="bg-white p-6 rounded shadow-lg w-200 max-h-screen overflow-y-auto">
+          <div
+            ref={importFormRef}
+            className="bg-white p-6 rounded shadow-lg w-200 max-h-screen overflow-y-auto"
+          >
             <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
               <div
                 {...getRootProps()}
@@ -682,7 +694,9 @@ export default function ProjectsPage() {
               >
                 <input {...getInputProps()} />
                 {isDragActive ? (
-                  <p className="text-xl text-teal-600">Drop the files here...</p>
+                  <p className="text-xl text-teal-600">
+                    Drop the files here...
+                  </p>
                 ) : (
                   <>
                     <p className="text-xl mb-2">Drag and Drop here</p>
@@ -690,9 +704,7 @@ export default function ProjectsPage() {
                     <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
                       Select file
                     </button>
-                    <p className="text-sm text-gray-400 mt-2">
-                      Zip only
-                    </p>
+                    <p className="text-sm text-gray-400 mt-2">Zip only</p>
                   </>
                 )}
               </div>
@@ -701,7 +713,9 @@ export default function ProjectsPage() {
             {importedProjectFile && (
               <div>
                 <div className="py-2">
-                  <p>Uploaded Project Zip: <i>{importedProjectFile.name}</i></p>
+                  <p>
+                    Uploaded Project Zip: <i>{importedProjectFile.name}</i>
+                  </p>
                 </div>
                 <div className="flex justify-end py-2">
                   <button
