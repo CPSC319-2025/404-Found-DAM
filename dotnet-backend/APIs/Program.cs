@@ -62,6 +62,8 @@ builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
 builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<ITagRepository, TagRepository>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -85,6 +87,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddAuthorization();
+
 // remove ! for azure testing
 // Pay attention do not contact blob unless you are the 
 // only developer working on this task. 
@@ -103,7 +107,9 @@ app.UseCors("AllowReactApp");
 
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthorization();
+
+app.UseMiddleware<APIs.Middleware.AuthMiddleware>();
 
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
@@ -138,6 +144,7 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapActivityLogEndpoints();
 app.MapFileUploadEndpoints();
+app.MapTagEndpoints();
 
 // Create/migrate database
 if (app.Environment.IsDevelopment())
@@ -151,8 +158,20 @@ if (app.Environment.IsDevelopment())
         .CreateDbContext();
 
     await context.Database.EnsureCreatedAsync();
-}
-else
+} else if (Environment.GetEnvironmentVariable("RESET_DATABASE") == "true")
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
+
+    // Drop the database
+    dbContext.Database.EnsureDeleted();
+
+    // Apply migrations to create a new database
+    dbContext.Database.Migrate();
+    await SeedDatabase(app);
+
+    Console.WriteLine("Database was reset and migrations applied successfully");
+} else
 {
     try
     {
