@@ -77,6 +77,9 @@ namespace Infrastructure.DataAccess
             var blobServiceClient = new BlobServiceClient(_connectionString);
             var sourceContainerClient = blobServiceClient.GetBlobContainerClient(sourceContainer);
             var targetContainerClient = blobServiceClient.GetBlobContainerClient(targetContainer);
+
+            // Create container if it doesn't exist
+            await targetContainerClient.CreateIfNotExistsAsync(PublicAccessType.None);
             
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobId);
             BlobClient targetBlob = targetContainerClient.GetBlobClient(blobId);
