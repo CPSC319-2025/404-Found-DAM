@@ -23,12 +23,14 @@ namespace Core.Services
 
         private readonly IProjectService _projectService;
         private readonly IProjectRepository _projRepository;
+        private readonly IUserRepository _userRepository;
 
-        public AdminService(IAdminRepository adminRepository, IProjectService projectService, IProjectRepository projRepository)
+        public AdminService(IAdminRepository adminRepository, IProjectService projectService, IProjectRepository projRepository, IUserRepository userRepository)
         {
             _adminRepository = adminRepository;
             _projectService = projectService;
             _projRepository = projRepository;
+            _userRepository = userRepository;
         }
 
         /*
@@ -77,11 +79,15 @@ namespace Core.Services
             {
                 // Fetch project and assets
                 Project project = await _projRepository.GetProjectInDb(projectID);
+                
+                User requester = await _userRepository.GetUserById(requesterID);
 
                 // Check if this requester is an admin who owns the project:
                 bool isRequesterProjectAdmin = project.ProjectMemberships.Any(pm => pm.UserID == requesterID && pm.UserRole == ProjectMembership.UserRoleType.Admin);
 
-                if (isRequesterProjectAdmin)
+                bool isRequesterSuperAdmin = requester.IsSuperAdmin;
+
+                if (isRequesterProjectAdmin || isRequesterSuperAdmin)
                 {
                     List<Asset> assets = await _projRepository.GetProjectAndAssetsInDb(projectID);
                     (string fileName, byte[] excelByteArray) = AdminServiceHelpers.GenerateProjectExportExcel(project, assets);

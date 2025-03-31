@@ -215,6 +215,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       tagID: String(selectedTag),
       assetType: selectedAssetType,
     }).toString();
+
     const url = `projects/${projectID}/assets/pagination?${queryParams}`;
     const response = await fetchWithAuth(url);
 
