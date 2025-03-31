@@ -20,7 +20,7 @@ export interface Log {
   asset_id: string;
   project_id: number;
   isAdminAction: boolean;
-  timestamp: string;
+  date_time: string;
 }
 
 export interface ProjectMetadataField {

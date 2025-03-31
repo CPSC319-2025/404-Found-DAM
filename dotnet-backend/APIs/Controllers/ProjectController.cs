@@ -19,7 +19,7 @@ namespace APIs.Controllers
 
         private const bool adminActionTrue = true;
 
-        private const bool logDebug = true;
+        private const bool logDebug = false;
         private const bool verboseLogs = false;
 
         // private static IActivityLogService _activityLogService;
@@ -349,70 +349,69 @@ namespace APIs.Controllers
                 }
 
                 var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                updateDescription += $"project: {projectName}, ";
+                updateDescription += $"project: {projectName}";
 
                 if (!string.IsNullOrEmpty(req.Location))
                 {
-                    updateDescription += $"Location: {req.Location}, ";
+                    updateDescription += $"; Location: {req.Location}";
                 }
 
                 if (req.Memberships != null && req.Memberships.Count == 0) { // optional
-                    updateDescription += "Memberships: None, ";
+                    updateDescription += "; Memberships: None";
                 }
                 else if (req.Memberships != null && req.Memberships.Any())
                 {
-                    updateDescription += "Memberships: ";
+                    updateDescription += "; Memberships: ";
+
+                    int totalMemberships = req.Memberships.Count();
                     
-                    foreach (var membership in req.Memberships)
+                    foreach (var (membership, index) in req.Memberships.Select((membership, index) => (membership, index)))
                     {
                         var getUserDto = await userService.GetUser(membership.UserID);
                         var memberUserName = getUserDto.Name;
                         var memberUserEmail = getUserDto.Email;
 
+                        bool isLast = index == totalMemberships - 1;
 
                         if (verboseLogs) {
                             updateDescription += $"{memberUserName} (User ID: {membership.UserID}) ";
                             if (membership.Role.Equals("Admin")) {
-                                updateDescription += $"(Admin), ";
+                                updateDescription += $"(Admin)";
                             } else {
-                                updateDescription += $"(User), ";
+                                updateDescription += $"(User)";
                             }
                         } else {
                             if (membership.Role.Equals("Admin")) {
-                                updateDescription += $"{memberUserEmail} (Admin), ";
+                                updateDescription += $"{memberUserEmail} (Admin)";
                             } else { // User
-                                updateDescription += $"{memberUserEmail} (User), ";
+                                updateDescription += $"{memberUserEmail} (User)";
                             }
+                        }
+
+                        if (!isLast)
+                        {
+                            updateDescription += ", ";
                         }
                     }
                 }
 
                 if (req.Tags != null && req.Tags.Count == 0) { // optional
                     
-                    updateDescription += "Tags: None, ";
+                    updateDescription += "; Tags: None";
                 }
                 else if (req.Tags != null && req.Tags.Any())
                 {
-                    updateDescription += "Tags: ";
-                    foreach (var tag in req.Tags)
-                    {
-                        updateDescription += $"{tag.Name}, ";
-                    }
+                    updateDescription += "; Tags: ";
+                    updateDescription += string.Join(", ", req.Tags.Select(tag => tag.Name));
                 }
 
                 if (req.CustomMetadata != null && req.CustomMetadata.Count == 0) { // optional
-                    updateDescription += "Custom Metadata: None.";
+                    updateDescription += "; Custom Metadata: None";
                 }
                 else if (req.CustomMetadata != null && req.CustomMetadata.Any())
                 {
-                    updateDescription += "Custom Metadata: ";
-                    if (req.CustomMetadata.Count == 0) {
-                        updateDescription += "None";
-                    }
-                    foreach (var customMetadataDto in req.CustomMetadata) // met
-                    {
-                        updateDescription += string.Join(", ", req.CustomMetadata.Select(metadata => metadata.FieldName));
-                    }
+                    updateDescription += "; Custom Metadata: ";
+                    updateDescription += string.Join(", ", req.CustomMetadata.Select(metadata => metadata.FieldName));
                 }
 
                 if (logDebug) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
 interface ProjectCardProps {
   id: string;
@@ -18,7 +19,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const router = useRouter();
   //format creationTime into readable string
-  const formattedCreationTime = new Date(creationTime).toLocaleString();
+  const formattedCreationTime = convertUtcToLocal(creationTime);
 
   const handleCardClick = () => {
     router.push(`/projects/${id}`);

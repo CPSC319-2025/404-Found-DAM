@@ -3,15 +3,21 @@
 import React, { useState, useEffect } from "react";
 // import Image from "next/image";
 // import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-// import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import {
+  PencilIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  PlusIcon,
+  // DownloadIcon,
+  // UploadIcon,
   ArrowUpOnSquareIcon,
-  ArrowDownOnSquareIcon,
-  PencilSquareIcon,
-} from "@heroicons/react/24/solid";
+  TrashIcon,
+  ArchiveBoxArrowDownIcon,
+} from '@heroicons/react/24/solid';
 import Pagination from "@mui/material/Pagination";
 import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/types";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
 interface User {
   userId: string;
@@ -31,108 +37,52 @@ interface ItemsProps {
   currentItems?: Log[];
 }
 
+function getIconForChangeType(changeType: string) {
+  switch (changeType) {
+    case 'Create':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Updated':
+      return <PencilIcon className="w-8 h-8 text-blue-400"/>;
+    case 'Uploaded':
+      return <ArrowUpOnSquareIcon className="w-8 h-8 text-blue-400" />;
+    case 'Added':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Import':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Export':
+      return <ArrowUpIcon className="w-8 h-8 text-blue-400" />;
+    case 'Archived':
+      return <ArchiveBoxArrowDownIcon className="w-8 h-8 text-blue-400" />;
+    case 'Deleted':
+      return <TrashIcon className="w-8 h-8 text-blue-400" />;
+    default:
+      return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
+  }
+}
+
 function Items({ currentItems }: ItemsProps) {
   return (
     <div className="grid bg-gray-50 overflow-y-auto mt-4 p-4">
-      {currentItems &&
-        currentItems.map((log: LogVerbose) => {
-          let IconComponent;
-          if (log.change_type === "Uploaded") {
-            IconComponent = ArrowUpOnSquareIcon;
-          } else if (log.change_type === "Downloaded") {
-            IconComponent = ArrowUpOnSquareIcon;
-          } else if (log.change_type === "Modified tags") {
-            IconComponent = PencilSquareIcon;
-          } else {
-            IconComponent = ArrowUpOnSquareIcon;
-          }
+      {currentItems && currentItems.map((log: LogVerbose) => {
+        const IconComponent = getIconForChangeType(log.change_type);
 
-          const isAdmin =
-            log.userInfo?.name.toLowerCase().includes("admin") || false;
-          const userNameClass = isAdmin ? "text-blue-500" : "text-gray-700";
-
-          let renderedText;
-          if (log.change_type === "Downloaded") {
-            renderedText = (
-              <p className="text-gray-800">
-                <strong className={userNameClass}>
-                  {log.userInfo?.name || "Unknown User"}
-                </strong>{" "}
-                Downloaded{" "}
-                {log.asset_id && (
-                  <span className="font-semibold">{log.asset.filename}</span>
-                )}{" "}
-                from{" "}
-                {log.project?.projectName && (
-                  <span className="font-semibold text-blue-500">
-                    {log.project.projectName}
-                  </span>
-                )}
-              </p>
-            );
-          } else if (log.change_type === "Uploaded") {
-            renderedText = (
-              <p className="text-gray-800">
-                <strong className={userNameClass}>
-                  {log.userInfo?.name || "Unknown User"}
-                </strong>{" "}
-                Uploaded{" "}
-                {log.asset_id && (
-                  <span className="font-semibold">{log.asset.filename}</span>
-                )}{" "}
-                to{" "}
-                {log.project?.projectName && (
-                  <span className="font-semibold text-blue-500">
-                    {log.project.projectName}
-                  </span>
-                )}
-              </p>
-            );
-          } else if (log.change_type === "Modified tags") {
-            renderedText = (
-              <p className="text-gray-800">
-                <strong className={userNameClass}>
-                  {log.userInfo?.name || "Unknown User"}
-                </strong>{" "}
-                Modified Tags in{" "}
-                {log.project?.projectName && (
-                  <span className="font-semibold text-blue-500">
-                    {log.project.projectName}
-                  </span>
-                )}
-              </p>
-            );
-          } else {
-            renderedText = (
-              <p className="text-gray-800">
-                <strong className={userNameClass}>
-                  {log.userInfo?.name || "Unknown User"}
-                </strong>{" "}
-                {log.change_type}{" "}
-                {log.project?.projectName && (
-                  <span className="text-blue-500">{log.project.projectName}</span>
-                )}
-              </p>
-            );
-          }
-
-          return (
-            <div
-              key={log.change_id}
-              className="flex items-center p-2 m-1 border-b border-gray-200 last:border-0"
-            >
-              <div className="mr-3">
-                <IconComponent className="w-8 h-8 text-blue-400" />
-              </div>
-              <div className="flex flex-col items-start p-2">
-                {renderedText}
-                <span className="text-gray-400 text-sm">
-                  {new Date(log.timestamp).toLocaleString()}
-                </span>
-              </div>
+        return (
+          <div
+            key={log.change_id}
+            className="flex items-center p-2 m-1 border-b border-gray-200 last:border-0"
+          >
+            <div className="mr-3">
+              {IconComponent}
             </div>
-          );
-        })}
+            <div className="flex flex-col items-start p-2">
+              {log.description}
+              <span className="text-gray-400 text-sm">
+                {convertUtcToLocal(log.date_time)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

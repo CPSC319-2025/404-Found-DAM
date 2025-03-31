@@ -11,7 +11,7 @@ namespace APIs.Controllers
 
         private const bool AdminActionTrue = true;
 
-        private const bool logDebug = true;
+        private const bool logDebug = false;
 
         private const bool verboseLogs = false;
 

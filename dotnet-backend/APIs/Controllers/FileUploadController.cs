@@ -16,7 +16,7 @@ namespace APIs.Controllers
 
         private const bool verboseLogs = false;
 
-        private const bool logDebug = true;
+        private const bool logDebug = false;
 
         private static IServiceProvider GetServiceProvider(HttpContext context)
         {
