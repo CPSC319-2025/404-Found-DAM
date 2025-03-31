@@ -349,45 +349,69 @@ namespace APIs.Controllers
                 }
 
                 var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                updateDescription += $"project: {projectName}. ";
+                updateDescription += $"project: {projectName}, ";
 
                 if (!string.IsNullOrEmpty(req.Location))
                 {
-                    updateDescription += $"Location: {req.Location} ";
+                    updateDescription += $"Location: {req.Location}, ";
                 }
 
-                if (req.Memberships != null && req.Memberships.Any())
+                if (req.Memberships != null && req.Memberships.Count == 0) { // optional
+                    updateDescription += "Memberships: None, ";
+                }
+                else if (req.Memberships != null && req.Memberships.Any())
                 {
                     updateDescription += "Memberships: ";
+                    
                     foreach (var membership in req.Memberships)
                     {
                         var getUserDto = await userService.GetUser(membership.UserID);
                         var memberUserName = getUserDto.Name;
                         var memberUserEmail = getUserDto.Email;
 
+
                         if (verboseLogs) {
-                            updateDescription += $"- {memberUserName} (User ID: {membership.UserID}) ";
+                            updateDescription += $"{memberUserName} (User ID: {membership.UserID}) ";
+                            if (membership.Role.Equals("Admin")) {
+                                updateDescription += $"(Admin), ";
+                            } else {
+                                updateDescription += $"(User), ";
+                            }
                         } else {
-                            updateDescription += $"- {memberUserEmail} ";
+                            if (membership.Role.Equals("Admin")) {
+                                updateDescription += $"{memberUserEmail} (Admin), ";
+                            } else { // User
+                                updateDescription += $"{memberUserEmail} (User), ";
+                            }
                         }
                     }
                 }
 
-                if (req.Tags != null && req.Tags.Any())
+                if (req.Tags != null && req.Tags.Count == 0) { // optional
+                    
+                    updateDescription += "Tags: None, ";
+                }
+                else if (req.Tags != null && req.Tags.Any())
                 {
                     updateDescription += "Tags: ";
                     foreach (var tag in req.Tags)
                     {
-                        updateDescription += $"- {tag.Name}";
+                        updateDescription += $"{tag.Name}, ";
                     }
                 }
 
-                if (req.CustomMetadata != null && req.CustomMetadata.Any())
+                if (req.CustomMetadata != null && req.CustomMetadata.Count == 0) { // optional
+                    updateDescription += "Custom Metadata: None.";
+                }
+                else if (req.CustomMetadata != null && req.CustomMetadata.Any())
                 {
                     updateDescription += "Custom Metadata: ";
+                    if (req.CustomMetadata.Count == 0) {
+                        updateDescription += "None";
+                    }
                     foreach (var customMetadataDto in req.CustomMetadata) // met
                     {
-                        updateDescription += $"- {customMetadataDto.FieldName} ";
+                        updateDescription += string.Join(", ", req.CustomMetadata.Select(metadata => metadata.FieldName));
                     }
                 }
 
