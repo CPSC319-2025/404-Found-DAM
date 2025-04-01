@@ -15,18 +15,6 @@ namespace APIs.Controllers
 
         private const bool verboseLogs = false;
 
-        // PUT /palette/assets/{assetId} edit asset in the pallete
-        // DELETE /projects/assign-assets  delete an asset from palette
-
-        // private static IActivityLogService _activityLogService;
-        // private static IUserService _userService;
-        // public static void Initialize(IActivityLogService activityLogService, IUserService userService)
-        // {
-        //     _activityLogService = activityLogService;
-        //     _userService = userService;
-
-        // }
-
         private static IServiceProvider GetServiceProvider(HttpContext context)
         {
             return context.RequestServices; // for activity log
@@ -75,24 +63,6 @@ namespace APIs.Controllers
         })
         .WithName("DeletePaletteAsset")
         .WithOpenApi();
-        // update the images in the palette with the selected project tags
-        // app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
-        // {
-        //     var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
-        //     if (result) {
-        //         return Results.Ok(new {
-        //             status = "success",
-        //             projectId = request.ProjectId,
-        //             updatedImages = request.ImageIds,
-        //             message = "Tags successfully added to selected images in the palette."
-        //         });
-        //     } else {
-        //         Console.WriteLine($"Failed to assign project tags to images for ProjectId {result}.");
-        //         return Results.NotFound("Failed to assign project tags to images");
-        //     }
-        // })
-        // .WithName("ModifyTags")
-        // .WithOpenApi();
 
         // Get project and tags by blob id
         app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
@@ -870,45 +840,15 @@ namespace APIs.Controllers
                 // If range is specified, return just that chunk
                 if (startByte.HasValue)
                 {
-                    // Set default end byte if not specified
-                    if (!endByte.HasValue || endByte.Value >= fileSize)
-                        endByte = fileSize - 1;
-                    
-                    var length = endByte.Value - startByte.Value + 1;
-                    
-                    using (var fileStream = file.OpenReadStream())
-                    {
-                        fileStream.Seek(startByte.Value, SeekOrigin.Begin);
-                        
-                        byte[] buffer = new byte[length];
-                        await fileStream.ReadAsync(buffer, 0, (int)length);
-                        
-                        // If decompress is requested and this is a .zst file
-                        if (decompress && fileName.EndsWith(".zst"))
-                        {
-                            // Note: This approach only works for complete files, not for partial chunks
-                            // For partial chunks, you'd need a more sophisticated approach
-                            // This is why we're only decompressing if it's the full file
-                            if (startByte == 0 && endByte == fileSize - 1)
-                            {
-                                buffer = await paletteService.DecompressZstdAsync(buffer);
-                            }
-                            else
-                            {
-                                // We can't decompress partial chunks, so return an error
-                                return Results.BadRequest("Cannot decompress partial file chunks. Request the whole file or set decompress=false.");
-                            }
-                        }
-                        
-                        return Results.Bytes(
-                            contents: buffer,
-                            contentType: contentType,
-                            fileDownloadName: decompress ? originalFileName : fileName,
-                            enableRangeProcessing: true,
-                            lastModified: DateTimeOffset.UtcNow,
-                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
-                        );
-                    }
+
+                    return Results.Bytes(
+                        blobUri: blobUri,
+                        contentType: contentType,
+                        fileDownloadName: decompress ? originalFileName : fileName,
+                        enableRangeProcessing: true,
+                        lastModified: DateTimeOffset.UtcNow,
+                        entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
+                    );
                 }
                 else
                 {
