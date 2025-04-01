@@ -500,8 +500,6 @@ namespace Infrastructure.DataAccess {
                         
                         // Update file extension and MIME type
                         request.AssetMimeType = "image/webp";
-                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(request.OriginalFileName);
-                        request.OriginalFileName = fileNameNoExtension + ".webp";
                     }
                     catch (VipsException)
                     {
@@ -512,9 +510,6 @@ namespace Infrastructure.DataAccess {
                 // Compress the file for storage
                 byte[] compressedBytes = FileCompressionHelper.Compress(fileBytes);
                 
-                // Update the asset's file name and mime type before updating blob storage
-                asset.FileName = request.OriginalFileName;
-                asset.MimeType = request.AssetMimeType;
                 
                 // Update the blob storage with the new compressed file while preserving the blob ID
                 await _blobStorageService.UpdateAsync(compressedBytes, "palette-assets", asset);
