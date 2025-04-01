@@ -11,10 +11,7 @@ namespace Core.Interfaces  {
         public Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService);
         
         // Update method signature to accept GetPaletteAssetsReq
-        public Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request);
-        
-        // New method to get a specific asset by blobId
-        public Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId);
+        public Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request);
         
         Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID);    
 
