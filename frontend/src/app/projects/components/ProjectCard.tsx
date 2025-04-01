@@ -177,7 +177,7 @@ export default function ProjectCard({
           )}
 
           <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-            <MenuItem>{isArchived ? "Show Details" : "Edit"}</MenuItem>
+            <MenuItem onClick={handleEdit}>{isArchived ? "Show Details" : "Edit"}</MenuItem>
             <MenuItem onClick={showConfirmArchive} disabled={isArchived}>
               Archive
             </MenuItem>
