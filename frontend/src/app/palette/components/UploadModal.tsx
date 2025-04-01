@@ -223,7 +223,7 @@ export default function UploadModal({
           
           return updated;
         });
-      }, 150); // Slower timer to reduce race conditions
+      }, 75); // Slower timer to reduce race conditions
       
       return () => clearInterval(timer);
     }
@@ -274,8 +274,10 @@ export default function UploadModal({
   // Handle confirming upload
   const handleConfirmUpload = useCallback(async () => {
     if (!selectedProject) {
-      alert("Please select a project before uploading");
-      return;
+      const confirmUpload = window.confirm("No project selected. Assets will be uploaded without being associated with a project. Continue?");
+      if (!confirmUpload) {
+        return;
+      }
     }
     
     setIsUploading(true);
@@ -354,29 +356,32 @@ export default function UploadModal({
     // After all files have been uploaded, associate them with the project and tags
     if (uploadedBlobIds.length > 0) {
       try {
-        const token = localStorage.getItem("token");
-        const projectId = parseInt(selectedProject);
-        
-        // Call the associate-assets API
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/associate-assets`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: token ? `Bearer ${token}` : "",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ProjectID: projectId,
-              BlobIDs: uploadedBlobIds,
-              TagIDs: selectedTagIds,
-              MetadataEntries: []
-            }),
+        // Only associate files with project if a project is selected
+        if (selectedProject) {
+          const token = localStorage.getItem("token");
+          const projectId = parseInt(selectedProject);
+          
+          // Call the associate-assets API
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/associate-assets`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: token ? `Bearer ${token}` : "",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ProjectID: projectId,
+                BlobIDs: uploadedBlobIds,
+                TagIDs: selectedTagIds,
+                MetadataEntries: []
+              }),
+            }
+          );
+          
+          if (!response.ok) {
+            throw new Error(`Failed to associate assets with project: ${response.status}`);
           }
-        );
-        
-        if (!response.ok) {
-          throw new Error(`Failed to associate assets with project: ${response.status}`);
         }
       } catch (error) {
         console.error("Error associating assets with project:", error);
@@ -480,12 +485,11 @@ export default function UploadModal({
           {currentStep === 2 && (
             <div>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Project <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium mb-1">Project</label>
                 <select 
                   className="w-full px-3 py-2 border rounded-md"
                   value={selectedProject}
                   onChange={(e) => setSelectedProject(e.target.value)}
-                  required
                 >
                   <option value="">Select Project</option>
                   {projects.map((project) => (
@@ -499,30 +503,26 @@ export default function UploadModal({
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea 
-                  className={`w-full px-3 py-2 border rounded-md ${selectedProject ? 'bg-gray-100' : ''}`}
+                  className="w-full px-3 py-2 border rounded-md bg-gray-100"
                   placeholder="Enter description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  readOnly={!!selectedProject}
+                  readOnly={true}
                 />
-                {selectedProject && (
-                  <p className="mt-1 text-xs text-gray-500">Auto-populated from project settings</p>
-                )}
+                <p className="mt-1 text-xs text-gray-500">Auto-populated from project settings</p>
               </div>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Location</label>
                 <input 
                   type="text"
-                  className={`w-full px-3 py-2 border rounded-md ${selectedProject ? 'bg-gray-100' : ''}`}
+                  className="w-full px-3 py-2 border rounded-md bg-gray-100"
                   placeholder="Enter Location..."
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  readOnly={!!selectedProject}
+                  readOnly={true}
                 />
-                {selectedProject && (
-                  <p className="mt-1 text-xs text-gray-500">Auto-populated from project settings</p>
-                )}
+                <p className="mt-1 text-xs text-gray-500">Auto-populated from project settings</p>
               </div>
               
               <div className="mb-4">

@@ -513,12 +513,32 @@ namespace Infrastructure.DataAccess {
             return result;
         }
 
-        public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId)  {
+        public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId, bool convertToWebp = true, IImageService? imageService = null)  {
             using var _context = _contextFactory.CreateDbContext();
             try 
             {
                 // Read file from disk
                 byte[] fileData = await File.ReadAllBytesAsync(filePath);
+                
+                // Check if file is an image and convert to WebP if needed
+                if (convertToWebp && mimeType.StartsWith("image/") && !mimeType.EndsWith("webp") && imageService != null)
+                {
+                    try 
+                    {
+                        // Convert to WebP using the image service
+                        byte[] webpBuffer = imageService.toWebpNetVips(fileData, false);
+                        fileData = webpBuffer;
+                        
+                        // Update file extension and MIME type
+                        mimeType = "image/webp";
+                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(filename);
+                        filename = fileNameNoExtension + ".webp";
+                    }
+                    catch (VipsException)
+                    {
+                        Console.WriteLine("Failed to convert to WebP");
+                    }
+                }
                 
                 // Compress the data
                 byte[] compressedData = FileCompressionHelper.Compress(fileData);
@@ -579,33 +599,9 @@ namespace Infrastructure.DataAccess {
                     await file.CopyToAsync(ms);
                     fileBytes = ms.ToArray();
                 }
-                
-                // Convert if needed (similar to UploadAssets)
-                if (convertToWebp && request.AssetMimeType.StartsWith("image/") && !request.AssetMimeType.EndsWith("webp"))
-                {
-                    try 
-                    {
-                        // Convert to WebP using the image service
-                        byte[] webpBuffer = imageService.toWebpNetVips(fileBytes, false);
-                        fileBytes = webpBuffer;
-                        
-                        // Update file extension and MIME type
-                        request.AssetMimeType = "image/webp";
-                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(request.OriginalFileName);
-                        request.OriginalFileName = fileNameNoExtension + ".webp";
-                    }
-                    catch (VipsException)
-                    {
-                        // Failed to convert, continue with original format
-                    }
-                }
 
                 // Compress the file for storage
                 byte[] compressedBytes = FileCompressionHelper.Compress(fileBytes);
-                
-                // Update the asset's file name and mime type before updating blob storage
-                asset.FileName = request.OriginalFileName;
-                asset.MimeType = request.AssetMimeType;
                 
                 // Update the blob storage with the new compressed file while preserving the blob ID
                 await _blobStorageService.UpdateAsync(compressedBytes, "palette-assets", asset);
