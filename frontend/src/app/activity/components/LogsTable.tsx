@@ -6,7 +6,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   PlusIcon,
-  DownloadIcon,
+  ArrowDownTrayIcon,
   ArrowUpOnSquareIcon,
   TrashIcon,
   ArchiveBoxArrowDownIcon,
@@ -25,16 +25,16 @@ interface ItemsProps {
 }
 
 const changeTypes = [
-  { value: "Create", icon: <PlusIcon className="w-8 h-8 text-blue-400"/> },
-  { value: "Updated" icon: <PencilIcon className="w-8 h-8 text-blue-400"/> },
-  { value: "Uploaded" icon: <ArrowUpOnSquareIcon className="w-8 h-8 text-blue-400"},
-  { value: "Added" icon: <PlusIcon className="w-8 h-8 text-blue-400"},
-  { value: "Import" icon: <PlusIcon className="w-8 h-8 text-blue-400"},
-  { value: "Export" icon: <ArrowUpIcon className="w-8 h-8 text-blue-400"},
-  { value: "Archived" icon: <ArchiveBoxArrownDownIcon className="w-8 h-8 text-blue-400"},
-  { value: "Deleted" icon: <TrashIcon className="w-8 h-8 text-blue-400"},
-  { value: "Downloaded" icon: <DownloadIcon className="w-8 h-8 text-blue-400"},
-  { value: "Other" icon: <ArrowDownIcon className="w-8 h-8 text-blue-400"},
+  { value: "Create", icon: <PlusIcon className="w-4 h-4 text-blue-400"/> },
+  { value: "Updated", icon: <PencilIcon className="w-4 h-4 text-blue-400"/> },
+  { value: "Uploaded", icon: <ArrowUpOnSquareIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Added", icon: <PlusIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Import", icon: <ArrowDownIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Export", icon: <ArrowUpIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Archived", icon: <ArchiveBoxArrowDownIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Deleted", icon: <TrashIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Downloaded", icon: <ArrowDownTrayIcon className="w-4 h-4 text-blue-400"/>}
+  // { value: "Other", icon: <ArrowDownIcon className="w-4 h-4 text-blue-400"/>},
 ]
 
 function getIconForChangeType(changeType: string) {
@@ -48,7 +48,7 @@ function getIconForChangeType(changeType: string) {
     case 'Added':
       return <PlusIcon className="w-8 h-8 text-blue-400" />;
     case 'Import':
-      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+      return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
     case 'Export':
       return <ArrowUpIcon className="w-8 h-8 text-blue-400" />;
     case 'Archived':
@@ -56,7 +56,7 @@ function getIconForChangeType(changeType: string) {
     case 'Deleted':
       return <TrashIcon className="w-8 h-8 text-blue-400" />;
     case 'Downloaded':
-      return <DownloadIcon className="w-8 h-8 text-blue-400" />;
+      return <ArrowDownTrayIcon className="w-8 h-8 text-blue-400" />;
     default:
       return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
   }
@@ -122,7 +122,7 @@ const LogsTable = () => {
     }
 
     if (selectedChangeType !== "") {
-      queryParams.append("changeType", String(selectedProject));
+      queryParams.append("changeType", String(selectedChangeType));
     }
 
     const response = await fetchWithAuth(
@@ -208,7 +208,7 @@ const LogsTable = () => {
             <option value="">Select User</option>
             {users.map((user: User) => (
               <option key={user.userID} value={user.userID}>
-                {user.name} ({user.email})
+                {user.name}
               </option>
             ))}
           </select>
@@ -232,13 +232,13 @@ const LogsTable = () => {
           <label className="text-gray-700 text-sm font-medium">Filter by Log Type</label>
           <select
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(String(e.target.value))}
+            value={selectedChangeType}
+            onChange={(e) => setSelectedChangeType(e.target.value)}
           >
             <option value="">Select Log Type</option>
-            {changeTypes.map((changeType: string) => (
-              <option key={changeType} value={changeType}>
-                {changeType}
+            {changeTypes.map((changeType: any) => (
+              <option key={changeType.value} value={changeType.value}>
+                {changeType.value}
               </option>
             ))}
           </select>

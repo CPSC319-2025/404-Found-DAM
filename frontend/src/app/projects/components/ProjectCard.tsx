@@ -137,7 +137,7 @@ export default function ProjectCard({
 
   return (
     <div
-      className={`border p-4 rounded-lg transition-shadow duration-300 shadow-sm hover:cursor-pointer ${isArchived ? "bg-gray-100" : "bg-white"}`}
+      className={`border p-4 rounded-lg transition-shadow duration-300 shadow-sm hover:cursor-pointer relative ${isArchived ? "bg-gray-100" : "bg-white"}`}
       onClick={handleCardClick}
     >
       <div className="flex flex-col gap-4 p-4">
@@ -154,9 +154,7 @@ export default function ProjectCard({
               </div>
             )}
             <div>
-              <p
-                className={`text-l font-semibold ${isArchived ? "text-gray-600" : "text-black"}`}
-              >
+              <p className={`text-l font-semibold ${isArchived ? "text-gray-600" : "text-black"}`}>
                 <Link
                   href={`/projects/${id}`}
                   passHref
@@ -164,6 +162,7 @@ export default function ProjectCard({
                 >
                   {name}
                 </Link>
+                {isArchived && <span className="text-red-500 text-sm ml-2">(ARCHIVED)</span>}
               </p>
               <p className="text-sm text-gray-500">{formattedCreationTime}</p>
             </div>
@@ -203,7 +202,7 @@ export default function ProjectCard({
               {userNames.length > 4 && (
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium 
-      ${isArchived ? "bg-gray-300 text-gray-600" : "bg-blue-100 text-blue-600"}`}
+    ${isArchived ? "bg-gray-300 text-gray-600" : "bg-blue-100 text-blue-600"}`}
                 >
                   +{userNames.length - 4}
                 </div>
