@@ -15,7 +15,7 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 1;
+        // private const int MOCKEDUSERID = 1;
 
         private const bool adminActionTrue = true;
 
@@ -54,6 +54,7 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
+            HttpContext context,
             int? postedBy,
             int? tagID,
 
@@ -64,7 +65,7 @@ namespace APIs.Controllers
         )
         {
             // TODO: Get requester's ID and replace
-            int requesterID = MOCKEDUSERID; 
+            int requesterID = Convert.ToInt32(context.Items["userId"]); 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -97,7 +98,7 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> GetProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> GetProject(int projectID, IProjectService projectService) // sean: why is someone able to add a parameter to this function and still have it working. Answer: dotnet does it under the hood
         {
             try 
             {
@@ -245,7 +246,7 @@ namespace APIs.Controllers
                     return Results.BadRequest("Project ID mismatch between route and request body.");
                 }
 
-                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
+                int submitterId = Convert.ToInt32(context.Items["userId"]);
 
                 
 
@@ -307,7 +308,7 @@ namespace APIs.Controllers
             {
                 var result = await projectService.UpdateProject(projectID, req);
 
-                int submitterID = MOCKEDUSERID;
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (activityLogService == null) {
                     return Results.StatusCode(500);
@@ -424,9 +425,9 @@ namespace APIs.Controllers
         }
 
 
-        private static async Task<IResult> GetAssetFileFromStorage(int projectID, string blobID, string filename, IProjectService projectService)
+        private static async Task<IResult> GetAssetFileFromStorage(int projectID, string blobID, string filename, IProjectService projectService, HttpContext context)
         {
-            int requesterID = MOCKEDUSERID;
+            int requesterID = Convert.ToInt32(context.Items["userId"]);
             try 
             {
                 (byte[] fileContent, string fileDownloadName) = await projectService.GetAssetFileFromStorage(projectID, blobID, filename, requesterID);

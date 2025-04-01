@@ -11,8 +11,8 @@ namespace APIs.Controllers
     public static class AdminController
     {
 
-        // TODO: replace mocked userID with authenticated userID
-        private const int MOCKEDUSERID = 1;
+        // DONE: replace mocked userID with authenticated userID
+        // private const int MOCKEDUSERID = 1;
 
         private const bool AdminActionTrue = true;
 
@@ -69,7 +69,7 @@ namespace APIs.Controllers
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
                 // TODO: Check requester is a super admin in DB
-                int requesterID = MOCKEDUSERID;
+                int requesterID = Convert.ToInt32(context.Items["userId"]);
 
                 // Get binary data of the Excel file containing details of the exported project
                 (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
@@ -142,7 +142,7 @@ namespace APIs.Controllers
                 - The imported excel file extension is .xlsx, which is zipped.
                 - The project Excel file must adhere to the format seen in the provided example, or the operation will fail and return an error to the user                       -  
         */
-        private static async Task<IResult> ImportProject(IFormFile file , IAdminService adminService, HttpContext context)
+        private static async Task<IResult> ImportProject(IFormFile file, IAdminService adminService, HttpContext context)
         {
             try 
             {
@@ -151,6 +151,7 @@ namespace APIs.Controllers
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
+                int requesterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (file == null || file.Length == 0)
                 {
@@ -172,12 +173,12 @@ namespace APIs.Controllers
 
                     // add log
                     try {
-                        var user = await userService.GetUser(MOCKEDUSERID);
+                        var user = await userService.GetUser(requesterID);
                         string username = user.Name;
                         string userEmail = user.Email;
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {MOCKEDUSERID}) imported project {projectName} (project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {requesterID}) imported project {projectName} (project ID: {projectID})";
                         } else {
                             theDescription = $"{userEmail} imported project {projectName}";
                         }
@@ -187,7 +188,7 @@ namespace APIs.Controllers
                         }
                         await activityLogService.AddLogAsync(new CreateActivityLogDto
                         {
-                            userID = MOCKEDUSERID,
+                            userID = requesterID,
                             changeType = "Import",
                             description = theDescription,
                             projID = projectID,
@@ -233,7 +234,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MOCKEDUSERID;
+                    int reqeusterID = Convert.ToInt32(context.Items["userId"]);
                     DeleteUsersFromProjectRes result = await adminService.DeleteUsersFromProject(reqeusterID, projectID, req);
 
                     var project = await projectService.GetProject(projectID);
@@ -304,7 +305,7 @@ namespace APIs.Controllers
                 }
                 else 
                 {
-                    int reqeusterID = MOCKEDUSERID; // TODO: replace with the actual requesterID from the token
+                    int reqeusterID = Convert.ToInt32(context.Items["userId"]);
                     AddUsersToProjectRes result = await adminService.AddUsersToProject(reqeusterID, projectID, req);
 
                     // add log (done)
@@ -366,11 +367,12 @@ namespace APIs.Controllers
             }            
         }
 
-        private static async Task<IResult> GetRoleDetails(int userID, IAdminService adminService)
+        private static async Task<IResult> GetRoleDetails(int userID, IAdminService adminService, HttpContext context)
         {
             try 
             {
-                RoleDetailsRes result = await adminService.GetRoleDetails(userID);
+                int requestorID = Convert.ToInt32(context.Items["userId"]);
+                RoleDetailsRes result = await adminService.GetRoleDetails(requestorID);
                 return Results.Ok(result); 
             }
             catch (DataNotFoundException ex) 
@@ -394,7 +396,7 @@ namespace APIs.Controllers
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
 
-                int theUserID = MOCKEDUSERID;
+                int theUserID = Convert.ToInt32(context.Items["userId"]);
                 List<CreateProjectsRes> result = await adminService.CreateProjects(req, theUserID);
 
                 try {
@@ -572,13 +574,14 @@ namespace APIs.Controllers
                     var theProjectName = project.name;
                     string metadataDescriptions = string.Join(", ", req.Select(r => r.fieldName));
                     // string description = $"Added metadata fields: {metadataDescriptions}";
-                    var user = await userService.GetUser(MOCKEDUSERID);
+                    int requestorID = Convert.ToInt32(context.Items["userId"]);
+                    var user = await userService.GetUser(requestorID);
                     string username = user.Name;
                     string userEmail = user.Email;
 
                     string theDescription = "";
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {requestorID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
                     } else {
                         theDescription = $"{userEmail} added metadata ({metadataDescriptions}) to project: {theProjectName}";
                     }
@@ -590,7 +593,7 @@ namespace APIs.Controllers
             
                     await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        userID = MOCKEDUSERID,
+                        userID = requestorID,
                         changeType = "Add Metadata",
                         description = theDescription,
                         projID = projectID,
@@ -623,6 +626,7 @@ namespace APIs.Controllers
             var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
             var projectService = serviceProvider.GetRequiredService<IProjectService>();
             var userService = serviceProvider.GetRequiredService<IUserService>();
+            int requestorID = Convert.ToInt32(context.Items["userId"]);
             
             string normalizedRoleString = req.roleChangeTo.Trim().ToLower();
             
@@ -632,12 +636,12 @@ namespace APIs.Controllers
                 try 
                 {
                     
-                    ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
+                    ModifyRoleRes result = await adminService.ModifyRole(projectID, requestorID, normalizedRoleString);
                     // add log (done)
                     // ModifyRoleRes result = await adminService.ModifyRole(projectID, userID, normalizedRoleString);
 
                     try {
-                        var user = await userService.GetUser(MOCKEDUSERID);
+                        var user = await userService.GetUser(requestorID);
                         var username = user.Name;
                         var projectName = await projectService.GetProjectNameByIdAsync(projectID);
 
@@ -648,7 +652,7 @@ namespace APIs.Controllers
 
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {MOCKEDUSERID}) changed role of user {theUserWhoseRoleWasChanged.Name} (User ID: {theIDOfTheUserWhoseRoleWasChanged}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {requestorID}) changed role of user {theUserWhoseRoleWasChanged.Name} (User ID: {theIDOfTheUserWhoseRoleWasChanged}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
                         } else {
                             theDescription = $"{user.Email} changed role of {theEmailOfTheUserWhoseRoleWasChanged} to {normalizedRoleString} in {projectName}";
                         }
@@ -659,7 +663,7 @@ namespace APIs.Controllers
                         }
                         await activityLogService.AddLogAsync(new CreateActivityLogDto
                         {
-                            userID = MOCKEDUSERID,
+                            userID = requestorID,
                             changeType = "Modify Role",
                             description = theDescription,
                             projID = projectID,
@@ -701,13 +705,14 @@ namespace APIs.Controllers
 
                 var project = await projectService.GetProject(projectID);
                 var projectName = project.name;
-                var user = await userService.GetUser(MOCKEDUSERID);
+                int requestorID = Convert.ToInt32(context.Items["userId"]);
+                var user = await userService.GetUser(requestorID);
                 var username = user.Name;
                 string theDescription = "";
 
                 try {
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {requestorID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
                     } else {
                         theDescription = $"{user.Email} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName}";
                     }
@@ -718,7 +723,7 @@ namespace APIs.Controllers
                     // add log (done)
                     await activityLogService.AddLogAsync(new CreateActivityLogDto
                     {
-                        userID = MOCKEDUSERID,
+                        userID = requestorID,
                         changeType = "Toggle Metadata Activation",
                         description = theDescription,
                         projID = projectID,
@@ -746,12 +751,11 @@ namespace APIs.Controllers
             return Results.NotFound("stub"); // Stub
         }
 
-        private static async Task<IResult> GetAllUsers(IAdminService adminService) 
+        private static async Task<IResult> GetAllUsers(IAdminService adminService, HttpContext context) 
         {
             try
             {
-                //TODO: replace MOCKUSERID with authenticated userID
-                int userID = MOCKEDUSERID;
+                int userID = Convert.ToInt32(context.Items["userId"]);
                 GetAllUsersRes result = await adminService.GetAllUsers(userID);
                 return Results.Ok(result);
             }

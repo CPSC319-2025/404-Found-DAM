@@ -50,7 +50,9 @@ namespace MockedData
                 List<CreateProjectsReq>? req = JsonSerializer.Deserialize<List<CreateProjectsReq>>(mockedProjectsPathJsonString);
                 if (req != null) {
                     // TODO: replace mocked userID with authenticated userID
-                    int userID = 1;
+                    // int userID = Convert.ToInt32(context.Items["userId"]);
+                    int MOCKEDUSERID = 1;
+                    int userID = MOCKEDUSERID;
                     await adminService.CreateProjects(req, userID);
                 }
             }
