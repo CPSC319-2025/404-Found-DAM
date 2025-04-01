@@ -98,22 +98,27 @@ namespace APIs.Controllers
             // am I correct in assuming that the frontend function that hits the endpoint will decide the userid, description, changetype, assetID, projectID, isAdminAction?
             // and that it will be passed as some form of query, that will be read from the Form?
 
-            using var reader = new StreamReader(request.Body);
-            var body = await reader.ReadToEndAsync();
-            
-            var logDto = JsonSerializer.Deserialize<CreateActivityLogDto>(body, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            try {
 
-            if (logDto == null)
-            {
-                return Results.BadRequest("Invalid JSON payload.");
-            }
+                using var reader = new StreamReader(request.Body);
+                var body = await reader.ReadToEndAsync();
+                
+                var logDto = JsonSerializer.Deserialize<CreateActivityLogDto>(body, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
-            var log = await activityService.AddLogAsync(logDto);
+                if (logDto == null)
+                {
+                    return Results.BadRequest("Invalid JSON payload.");
+                }
+
+                var log = await activityService.AddLogAsync(logDto);
             
             return Results.Ok(log);
+            } catch {
+                return Results.BadRequest("Error in AddLogAsync endpoint - log not added");
+            }
 
             
             // int userId = int.Parse(request.Form["userId"].ToString());
