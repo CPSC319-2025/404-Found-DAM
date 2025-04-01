@@ -113,7 +113,7 @@ export default function UploadModal({
           
           return updated;
         });
-      }, 100); // Slower timer to reduce race conditions
+      }, 150); // Slower timer to reduce race conditions
       
       return () => clearInterval(timer);
     }

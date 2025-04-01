@@ -55,13 +55,16 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
   const formData = new FormData();
   formData.append("UserId", "1"); // Fixed requirement: UserId=1
   const files: FileMetadata[] = [];
-
+  
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     // First, get metadata for all files
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets?decompress=true`, {
       method: "GET",
       headers: {
-        Authorization: "Bearer MY_TOKEN",
+        Authorization: token ? `Bearer ${token}` : "",
       },
     });
 
@@ -101,7 +104,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
         {
           method: "GET",
           headers: {
-            Authorization: "Bearer MY_TOKEN",
+            Authorization: token ? `Bearer ${token}` : "",
           }
         }
       );

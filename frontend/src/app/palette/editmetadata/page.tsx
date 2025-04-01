@@ -29,6 +29,13 @@ export default function EditMetadataPage() {
   const [projectTags, setProjectTags] = useState<string[]>([]);
   const [projectTagMap, setProjectTagMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [metadataFields, setMetadataFields] = useState<Array<{
+    fieldName: string;
+    fieldID: number;
+    isEnabled: boolean;
+    fieldType: string;
+  }>>([]);
+  const [metadataValues, setMetadataValues] = useState<Record<number, any>>({});
 
   // Fetch project tags and blob details when component mounts
   useEffect(() => {
@@ -47,7 +54,13 @@ export default function EditMetadataPage() {
   async function fetchBlobDetails(blobId: string) {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`);
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch blob details: ${response.status}`);
       }
@@ -69,6 +82,11 @@ export default function EditMetadataPage() {
         // Also fetch tags for this project
         fetchProjectTags(data.project.projectId.toString());
       }
+
+      // Store metadata values if they exist
+      if (data.metadata && typeof data.metadata === 'object') {
+        setMetadataValues(data.metadata);
+      }
     } catch (error) {
       console.error("Error fetching blob details:", error);
     } finally {
@@ -79,19 +97,25 @@ export default function EditMetadataPage() {
   async function fetchProjectTags(projectId: string) {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}`);
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch project data: ${response.status}`);
       }
       const data = await response.json();
       
       // Extract tags from project data
-      if (data.tags && Array.isArray(data.tags)) {
+      if (data.suggestedTags && Array.isArray(data.suggestedTags)) {
         // Create a map of tag names to tag IDs for quick lookup
         const tagMap: Record<string, number> = {};
         const tagNames: string[] = [];
         
-        data.tags.forEach((tag: { name: string; tagID: number }) => {
+        data.suggestedTags.forEach((tag: { name: string; tagID: number }) => {
           tagNames.push(tag.name);
           tagMap[tag.name] = tag.tagID;
         });
@@ -99,8 +123,13 @@ export default function EditMetadataPage() {
         setProjectTags(tagNames);
         setProjectTagMap(tagMap);
       }
+
+      // Extract metadata fields
+      if (data.metadataFields && Array.isArray(data.metadataFields)) {
+        setMetadataFields(data.metadataFields);
+      }
     } catch (error) {
-      console.error("Error fetching project tags:", error);
+      console.error("Error fetching project data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -122,10 +151,13 @@ export default function EditMetadataPage() {
         }
         
         // Call API to assign the tag to the asset
+        const token = localStorage.getItem("token");
+        
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/tag`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             BlobId: fileData.blobId,
@@ -192,12 +224,15 @@ export default function EditMetadataPage() {
       try {
         console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
         
+        const token = localStorage.getItem("token");
+        
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
           {
             method: "PATCH",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
             },
             body: JSON.stringify({
               BlobIds: [fileData.blobId],
@@ -245,15 +280,80 @@ export default function EditMetadataPage() {
   }
 
   function handleSave() {
-    // Update context with new metadata
+    // First update context with new metadata
     updateMetadata(fileIndex, {
       description,
       location,
       tags: selectedTags,
+      metadata: metadataValues,
     });
 
-    // Navigate back to palette page
-    router.push("/palette");
+    // Only proceed with API call if we have a project and blobId
+    if (fileData.project && fileData.blobId) {
+      saveMetadataToAPI();
+    } else {
+      // If we don't have a project or blobId, just navigate back
+      router.push("/palette");
+    }
+  }
+
+  async function saveMetadataToAPI() {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Convert metadata object to array format expected by API
+      const metadataEntries = Object.entries(metadataValues).map(([fieldIdStr, value]) => {
+        const fieldId = parseInt(fieldIdStr);
+        return {
+          FieldId: fieldId,
+          FieldValue: value
+        };
+      });
+      
+      // Filter out empty entries
+      const filteredMetadataEntries = metadataEntries.filter(entry => 
+        entry.FieldValue !== undefined && 
+        entry.FieldValue !== null && 
+        entry.FieldValue !== ""
+      );
+      
+      // Ensure projectID is properly parsed as integer
+      const projectIdInt = parseInt(fileData.project!);
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectIdInt}/associate-assets`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ProjectID: projectIdInt,
+            BlobIDs: [fileData.blobId],
+            TagIDs: [],
+            MetadataEntries: filteredMetadataEntries
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Server error response:", errorData);
+        throw new Error(`Failed to save metadata: ${response.status}`);
+      }
+      
+      console.log("Metadata saved successfully");
+      
+      // Navigate back to palette page
+      router.push("/palette");
+    } catch (error) {
+      console.error("Error saving metadata:", error);
+      alert("Failed to save metadata. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleEditImage() {
@@ -286,10 +386,10 @@ export default function EditMetadataPage() {
             <label className="block text-gray-700 mb-1">Description:</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none bg-gray-100"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none"
               placeholder="Enter description"
               value={description}
-              readOnly
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
@@ -297,10 +397,10 @@ export default function EditMetadataPage() {
             <label className="block text-gray-700 mb-1">Location:</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none bg-gray-100"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none"
               placeholder="Where was this created?"
               value={location}
-              readOnly
+              onChange={(e) => setLocation(e.target.value)}
             />
           </div>
 
@@ -356,22 +456,76 @@ export default function EditMetadataPage() {
             </div>
           )}
 
-          <div className="mt-4">
+          {/* Metadata Fields Section */}
+          {fileData.project && metadataFields.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-lg font-medium text-gray-700 mb-4">Project Metadata Fields</h2>
+              <div className="space-y-4">
+                {metadataFields
+                  .filter(field => field.isEnabled)
+                  .map((field) => (
+                  <div key={field.fieldID}>
+                    <label className="block text-gray-700 mb-1">
+                      {field.fieldName} ({field.fieldType}):
+                    </label>
+                    {field.fieldType === "Boolean" ? (
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          checked={metadataValues[field.fieldID] || false}
+                          onChange={(e) => {
+                            setMetadataValues({
+                              ...metadataValues,
+                              [field.fieldID]: e.target.checked
+                            });
+                          }}
+                        />
+                        <span className="ml-2 text-gray-700">
+                          {metadataValues[field.fieldID] ? "Yes" : "No"}
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        type={field.fieldType === "Number" ? "number" : "text"}
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none"
+                        value={metadataValues[field.fieldID] || ""}
+                        onChange={(e) => {
+                          const value = field.fieldType === "Number" 
+                            ? parseFloat(e.target.value) 
+                            : e.target.value;
+                          setMetadataValues({
+                            ...metadataValues,
+                            [field.fieldID]: value
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* File size display */}
+          {/* <div className="mt-4">
             <p className="text-gray-700 font-medium">File Size:</p>
             <p className="text-gray-800">{fileData.fileSize}</p>
-          </div>
+          </div> */}
         </div>
 
         <div className="mt-8 flex justify-center space-x-4">
           <button
             onClick={handleSave}
-            className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
+            disabled={isLoading}
+            className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 disabled:bg-teal-300"
           >
-            Save Changes
+            {isLoading ? "Saving..." : "Save Changes"}
           </button>
           <button
             onClick={handleEditImage}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
+            disabled={isLoading}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200 disabled:bg-blue-300"
           >
             Edit Image
           </button>

@@ -68,12 +68,15 @@ export default function FileTable({
       try {
         console.log(`Deleting tag "${tagToRemove}" with ID ${tagIdToRemove}`);
         
+        const token = localStorage.getItem("token");
+        
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
           {
             method: "PATCH",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
             },
             body: JSON.stringify({
               BlobIds: [fileMeta.blobId],
@@ -149,12 +152,15 @@ export default function FileTable({
     if (fileMeta.tags.length > 0 && fileMeta.blobId) {
       try {
         console.log(fileMeta.tags);
+        const token = localStorage.getItem("token");
+        
         const deleteTagsResponse = fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/tags`,
           {
             method: "PATCH",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
             },
             body: JSON.stringify({
               BlobIds: [fileMeta.blobId],
@@ -183,12 +189,15 @@ export default function FileTable({
     
     // Call API to update tags for the image
     try {
+      const token = localStorage.getItem("token");
+      
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/project-tags`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             blobId: fileMeta.blobId,
@@ -206,12 +215,14 @@ export default function FileTable({
 
     // Call the API to associate the asset with the project
     try {
+      const token = localStorage.getItem("token");
+      
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${newProjectID}/associate-assets`,
         {
           method: "PATCH",
           headers: {
-            Authorization: "Bearer MY_TOKEN",
+            Authorization: token ? `Bearer ${token}` : "",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -241,8 +252,15 @@ export default function FileTable({
 
     // Call the API to get asset details from the blobId
     try {
+      const token = localStorage.getItem("token");
+      
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${fileMeta.blobId}/details`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${fileMeta.blobId}/details`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          }
+        }
       );
       
       if (response.ok) {

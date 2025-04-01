@@ -6,12 +6,15 @@
  */
 export async function submitAssets(projectId: string, blobIds: string[]): Promise<boolean> {
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/${projectId}/submit-assets`,
       {
         method: "PATCH",
         headers: {
-          Authorization: "Bearer MY_TOKEN",
+          Authorization: token ? `Bearer ${token}` : "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ blobIDs: blobIds }), // e.g. { "blobIDs": [123, 456] }

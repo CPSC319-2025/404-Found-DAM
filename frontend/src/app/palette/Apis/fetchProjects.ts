@@ -6,7 +6,14 @@ import { Project } from './types';
  */
 export async function fetchProjects(): Promise<Project[]> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`);
+    // Get the auth token from localStorage
+    const token = localStorage.getItem("token");
+    
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects`, {
+      headers: {
+        "Authorization": token ? `Bearer ${token}` : ""
+      }
+    });
     
     if (!res.ok) {
       console.error("Failed to fetch project logs:", res.status);

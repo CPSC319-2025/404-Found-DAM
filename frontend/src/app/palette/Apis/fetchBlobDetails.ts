@@ -7,8 +7,16 @@ import { BlobDetails } from './types';
  */
 export async function fetchBlobDetails(blobId: string): Promise<BlobDetails> {
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/blob/${blobId}/details`,
+      {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      }
     );
     
     if (!response.ok) {

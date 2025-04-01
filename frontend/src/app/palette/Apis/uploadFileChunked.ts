@@ -27,6 +27,9 @@ export async function uploadFileChunked(
   } | null = null;
 
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     while (start < file.size) {
       // Adjust end to not exceed file size
       end = Math.min(start + chunkSize, file.size);
@@ -43,6 +46,9 @@ export async function uploadFileChunked(
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload/chunk`, {
         method: "POST",
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
         body: formData,
       });
       
