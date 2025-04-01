@@ -17,7 +17,7 @@ namespace APIs.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (context.Request.Path.StartsWithSegments("/auth/login") || context.Request.Path.StartsWithSegments("/auth/register"))
+            if (context.Request.Path.StartsWithSegments("/auth/login") || context.Request.Path.StartsWithSegments("/auth/register")) // || context.Request.Path.StartsWithSegments("/addLog"))
             {
                 await _next(context);
                 return;

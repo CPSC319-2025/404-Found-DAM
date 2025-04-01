@@ -98,25 +98,42 @@ namespace APIs.Controllers
             // am I correct in assuming that the frontend function that hits the endpoint will decide the userid, description, changetype, assetID, projectID, isAdminAction?
             // and that it will be passed as some form of query, that will be read from the Form?
 
+            using var reader = new StreamReader(request.Body);
+            var body = await reader.ReadToEndAsync();
             
-            int userId = int.Parse(request.Form["userId"].ToString());
-            string theDescription = request.Form["description"].ToString();
-            string theChangeType = request.Form["changeType"].ToString();
-            string theAssetID = request.Form["assetID"].ToString();
-            int projectID = int.Parse(request.Form["projectID"].ToString());
-            bool isAnAdminAction = bool.Parse(request.Form["isAdminAction"].ToString());
- 
-            var log = await activityService.AddLogAsync(new CreateActivityLogDto // AddLogAsync(CreateActivityLogDto logDto)
+            var logDto = JsonSerializer.Deserialize<CreateActivityLogDto>(body, new JsonSerializerOptions
             {
-                userID = userId,
-                description = theDescription,
-                changeType = theChangeType,
-                assetID = theAssetID,
-                projID = projectID,
-                isAdminAction = isAnAdminAction
+                PropertyNameCaseInsensitive = true
             });
+
+            if (logDto == null)
+            {
+                return Results.BadRequest("Invalid JSON payload.");
+            }
+
+            var log = await activityService.AddLogAsync(logDto);
             
             return Results.Ok(log);
+
+            
+            // int userId = int.Parse(request.Form["userId"].ToString());
+            // string theDescription = request.Form["description"].ToString();
+            // string theChangeType = request.Form["changeType"].ToString();
+            // string theAssetID = request.Form["assetID"].ToString();
+            // int projectID = int.Parse(request.Form["projectID"].ToString());
+            // bool isAnAdminAction = bool.Parse(request.Form["isAdminAction"].ToString());
+ 
+            // var log = await activityService.AddLogAsync(new CreateActivityLogDto // AddLogAsync(CreateActivityLogDto logDto)
+            // {
+            //     userID = userId,
+            //     description = theDescription,
+            //     changeType = theChangeType,
+            //     assetID = theAssetID,
+            //     projID = projectID,
+            //     isAdminAction = isAnAdminAction
+            // });
+            
+            // return Results.Ok(log);
         }
 
     }
