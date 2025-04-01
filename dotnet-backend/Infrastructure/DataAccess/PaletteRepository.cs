@@ -165,30 +165,7 @@ namespace Infrastructure.DataAccess {
             return res;
         }
 
-        public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
-            using var _context = _contextFactory.CreateDbContext();
-            // Get all Assets for the user
-            var assets = await _context.Assets
-                .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
-                .ToListAsync();
-
-            if (assets == null || assets.Count == 0) 
-            {
-                return new List<IFormFile>(); // Return an empty list
-            }
-            else 
-            {
-                            
-                // Construct tuple list to be passed into DownloadAsync
-                List<(string, string)> assetIdNameTupleList = assets
-                    .Select(a => (a.BlobID, a.FileName))
-                    .ToList();
-
-                return await _blobStorageService.DownloadAsync("palette-assets", assetIdNameTupleList);
-            }
-        }
-
-        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<(List<string>, List<string>)> GetAssets(GetPaletteAssetsReq request) {
             using var _context = _contextFactory.CreateDbContext();
             // Get all Assets for the user
             var assets = await _context.Assets
@@ -197,10 +174,11 @@ namespace Infrastructure.DataAccess {
             
             // Convert assets to list of tuples (BlobID, FileName)
             var assetTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
-            return await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
+            var blobUris = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
+            return (blobUris,fieNames)
         }
 
-        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId) {
+        public async Task<string?> GetAssetByBlobIdAsync(string blobId, int userId) {
             using var _context = _contextFactory.CreateDbContext();
             // Get the asset with the specified blobId that belongs to the user
             var asset = await _context.Assets
@@ -249,9 +227,6 @@ namespace Infrastructure.DataAccess {
                                  a.assetState = Asset.AssetStateType.SubmittedToProject;
                                  a.LastUpdated = DateTime.UtcNow;
                                  successfulSubmissions.Add(a.BlobID);
-                                //  var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, a.FileName) }); 
-                                //  await _blobStorageService.DeleteAsync(a, "palette-assets");
-                                //  await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a);
                                 await _blobStorageService.MoveAsync("palette-assets", a.BlobID, "project-" + projectID + "-assets");
                              }
                          }

@@ -178,34 +178,10 @@ namespace Infrastructure.DataAccess
                 // Return the URL to the frontend
                 return blobUrlWithSas;
                 
-                // Download the blob
-                // var response = await blobClient.DownloadAsync();
-                
-                // // Create a memory stream to copy the blob content
-                // var memoryStream = new MemoryStream();
-                // await response.Value.Content.CopyToAsync(memoryStream);
-                // memoryStream.Position = 0; // Reset position for reading
-
-                // // Create a FormFile from the memory stream
-                // var formFile = new FormFile(
-                //     baseStream: memoryStream,
-                //     baseStreamOffset: 0,
-                //     length: memoryStream.Length,
-                //     name: "file", // Form field name
-                //     fileName: Path.GetFileName($"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst")
-                // );
-                
-                // // Set content type if needed
-                // // formFile.ContentType = properties.Value.ContentType;
-                
-                // return formFile;
             }).ToList();
             
             // Wait for all downloads to complete
             var results = await Task.WhenAll(downloadTasks);
-            
-            // Add all results to the existing formFiles list
-            // formFiles.AddRange(results);
             
             // Return the list of form files
             return results.ToList();
