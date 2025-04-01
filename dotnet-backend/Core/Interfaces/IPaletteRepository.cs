@@ -26,5 +26,8 @@ namespace Core.Interfaces  {
         Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds);
 
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
+        
+        // Update an existing asset by blob ID
+        Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService);
     }
 }

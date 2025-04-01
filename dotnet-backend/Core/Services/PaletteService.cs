@@ -238,5 +238,47 @@ namespace Core.Services
                 throw;
             }
         }
+        
+        public async Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp)
+        {
+            try
+            {
+                // For now, call ProcessUploadAsync with the existing blob ID
+                // We'll need to update IPaletteRepository later to add UpdateAssetAsync
+                var asset = await _paletteRepository.UpdateAssetAsync(file, request, convertToWebp, _imageService);
+                
+                if (asset != null)
+                {
+                    return new ProcessedAsset
+                    {
+                        BlobID = asset.BlobID,
+                        FileName = asset.FileName,
+                        SizeInKB = asset.FileSizeInKB,
+                        Success = true
+                    };
+                }
+                else
+                {
+                    return new ProcessedAsset
+                    {
+                        FileName = file.FileName,
+                        SizeInKB = file.Length / 1024.0,
+                        Success = false,
+                        ErrorMessage = "Failed to update asset"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating asset: {ex.Message}");
+                return new ProcessedAsset
+                {
+                    FileName = file.FileName,
+                    SizeInKB = file.Length / 1024.0,
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
     }
 }
