@@ -23,6 +23,7 @@ namespace MockedData
             string mockedUsersfilePath = Path.Combine("..", "Core", "MockedSeed", "mockedUsers.json");
             string mockedUsersPathJsonString = File.ReadAllText(mockedUsersfilePath);
             List<User>? users = JsonSerializer.Deserialize<List<User>>(mockedUsersPathJsonString);
+            private const int MOCKEDUSERID = 1;
 
             if (users != null && _contextFactory != null) 
             {
@@ -51,7 +52,7 @@ namespace MockedData
                 if (req != null) {
                     // TODO: replace mocked userID with authenticated userID
                     // int userID = Convert.ToInt32(context.Items["userId"]);
-                    int MOCKEDUSERID = 1;
+                    // int MOCKEDUSERID = 1;
                     int userID = MOCKEDUSERID;
                     await adminService.CreateProjects(req, userID);
                 }
