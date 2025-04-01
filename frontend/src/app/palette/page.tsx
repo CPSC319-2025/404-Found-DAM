@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import FileTable from "./components";
+import UploadModal from "./components/UploadModal";
 import { 
   fetchPaletteAssets, 
   fetchBlobDetails, 
@@ -21,14 +22,21 @@ import { useUser } from "@/app/context/UserContext";
 // Simple Button component
 const Button = ({ 
   children, 
-  onClick 
+  onClick,
+  className = "",
+  disabled = false
 }: { 
   children: React.ReactNode; 
-  onClick: () => void 
+  onClick: () => void;
+  className?: string;
+  disabled?: boolean;
 }) => (
   <button
     onClick={onClick}
-    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+    disabled={disabled}
+    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg flex items-center ${className} ${
+      disabled ? "opacity-50 cursor-not-allowed" : ""
+    }`}
   >
     {children}
   </button>
@@ -42,7 +50,7 @@ const Progress = ({
 }) => (
   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
     <div 
-      className="bg-indigo-600 h-2.5 rounded-full" 
+      className="bg-gradient-to-r from-blue-500 to-teal-500 h-2.5 rounded-full transition-all duration-300" 
       style={{ width: `${value}%` }}
     />
   </div>
@@ -57,7 +65,7 @@ export default function PalettePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const didFetchRef = useRef(false);
-  
+  const [showModal, setShowModal] = useState(false); // New upload window for modal visibility
   // Upload status for drag and drop
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -271,6 +279,10 @@ export default function PalettePage() {
     accept: { "image/*": [], "video/*": [] },
   });
 
+  const handleUploadNewDesign = useCallback(() => {
+    setShowModal(true);
+  }, []);
+
   // Submit selected assets
   const handleSubmitAssets = useCallback(async () => {
     if (selectedIndices.length === 0) {
@@ -337,56 +349,98 @@ export default function PalettePage() {
   }, [files, selectedIndices, setFiles]);
 
   return (
-    <div className="p-6 min-h-screen">
-      <FileTable
-        files={files}
-        removeFile={removeFile}
-        selectedIndices={selectedIndices}
-        setSelectedIndices={setSelectedIndices}
-        projects={projects}
-      />
-
-      <div className="mt-6 bg-white p-4 rounded shadow flex flex-col items-center">
-        <div
-          {...getRootProps()}
-          className="w-96 h-48 border-2 border-dashed border-gray-300 p-4 rounded-lg text-center cursor-pointer flex flex-col items-center justify-center"
-        >
-          <input {...getInputProps()} />
-          {isDragActive ? (
-            <p className="text-xl text-teal-600">Drop files here...</p>
-          ) : (
-            <>
-              <p className="text-xl font-semibold text-gray-700 mb-1">
-                Drag and Drop here
-              </p>
-              <p className="text-gray-500 mb-2">or</p>
-              <button
-                type="button"
-                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-teal-400"
-              >
-                Select files
-              </button>
-              <p className="text-sm text-gray-400 mt-2">
-                (Images &amp; Videos Only)
-              </p>
-            </>
-          )}
+    <div className="min-h-screen bg-gradient-to-b p-6">
+      <div className="max-w-8xl mx-auto"> 
+        <div className="mb-8 bg-gradient-to-r from-blue-600 to-teal-500 px-6 py-6 rounded-xl shadow-lg text-white">
+          <h1 className="text-3xl font-bold mb-2">Asset Palette</h1>
+          <p className="text-white/80">Manage and submit your digital assets</p>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden mb-8">
+          <FileTable
+            files={files}
+            removeFile={removeFile}
+            selectedIndices={selectedIndices}
+            setSelectedIndices={setSelectedIndices}
+            projects={projects}
+          />
         </div>
 
-        {/* Display upload progress and status */}
         {uploadStatus && (
-          <div className="mt-4 w-full max-w-md">
-            <p className="text-sm text-gray-700">{uploadStatus}</p>
-            {uploadProgress > 0 && <Progress value={uploadProgress} />}
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{uploadStatus}</h3>
+            <Progress value={uploadProgress} />
           </div>
         )}
 
-        <button
-          onClick={handleSubmitAssets}
-          className="mt-4 px-4 py-3 border border-gray-300 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="bg-white p-8 rounded-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Ready to upload?</h2>
+            <p className="text-gray-600">Add new assets to your palette or submit existing ones to projects</p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button
+              onClick={handleUploadNewDesign}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Upload Assets
+            </Button>
+
+            <Button
+              onClick={handleSubmitAssets}
+              disabled={selectedIndices.length === 0}
+              className={`${
+                selectedIndices.length > 0 
+                  ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white" 
+                  : "bg-gray-300 text-gray-500"
+              }`}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Submit Selected ({selectedIndices.length})
+            </Button>
+          </div>
+        </div>
+        
+        {/* Dropzone Area with better styling
+        <div 
+          {...getRootProps()} 
+          className={`mt-8 border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all 
+            ${isDragActive 
+              ? "border-blue-500 bg-blue-50" 
+              : "border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+            }`
+          }
         >
-          Submit Assets
-        </button>
+          <input {...getInputProps()} />
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <div>
+              <p className="text-lg font-medium text-gray-700">
+                {isDragActive ? "Drop the files here..." : "Drag & drop files here"}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                or click to select files
+              </p>
+            </div>
+          </div>
+        </div> */}
+        
+        {showModal && (
+          <UploadModal 
+            projects={projects}
+            closeModal={() => setShowModal(false)}
+            createFileMetadata={createFileMetadata}
+            fetchAndUpdateBlobDetails={fetchAndUpdateBlobDetails}
+          />
+        )}
       </div>
     </div>
   );

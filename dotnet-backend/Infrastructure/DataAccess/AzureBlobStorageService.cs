@@ -124,6 +124,43 @@ namespace Infrastructure.DataAccess
             
             // Return the list of form files
             return formFiles;
+        }
+        
+        public async Task<bool> UpdateAsync(byte[] file, string containerName, Asset assetMetaData)
+        {
+            // Validate parameters
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty or null", nameof(file));
+                
+            // Create blob client and container
+            var blobServiceClient = new BlobServiceClient(_connectionString);
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            
+            // Make sure container exists
+            if (!await containerClient.ExistsAsync())
+            {
+                await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            }
+            
+            // Get blob client for the existing asset - use the existing BlobID
+            var blobClient = containerClient.GetBlobClient(assetMetaData.BlobID);
+            
+            // Set content type metadata
+            var blobOptions = new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders
+                {
+                    ContentType = assetMetaData.MimeType
+                }
+            };
+            
+            // Upload file - this will overwrite existing blob
+            using (var stream = new MemoryStream(file))
+            {
+                await blobClient.UploadAsync(stream, blobOptions);
+            }
+            
+            return true;
         }  
     }
 }

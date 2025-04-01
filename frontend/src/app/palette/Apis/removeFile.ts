@@ -20,10 +20,16 @@ export async function removeFile(fileMeta: FileMetadata): Promise<boolean> {
   }
 
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     // Make the DELETE request with form data
     console.log("calling removeFile with", fileMeta);
     const response = await fetchWithAuth(`palette/asset`, {
       method: "DELETE",
+      headers: {
+        "Authorization": token ? `Bearer ${token}` : ""
+      },
       body: formData,
       // No need to set 'Content-Type'; fetch does it automatically for FormData
     })

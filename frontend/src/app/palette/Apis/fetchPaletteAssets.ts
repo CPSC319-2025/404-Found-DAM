@@ -56,8 +56,11 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
   const formData = new FormData();
   formData.append("UserId", "1"); // Fixed requirement: UserId=1
   const files: FileMetadata[] = [];
-
+  
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     // First, get metadata for all files
     const response = await fetchWithAuth(`palette/assets?decompress=true`, {
       method: "GET"
@@ -134,7 +137,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
     // Filter out null values and return
     return fetchedFiles.filter(file => file !== null) as FileMetadata[];
   } catch (err) {
-    console.error("Error fetching palette assets:", err);
+    console.log("The Palette is empty");
     return [];
   }
 } 
