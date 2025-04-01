@@ -87,17 +87,8 @@ namespace APIs.Controllers
             });
         }
 
-        // public static async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID, IActivityLogService service) {
-        //     // IActivityLogService service = new ActivityLogService();
-        //     return await service.AddLogAsync(userID, changeType, description, projectID, assetID);
-        // }
-
         public static async Task<IResult> AddLogAsync(HttpRequest request, [FromServices] IActivityLogService activityService)
         {
-
-            // am I correct in assuming that the frontend function that hits the endpoint will decide the userid, description, changetype, assetID, projectID, isAdminAction?
-            // and that it will be passed as some form of query, that will be read from the Form?
-
             try {
 
                 using var reader = new StreamReader(request.Body);
@@ -115,30 +106,10 @@ namespace APIs.Controllers
 
                 var log = await activityService.AddLogAsync(logDto);
             
-            return Results.Ok(log);
+                return Results.Ok(log);
             } catch (Exception ex) {
                 return Results.BadRequest("Error in AddLogAsync endpoint - log not added");
             }
-
-            
-            // int userId = int.Parse(request.Form["userId"].ToString());
-            // string theDescription = request.Form["description"].ToString();
-            // string theChangeType = request.Form["changeType"].ToString();
-            // string theAssetID = request.Form["assetID"].ToString();
-            // int projectID = int.Parse(request.Form["projectID"].ToString());
-            // bool isAnAdminAction = bool.Parse(request.Form["isAdminAction"].ToString());
- 
-            // var log = await activityService.AddLogAsync(new CreateActivityLogDto // AddLogAsync(CreateActivityLogDto logDto)
-            // {
-            //     userID = userId,
-            //     description = theDescription,
-            //     changeType = theChangeType,
-            //     assetID = theAssetID,
-            //     projID = projectID,
-            //     isAdminAction = isAnAdminAction
-            // });
-            
-            // return Results.Ok(log);
         }
 
     }
