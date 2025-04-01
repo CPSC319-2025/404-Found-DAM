@@ -15,6 +15,8 @@ namespace MockedData
 {
     public static class MockedDataSeeding 
     {
+
+        private const int MOCKEDUSERID = 1;
         public static async Task Seed(IServiceScope scope) 
         {
             var _contextFactory = scope.ServiceProvider.GetService<IDbContextFactory<DAMDbContext>>();
@@ -23,7 +25,7 @@ namespace MockedData
             string mockedUsersfilePath = Path.Combine("..", "Core", "MockedSeed", "mockedUsers.json");
             string mockedUsersPathJsonString = File.ReadAllText(mockedUsersfilePath);
             List<User>? users = JsonSerializer.Deserialize<List<User>>(mockedUsersPathJsonString);
-            private const int MOCKEDUSERID = 1;
+            
 
             if (users != null && _contextFactory != null) 
             {
