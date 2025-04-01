@@ -22,11 +22,19 @@ namespace Core.Interfaces  {
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
+        Task<List<int>> GetProjectTagIdsAsync(int projectId);
+        Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds);
 
         Task<string?> GetAssetNameByBlobIdAsync(string blobID);
         Task<string?> GetTagNameByIdAsync(int tagId);
         Task<string?> GetProjectNameByIdAsync(int projectID);
 
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
+        
+        // Update an existing asset by blob ID
+        Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService);
+
+        // Get all fields for a specific blob
+        Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId);
     }
 }
