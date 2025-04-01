@@ -94,7 +94,7 @@ builder.Services.AddAuthorization();
 // only developer working on this task. 
 // Otherwise debugging will be a nightmare
 // post on the backend channel if you are going to use this
-if (!builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 } else {
