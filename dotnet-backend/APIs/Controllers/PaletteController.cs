@@ -31,14 +31,6 @@ namespace APIs.Controllers
         .WithName("GetPaletteAssets")
         .WithOpenApi();
 
-        // Get a specific asset by blobId
-        app.MapGet("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
-        {
-            return await GetSingleAsset(blobId, request, paletteService);
-        })
-        .WithName("GetSingleAsset")
-        .WithOpenApi();
-
         // Update an existing asset by blobId
         app.MapPut("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
         {
@@ -245,23 +237,24 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var files = await paletteService.GetAssets(uploadRequest);
                 // If no files were found
-                if (files == null || !files.Any())
+                if (files == null || !files.BlobUris.Any())
                 {
                     return Results.Ok(new { assets = Array.Empty<object>() }); 
                 }
                 
                 // Get the metadata for all files (including their sizes)
-                var fileMetadata = files.Select(f => new {
-                    fileName = f.FileName,
+                var fileMetadata = files.FileNames.Select(f => new {
+                    fileName = f,
                     size = f.Length,
                     contentType = decompressFiles ? 
-                        GetMimeTypeFromFileName(f.FileName.Replace(".zst", "")) : 
+                        GetMimeTypeFromFileName(f.Replace(".zst", "")) : 
                         "application/zstd",
-                    blobId = ExtractBlobId(f.FileName)
+                    blobId = ExtractBlobId(f)
                 }).ToList();
 
                 // Return just the metadata for all files
-                return Results.Ok(new { 
+                return Results.Ok(new {
+                    blobUris = files.BlobUris, 
                     files = fileMetadata,
                     message = "Get file metadata only. Use /palette/assets/{blobId} endpoint to download individual files."
                 });
@@ -775,119 +768,6 @@ namespace APIs.Controllers
                 return Results.StatusCode(500);
             }
         }
-        
-        private static async Task<IResult> GetSingleAsset(string blobId, HttpRequest request, IPaletteService paletteService)
-        {
-            try 
-            {
-                int userId = MOCKEDUSERID;
-
-                // Check if we should decompress the file
-                bool decompress = request.Query.ContainsKey("decompress") && 
-                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
-
-                // Get range headers for chunked download
-                var rangeHeader = request.Headers.Range.FirstOrDefault();
-                long? startByte = null;
-                long? endByte = null;
-
-                if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
-                {
-                    var rangeValue = rangeHeader.Substring("bytes=".Length);
-                    var rangeParts = rangeValue.Split('-');
-                    
-                    if (rangeParts.Length == 2)
-                    {
-                        if (!string.IsNullOrEmpty(rangeParts[0]))
-                            startByte = Convert.ToInt64(rangeParts[0]);
-                        
-                        if (!string.IsNullOrEmpty(rangeParts[1]))
-                            endByte = Convert.ToInt64(rangeParts[1]);
-                    }
-                }
-
-                // Get the specific file by blobId
-                var file = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
-                
-                if (file == null)
-                {
-                    return Results.NotFound($"File with blobId {blobId} not found");
-                }
-
-                // Get file information
-                var fileSize = file.Length;
-                var fileName = file.FileName;
-                
-                // Extract original filename from BlobId.OriginalFilename.zst format
-                string originalFileName = fileName;
-                if (fileName.EndsWith(".zst"))
-                {
-                    originalFileName = fileName.Substring(0, fileName.Length - 4); // Remove .zst
-                    
-                    var parts = originalFileName.Split('.');
-                    if (parts.Length > 1)
-                    {
-                        // Remove blobId prefix
-                        originalFileName = string.Join('.', parts.Skip(1));
-                    }
-                }
-
-                // Determine content type based on original filename and decompress option
-                var contentType = decompress
-                    ? GetMimeTypeFromFileName(originalFileName)
-                    : "application/zstd";
-
-                // If range is specified, return just that chunk
-                if (startByte.HasValue)
-                {
-
-                    return Results.Bytes(
-                        blobUri: blobUri,
-                        contentType: contentType,
-                        fileDownloadName: decompress ? originalFileName : fileName,
-                        enableRangeProcessing: true,
-                        lastModified: DateTimeOffset.UtcNow,
-                        entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
-                    );
-                }
-                else
-                {
-                    // Return the whole file
-                    using (var fileStream = file.OpenReadStream())
-                    {
-                        var memoryStream = new MemoryStream();
-                        await fileStream.CopyToAsync(memoryStream);
-                        memoryStream.Position = 0;
-                        
-                        byte[] fileContents = memoryStream.ToArray();
-                        
-                        // If decompress is requested and this is a .zst file
-                        if (decompress && fileName.EndsWith(".zst"))
-                        {
-                            fileContents = await paletteService.DecompressZstdAsync(fileContents);
-                        }
-                        
-                        return Results.File(
-                            fileContents: fileContents,
-                            contentType: contentType,
-                            fileDownloadName: decompress ? originalFileName : fileName,
-                            enableRangeProcessing: true,
-                            lastModified: DateTimeOffset.UtcNow,
-                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
-                        );
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred getting asset: {ex.Message}");
-                return Results.Problem(
-                    detail: ex.Message,
-                    statusCode: 500,
-                    title: "Internal Server Error"
-                );
-            }
-        }
 
         private static async Task<IResult> UpdateAsset(string blobId, HttpRequest request, IPaletteService paletteService)
         {
@@ -931,13 +811,7 @@ namespace APIs.Controllers
                 // Check if blob exists
                 try
                 {
-                    var existingAsset = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
-                    if (existingAsset == null)
-                    {
-                        return Results.NotFound($"Asset with blobId {blobId} not found");
-                    }
 
-                    // Get original file name from the existing asset
                     string originalFileName = existingAsset.FileName;
                     
                     // Extract original filename without blobId prefix and .zst suffix if present
