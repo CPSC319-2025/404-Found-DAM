@@ -76,6 +76,27 @@ namespace APIs.Controllers
         .WithName("GetBlobProjectAndTags")
         .WithOpenApi();
 
+        // Get all fields (field IDs and values) for a specific blob ID
+        app.MapGet("/palette/blob/{blobId}/fields", async (string blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobFieldsAsync(blobId);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob fields: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobFields")
+        .WithOpenApi();
+
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
  
@@ -84,9 +105,9 @@ namespace APIs.Controllers
 
         app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
 
-         app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
-               .WithName("RemoveTagsFromAssets")
-               .WithOpenApi();
+        app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
+            .WithName("RemoveTagsFromAssets")
+            .WithOpenApi();
 
         // Add single tag to asset
         app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService) =>

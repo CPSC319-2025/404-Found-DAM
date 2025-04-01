@@ -187,7 +187,7 @@ export default function FileTable({
     // Get any existing tags from the blob
     
     
-    // Call API to update tags for the image
+    // Call API assign all project tags to the asset
     try {
       const token = localStorage.getItem("token");
       

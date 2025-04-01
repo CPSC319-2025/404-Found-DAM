@@ -46,30 +46,140 @@ export default function UploadModal({
   const [selectedProject, setSelectedProject] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
-  const [tagSuggestion, setTagSuggestion] = useState("");
   const [processingFiles, setProcessingFiles] = useState<{name: string, progress: number}[]>([]);
   const [processedFiles, setProcessedFiles] = useState<{name: string}[]>([]);
+  const [projectTags, setProjectTags] = useState<{id: number, name: string}[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
   
   // Auto-populate description and location when project is selected
   useEffect(() => {
     if (selectedProject) {
+      // Clear selected tags when project changes
+      setSelectedTags([]);
+      
       const project = projects.find(p => p.projectID.toString() === selectedProject);
       if (project) {
         setDescription(project.description || "");
         setLocation(project.location || "");
+        // Fetch project tags when project is selected
+        fetchProjectTags(selectedProject);
       }
     }
   }, [selectedProject, projects]);
   
+  // Function to fetch project tags
+  const fetchProjectTags = async (projectId: string) => {
+    setIsLoadingTags(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch project data: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Extract suggested tags for display in the UI
+      if (data.suggestedTags && Array.isArray(data.suggestedTags)) {
+        const tagList = data.suggestedTags.map((tag: { tagID: number, name: string }) => ({
+          id: tag.tagID,
+          name: tag.name
+        }));
+        setProjectTags(tagList);
+      }
+      
+      // Auto-add only the project's actual tags (not all suggested tags)
+      if (data.tags && Array.isArray(data.tags)) {
+        // Extract project tags from data
+        const projectTagNames: string[] = data.tags.map((tag: { name: string }) => tag.name);
+        const projectTagIds: number[] = data.tags.map((tag: { tagID: number }) => tag.tagID);
+        
+        // Add project tags to selected tags (prevent duplicates)
+        setSelectedTags(prevTags => {
+          const newTags = [...prevTags];
+          
+          // Add each project tag if not already in selectedTags
+          projectTagNames.forEach(tag => {
+            if (!newTags.includes(tag)) {
+              newTags.push(tag);
+            }
+          });
+          
+          return newTags;
+        });
+
+        // Add project tag IDs to selectedTagIds
+        setSelectedTagIds(prevIds => {
+          const newIds = [...prevIds];
+          
+          // Add each project tag ID if not already in selectedTagIds
+          projectTagIds.forEach(id => {
+            if (!newIds.includes(id)) {
+              newIds.push(id);
+            }
+          });
+          
+          return newIds;
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching project tags:", error);
+    } finally {
+      setIsLoadingTags(false);
+    }
+  };
+
+  // Handle tag selection
+  const handleTagSelection = (tag: string) => {
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags([...selectedTags, tag]);
+      
+      // Find and add the corresponding tag ID
+      const tagObject = projectTags.find(t => t.name === tag);
+      if (tagObject && !selectedTagIds.includes(tagObject.id)) {
+        setSelectedTagIds([...selectedTagIds, tagObject.id]);
+      }
+    }
+  };
+
+  // Handle tag removal
+  const handleTagRemoval = (tagToRemove: string) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+    
+    // Also remove the corresponding tag ID
+    const tagObject = projectTags.find(t => t.name === tagToRemove);
+    if (tagObject) {
+      setSelectedTagIds(selectedTagIds.filter(id => id !== tagObject.id));
+    }
+  };
+  
   // Handle dropping files
   const onModalDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = [...uploadedFiles, ...acceptedFiles];
+    // Check for duplicate filenames before adding
+    const uniqueFiles = acceptedFiles.filter(newFile => {
+      // Check if file with same name exists in either uploaded or processed files
+      const isDuplicate = uploadedFiles.some(existingFile => existingFile.name === newFile.name);
+      
+      if (isDuplicate) {
+        alert(`File "${newFile.name}" already exists in upload list. Please rename the file before uploading.`);
+        return false;
+      }
+      return true;
+    });
+    
+    const newFiles = [...uploadedFiles, ...uniqueFiles];
     setUploadedFiles(newFiles);
     
-    // Initialize processing files
+    // Initialize processing files (only for unique files)
     setProcessingFiles(prev => [
       ...prev,
-      ...acceptedFiles.map(file => ({
+      ...uniqueFiles.map(file => ({
         name: file.name, 
         progress: 0
       }))
@@ -169,6 +279,7 @@ export default function UploadModal({
     }
     
     setIsUploading(true);
+    const uploadedBlobIds: string[] = [];
     
     for (const file of uploadedFiles) {
       // Create file metadata
@@ -176,6 +287,7 @@ export default function UploadModal({
       fileMeta.description = description;
       fileMeta.location = location;
       fileMeta.project = selectedProject;
+      fileMeta.tags = selectedTags;
       
       // Upload file in chunks without adding to files state yet
       setUploadingFileName(file.name);
@@ -189,6 +301,9 @@ export default function UploadModal({
           setUploadingProgress(100);
           
           if (blobId) {
+            // Add blobId to our tracking array
+            uploadedBlobIds.push(blobId);
+            
             // Instead of using processFileMetadata (which adds to files state),
             // manually add the file with all metadata at once
             fileMeta.blobId = blobId;
@@ -235,13 +350,48 @@ export default function UploadModal({
       await uploadFileChunked(file, callbacks);
     }
     
+    // After all files have been uploaded, associate them with the project and tags
+    if (uploadedBlobIds.length > 0) {
+      try {
+        const token = localStorage.getItem("token");
+        const projectId = parseInt(selectedProject);
+        
+        // Call the associate-assets API
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/${projectId}/associate-assets`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: token ? `Bearer ${token}` : "",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ProjectID: projectId,
+              BlobIDs: uploadedBlobIds,
+              TagIDs: selectedTagIds,
+              MetadataEntries: []
+            }),
+          }
+        );
+        
+        if (!response.ok) {
+          throw new Error(`Failed to associate assets with project: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error associating assets with project:", error);
+        alert("Files were uploaded but there was an issue linking them to the project. Please check your project dashboard.");
+      }
+    }
+    
     setIsUploading(false);
     closeModal();
     setUploadedFiles([]);
     setCurrentStep(1);
     setProcessingFiles([]);
     setProcessedFiles([]);
-  }, [uploadedFiles, selectedProject, description, location, createFileMetadata, fetchAndUpdateBlobDetails, setFiles, closeModal]);
+    setSelectedTags([]);
+    setSelectedTagIds([]);
+  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, setFiles, closeModal]);
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -375,22 +525,56 @@ export default function UploadModal({
               </div>
               
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Tag Suggestions</label>
-                <input 
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-md"
-                  placeholder="Suggest tags to Project Admin..."
-                  value={tagSuggestion}
-                  onChange={(e) => setTagSuggestion(e.target.value)}
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Project Tags</label>
-                <div className="w-full px-3 py-2 border rounded-md text-gray-400">
-                  Project tags will be displayed here ...
+                <label className="block text-sm font-medium mb-1">Selected Tags:</label>
+                <div className="min-h-[38px] w-full border border-gray-300 rounded-md p-2 flex flex-wrap gap-2">
+                  {selectedTags.length > 0 ? (
+                    selectedTags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                      >
+                        {tag}
+                        <button
+                          onClick={() => handleTagRemoval(tag)}
+                          className="ml-1 text-red-500 hover:text-red-700"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs self-center">No tags selected</span>
+                  )}
                 </div>
               </div>
+              
+              {selectedProject && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Suggested Tags:</label>
+                  {isLoadingTags ? (
+                    <p className="text-sm text-gray-500">Loading suggested tags...</p>
+                  ) : projectTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {projectTags.map((tag, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleTagSelection(tag.name)}
+                          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                            selectedTags.includes(tag.name)
+                              ? "bg-blue-100 text-blue-800 cursor-default"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                          }`}
+                          disabled={selectedTags.includes(tag.name)}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No suggested tags available</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           

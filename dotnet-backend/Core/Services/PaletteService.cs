@@ -280,5 +280,21 @@ namespace Core.Services
                 };
             }
         }
+
+        public async Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId)
+        {
+            try
+            {
+                return await _paletteRepository.GetBlobFieldsAsync(blobId);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

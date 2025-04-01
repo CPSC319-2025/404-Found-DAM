@@ -573,5 +573,53 @@ namespace Infrastructure.DataAccess {
                 throw;
             }
         }
+
+        public async Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try
+            {
+                // Check if the asset exists
+                var asset = await _context.Assets
+                    .Where(a => a.BlobID == blobId)
+                    .FirstOrDefaultAsync();
+
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with BlobID {blobId} not found");
+                }
+
+                // Get all metadata fields for the asset
+                var assetMetadata = await _context.AssetMetadata
+                    .Where(am => am.BlobID == blobId)
+                    .Include(am => am.ProjectMetadataField)
+                    .ToListAsync();
+
+                // Create the response
+                var response = new GetBlobFieldsRes
+                {
+                    BlobId = blobId,
+                    Fields = assetMetadata.Select(am => new BlobFieldDto
+                    {
+                        FieldId = am.FieldID,
+                        FieldValue = am.FieldValue,
+                        FieldName = am.ProjectMetadataField.FieldName,
+                        FieldType = am.ProjectMetadataField.FieldType.ToString()
+                    }).ToList()
+                };
+
+                return response;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob fields: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

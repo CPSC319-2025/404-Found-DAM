@@ -22,5 +22,6 @@ namespace Core.Interfaces
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
         Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(AssignProjectTagsToAssetReq request);
+        Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId);
     }
 }

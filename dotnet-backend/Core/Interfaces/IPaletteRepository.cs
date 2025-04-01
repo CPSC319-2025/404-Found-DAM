@@ -29,5 +29,8 @@ namespace Core.Interfaces  {
         
         // Update an existing asset by blob ID
         Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService);
+
+        // Get all fields for a specific blob
+        Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId);
     }
 }
