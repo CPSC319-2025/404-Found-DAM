@@ -17,6 +17,9 @@ namespace Infrastructure.DataAccess
             _connectionString = configuration.GetConnectionString("AzureBlobStorage");
         }
         
+
+
+        
         public async Task<string> UploadAsync(byte[] file, string containerName, Asset assetMetaData)
         {
             // Validate parameters

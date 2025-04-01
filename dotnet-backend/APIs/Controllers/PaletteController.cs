@@ -13,6 +13,18 @@ namespace APIs.Controllers
 
         public static void MapPaletteEndpoints(this WebApplication app)
         {
+
+        // Api for Editting Image
+        
+        app.MapPatch("/palette/asset/{blobId}", async(HttpRequest request, IPaletteService paletteService) => 
+        {
+            //return await paletteService.AssetsEditted(file, blobID, assetMetaData);
+            return await imagesEditted(request, paletteService);
+        })
+        .WithName("EditedAssets")
+        .WithOpenApi();
+        
+
             // assets already in the pallete
         app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
         {
@@ -205,7 +217,6 @@ namespace APIs.Controllers
         */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService)
         {
-            Console.WriteLine("in UploadAssets");
             try {
                 // Check if the request has form data
                 if (!request.HasFormContentType || request.Form.Files.Count == 0)
@@ -354,6 +365,7 @@ namespace APIs.Controllers
                  int submitterID = MOCKEDUSERID; 
                  Console.WriteLine(req.blobIDs);
                  SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                
                  return Results.Ok(result);
              }
 
@@ -546,6 +558,51 @@ namespace APIs.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred getting asset: {ex.Message}");
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+        
+        private static async Task<IResult> imagesEditted(string blobId, HttpRequest request, IPaletteService paletteService) 
+        {
+            try 
+            {
+                // Check if the request has form data
+                if (!request.HasFormContentType || request.Form.Files.Count == 0)
+                {
+                    return Results.BadRequest("No files uploaded");
+                }
+
+                //string  = request.Form["blobID"].ToString();
+                string fileName = request.Form["fileName"].ToString().ToLower();
+                string mimeType = request.Form["mimeType"].ToString();
+                int fleSizeInKB = int.Parse(request.Form["fleSizeInKB"].ToString());
+                //int userId = int.Parse(request.Form["userId"].ToString());
+
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    return Results.BadRequest("FileName should not be empty!");
+                }
+
+                if (string.IsNullOrEmpty(mimeType))
+                {
+                    return Results.BadRequest("mimeType is required");
+                }
+                else if (!mimeType.Contains("/"))  // maybe optional: image/jpg
+                {
+                    return Results.BadRequest("incorrect mimeType format");
+                }
+
+                var file = request.form.Files["file"];
+
+                string result = await paletteService.AssetsEditted(file, blobId, fileName, mimeType, fleSizeInKB);
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
                 return Results.Problem(
                     detail: ex.Message,
                     statusCode: 500,

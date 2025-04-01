@@ -24,5 +24,8 @@ namespace Core.Interfaces  {
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);
 
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
+    
+        Task<Asset> UploadEditedImage(IFormFile file, string blobID, UploadAssetsReq req, IImageService _imageService);
+
     }
 }

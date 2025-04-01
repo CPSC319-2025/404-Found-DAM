@@ -3,6 +3,7 @@ using Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Core.Entities;
 
+
 namespace Infrastructure.DataAccess
 {
     public class LocalBlobStorageService : IBlobStorageService
@@ -17,12 +18,12 @@ namespace Infrastructure.DataAccess
             // Create an Asset instance with the file path
             // Generate a unique blob name
             // string fileName = assetMetaData.FileName;
-            string uniqueBlobName = $"{Guid.NewGuid()}";
+            //string uniqueBlobName = $"{Guid.NewGuid()}";
             
             // TODO keeping this for Dennnis to review
-            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}.zst"), file);
+            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{containerName}.{assetMetaData.FileName}.zst"), file);
 
-            return uniqueBlobName;
+            return containerName;
         }
         
         public async Task<bool> DeleteAsync(Asset asset, string containerName)

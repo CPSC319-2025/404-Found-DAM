@@ -14,6 +14,7 @@ namespace Infrastructure.DataAccess {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
         private readonly IBlobStorageService _blobStorageService;
+        
         public PaletteRepository(IDbContextFactory<DAMDbContext> contextFactory, IBlobStorageService blobStorageService) 
         {
             _contextFactory = contextFactory;
@@ -34,6 +35,106 @@ namespace Infrastructure.DataAccess {
             return projectTags ?? new List<string>();
         }
         
+
+        public async Task<string> UpdateImageInDb(string blobID, byte[] imageData)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == blobID);
+            if (asset == null)
+            throw new DataNotFoundException("Asset not found");
+            asset.FileSizeInKB = imageData.Length / 1024.0;
+            await _context.SaveChangesAsync();
+            return blobID;
+        }
+
+        // For Uploading Edited Image
+        public async Task<Asset> UploadEditedImage(IFormFile file, string blobID, UploadAssetsReq req,  IImageService _imageService) 
+        {
+            using var _context = _contextFactory.CreateDbContext();
+            if (file == null || file.Length == 0) 
+                throw new ArgumentException("File Is Empty!");
+
+            byte[] compressedFile;
+
+            try {
+                // Get the Filename Properly (i.e. without the extension such as the .png, .jpg part)
+                //   if .zst is part of the file's name, remove it
+                string FileNameNoExtension = file.FileName;
+                string suffix = ".zst";
+                if (FileNameNoExtension.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) 
+                {
+                    FileNameNoExtension = FileNameNoExtension.Substring(0, FileNameNoExtension.Length - suffix.Length);
+                }
+
+                // check to see if conversion of image is needed
+                if (req.AssetMimeType.StartsWith("image") && !req.AssetMimeType.EndsWith("webp")) 
+                {
+                    try {
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedFile = ms.ToArray();
+
+                            byte[] decompressedBuf = FileCompressionHelper.Decompress(compressedFile);
+                            byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuf, false);
+
+                            compressedFile = FileCompressionHelper.Compress(webpLossyBuffer);
+
+                            // Change fileName's extension and mimitype
+                            string fileNameNoExtend = Path.GetFileNameWithoutExtension(FileNameNoExtension);
+                            fileNameNoExtend = fileNameNoExtend = ".webp";
+                            string[] mimeTypeParts = req.AssetMimeType.Split('/');
+                            if (mimeTypeParts.Length > 0) 
+                            {
+                                req.AssetMimeType = mimeTypeParts[0] + "/" + "webp";
+                            }
+
+                        }
+                    } catch(VipsException) {
+                        using (var ms = new MemoryStream())
+                        {
+                            await file.CopyToAsync(ms);
+                            compressedFile = ms.ToArray();
+                        }
+                    }
+                } else {
+                    
+                    using (var ms = new MemoryStream())
+                    {
+                        await file.CopyToAsync(ms);
+                        compressedFile = ms.ToArray();
+                    }
+                }
+                var asset = new Asset 
+                {
+                    BlobID = blobID,
+                    FileName = FileNameNoExtension,
+                    MimeType = req.AssetMimeType,
+                    ProjectID = null,
+                    UserID = req.UserId,
+                    FileSizeInKB = compressedFile.Length / 1024.0,
+                    LastUpdated = DateTime.UtcNow,
+                    assetState = Asset.AssetStateType.SubmittedToProject
+                };
+
+                if (compressedFile.Length / 1024.0 > 2000)
+                {
+                    throw new Exception();
+                }
+                
+
+                // 
+                string sameBlogID = await _blobStorageService.UploadAsync(compressedFile, "palette-assets", asset);
+                await _context.Assets.AddAsync(asset);
+                int num = await _context.SaveChangesAsync();
+                return asset;
+            } catch (Exception){
+                throw ;
+            }
+        }
+
+
+
         public async Task<Asset> UploadAssets(IFormFile file, UploadAssetsReq request, bool convertToWebp, IImageService _imageService)
         {
             using var _context = _contextFactory.CreateDbContext();

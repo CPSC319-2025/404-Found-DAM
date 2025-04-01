@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useEffect, useState } from "react";
+
 import Cropper from "react-easy-crop";
 
 export default function EditImagePage() {
@@ -87,11 +88,40 @@ export default function EditImagePage() {
         resizedHeight
       );
 
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob) {
+          
+          const formData = new FormData();
+          formData.append("file", blob, fileData.file.name);
+
+
+          formData.append("blobID", fileData.file.name.split('.')[0]);
+          formData.append("fileName", fileData.file.name);
+          formData.append("mimeType", blob.type);
+          formData.append("fleSizeInKB", (blob.size / 1024).toString());
+          formData.append("userId", "1"); // TODO: dynamically retrieve user ID
+   
+          try {
+            const response = await fetch(`/palette/asset/${fileData.file.name.split('.')[0]}`, {
+              method: "PATCH",
+              body: formData
+            });
+
+            if (response.ok) {
+              alert("Image saved to backend successfully!");
+              router.push("/palette");
+            } else {
+              alert("Error saving image to backend.");
+            }
+          } catch (error) {
+            alert("Network error occurred while saving image.");
+          }
+
           const editedFile = new File([blob], fileData.file.name, {
             type: blob.type,
           });
+
+ 
 
           // Update FileContext with resized image
           setFiles((prevFiles) =>

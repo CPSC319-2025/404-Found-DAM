@@ -14,6 +14,7 @@ namespace Core.Services
     {
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
+        private readonly IBlobStorageService _storageService;
    
         // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
         public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
@@ -209,6 +210,15 @@ namespace Core.Services
                 // Console.WriteLine($"Error assigning tag to asset: {ex.Message}");
                 throw;
             }
+        }
+
+
+
+        public async Task<string> AssetsEditted(byte[] file, string blobID, Asset assetMetaData) {
+
+            return await _storageService.UploadAsync(file, blobID, assetMetaData);
+ 
+
         }
     }
 }
