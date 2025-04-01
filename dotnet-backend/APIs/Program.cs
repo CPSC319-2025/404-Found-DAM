@@ -54,6 +54,11 @@ builder.Services.AddScoped<ISearchRepository, SearchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+builder.Services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+
+
+
 builder.Services.AddTransient<IFileService, Core.Services.FileService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
@@ -106,7 +111,6 @@ app.UseAuthorization();
 
 app.UseMiddleware<APIs.Middleware.AuthMiddleware>();
 
-
 // Run "dotnet run --seed" to seed database
 if (args.Contains("--seed"))
 {
@@ -138,6 +142,7 @@ app.MapPaletteEndpoints();
 app.MapSearchEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapActivityLogEndpoints();
 app.MapFileUploadEndpoints();
 app.MapTagEndpoints();
 
@@ -157,14 +162,14 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<DAMDbContext>();
-    
+
     // Drop the database
     dbContext.Database.EnsureDeleted();
-    
+
     // Apply migrations to create a new database
     dbContext.Database.Migrate();
     await SeedDatabase(app);
-    
+
     Console.WriteLine("Database was reset and migrations applied successfully");
 } else
 {

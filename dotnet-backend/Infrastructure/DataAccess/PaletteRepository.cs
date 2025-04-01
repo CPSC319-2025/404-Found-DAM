@@ -10,6 +10,7 @@ using Core.Services.Utils;
 using NetVips;
 
 namespace Infrastructure.DataAccess {
+    //
     public class PaletteRepository : IPaletteRepository {
 
         private readonly IDbContextFactory<DAMDbContext> _contextFactory;
@@ -621,5 +622,36 @@ namespace Infrastructure.DataAccess {
                 throw;
             }
         }
-    }
+
+        public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
+        {
+            using var _context = _contextFactory.CreateDbContext(); // first create context
+            return await _context.Assets
+                .Where(a => a.BlobID == blobID)
+                .Select(a => a.FileName)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<string?> GetTagNameByIdAsync(int tagId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            return await context.Tags
+                .Where(t => t.TagID == tagId)
+                .Select(t => t.Name)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<string?> GetProjectNameByIdAsync(int projectId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            return await context.Projects
+                .Where(p => p.ProjectID == projectId)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync();
+        }
+
+
+    } 
 }

@@ -1,4 +1,5 @@
 import { FileMetadata } from "@/app/context/FileContext";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 // Function to get MIME type from filename
 export function getMimeTypeFromFileName(filename: string): string {
@@ -61,12 +62,9 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
     const token = localStorage.getItem("token");
     
     // First, get metadata for all files
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets?decompress=true`, {
-      method: "GET",
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-    });
+    const response = await fetchWithAuth(`palette/assets?decompress=true`, {
+      method: "GET"
+    })
 
     if (!response.ok) {
       throw new Error(`Fetch failed with status ${response.status}`);
@@ -99,15 +97,9 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
       const originalFilename = extractOriginalFilename(fileName);
       
       // Download each file individually with decompression done on the server
-      const fileResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/${blobId}?decompress=true`, 
-        {
-          method: "GET",
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          }
-        }
-      );
+      const fileResponse = await fetchWithAuth(`palette/assets/${blobId}?decompress=true`, {
+        method: "GET",
+      })
       
       if (!fileResponse.ok) {
         console.error(`Failed to fetch file ${blobId}:`, fileResponse.status);

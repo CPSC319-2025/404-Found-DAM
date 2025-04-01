@@ -25,6 +25,10 @@ namespace Core.Interfaces  {
         Task<List<int>> GetProjectTagIdsAsync(int projectId);
         Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds);
 
+        Task<string?> GetAssetNameByBlobIdAsync(string blobID);
+        Task<string?> GetTagNameByIdAsync(int tagId);
+        Task<string?> GetProjectNameByIdAsync(int projectID);
+
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId);
         
         // Update an existing asset by blob ID

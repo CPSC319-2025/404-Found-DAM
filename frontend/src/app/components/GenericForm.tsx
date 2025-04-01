@@ -31,6 +31,7 @@ export interface Field {
   isMultiSelect?: boolean;
   isCustomMetadata?: boolean; // hardcoding this type for now. Cant really think of reason to make more generic
   required?: boolean;
+  disabled?: boolean;
   options?: { name: string; id: number | string }[]; // TODO: this may need to change depending on database!
   onChange?: (value: any, field: string, changeType: ChangeType) => void;
 }
@@ -402,6 +403,7 @@ export default function GenericForm({
                     className="custom-multiselect w-full p-2 border rounded"
                     closeIcon="cancel"
                     avoidHighlightFirstOption
+                    disable={field.disabled}
                   />
                 ) : field.isMulti ? (
                   <div>

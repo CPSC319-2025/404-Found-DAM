@@ -152,7 +152,7 @@ export default function UploadModal({
   const handleTagRemoval = (tagToRemove: string) => {
     setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
     
-    // Also remove the corresponding tag ID
+    // Remove the corresponding tag ID
     const tagObject = projectTags.find(t => t.name === tagToRemove);
     if (tagObject) {
       setSelectedTagIds(selectedTagIds.filter(id => id !== tagObject.id));
@@ -288,6 +288,7 @@ export default function UploadModal({
       fileMeta.location = location;
       fileMeta.project = selectedProject;
       fileMeta.tags = selectedTags;
+      fileMeta.tagIds = selectedTagIds;
       
       // Upload file in chunks without adding to files state yet
       setUploadingFileName(file.name);
@@ -528,20 +529,28 @@ export default function UploadModal({
                 <label className="block text-sm font-medium mb-1">Selected Tags:</label>
                 <div className="min-h-[38px] w-full border border-gray-300 rounded-md p-2 flex flex-wrap gap-2">
                   {selectedTags.length > 0 ? (
-                    selectedTags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => handleTagRemoval(tag)}
-                          className="ml-1 text-red-500 hover:text-red-700"
+                    selectedTags.map((tag, index) => {
+                      // Find corresponding tag ID for tooltip
+                      const tagObject = projectTags.find(t => t.name === tag);
+                      const tagId = tagObject ? tagObject.id : 'unknown';
+                      
+                      return (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800"
+                          title={`Tag ID: ${tagId}`}
                         >
-                          ×
-                        </button>
-                      </span>
-                    ))
+                          {tag}
+                          <button
+                            onClick={() => handleTagRemoval(tag)}
+                            className="ml-1 text-red-500 hover:text-red-700"
+                            title="Remove tag"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })
                   ) : (
                     <span className="text-gray-400 text-xs self-center">No tags selected</span>
                   )}

@@ -119,18 +119,28 @@ namespace Core.Entities
     public class Log
     {
         [Key]
-        public int LogID { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // Auto-increment identity
+
+        public int ChangeID { get; set; } // formerly: LogID
         
-        public required string Action { get; set; }
+        public required string ChangeType { get; set; } // formerly: Action
+
+        public required string Description { get; set; }
+
+        public int ProjectID { get; set; }
+
+        public string AssetID { get; set; }
         
         public DateTime Timestamp { get; set; }
         
         // Foreign key
         public int UserID { get; set; }
+
+        public bool IsAdminAction { get; set; }
         
         // Navigation property
-        [ForeignKey("UserID")]
-        public required virtual User User { get; set; }
+        // [ForeignKey("UserID")]
+        // public required virtual User User { get; set; }
     }
 
     // Junction table for many-to-many between Project and User.

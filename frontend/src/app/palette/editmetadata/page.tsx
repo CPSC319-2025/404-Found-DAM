@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -207,7 +208,7 @@ export default function EditMetadataPage() {
             BlobId: fileData.blobId,
             TagId: tagId
           })
-        });
+        })
         
         if (!response.ok) {
           throw new Error(`Failed to assign tag: ${response.status}`);

@@ -1,5 +1,6 @@
 import { FileMetadata } from "@/app/context/FileContext";
 import { compressFileZstd } from "@/app/palette/compressFileZstd";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Uploads a file after compressing it with Zstandard
@@ -19,12 +20,10 @@ export async function uploadFileZstd(fileMeta: FileMetadata): Promise<string | u
     formData.append("files", compressedFile);
 
     // Send the request
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/upload?toWebp=true`, {
+    const response = await fetchWithAuth(`palette/upload?toWebp=true`, {
       method: "POST",
-      headers: {
-        Authorization: "Bearer MY_TOKEN",
-      },
       body: formData,
+      headers: {}
     });
 
     if (!response.ok) {

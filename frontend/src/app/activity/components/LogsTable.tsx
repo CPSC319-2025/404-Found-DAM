@@ -3,335 +3,231 @@
 import React, { useState, useEffect } from "react";
 // import Image from "next/image";
 // import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-// import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import {
+  PencilIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  PlusIcon,
+  // DownloadIcon,
+  // UploadIcon,
+  ArrowUpOnSquareIcon,
+  TrashIcon,
+  ArchiveBoxArrowDownIcon,
+} from '@heroicons/react/24/solid';
 import Pagination from "@mui/material/Pagination";
+import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/types";
+import { fetchWithAuth } from "@/app/utils/api/api";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
-interface Log {
-  id: string;
-  user: { userId: string; name: string };
-  asset?: { blobId: string; filename: string };
-  project: { projectId: string; name: string };
-  action: string;
-  timestamp: string;
+interface PaginatedLogs extends PaginationType {
+  data: Log[];
 }
-
-interface User {
-  userId: string;
-  name: string;
-}
-
-const TempUsers: User[] = [
-  { userId: "1", name: "John" },
-  { userId: "2", name: "Luke" },
-  { userId: "3", name: "Admin Aaron" },
-];
-
-const TempProjects = [
-  { projectId: "1", name: "Project 1" },
-  { projectId: "2", name: "Project 2" },
-];
-
-const TempAssets = [
-  { blobId: "1", filename: "Asset1.png" },
-  { blobId: "2", filename: "Asset2.png" },
-];
-
-const TempLogs: Log[] = [
-  {
-    id: "1",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "2",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "3",
-    user: TempUsers[0],
-    asset: {
-      blobId: "1",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Uploaded",
-    timestamp: "2011-10-05T14:48:00.000Z",
-  },
-  {
-    id: "4",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "5",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "6",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "7",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "8",
-    user: TempUsers[1],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "9",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "10",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "11",
-    user: TempUsers[2],
-    asset: {
-      blobId: "2",
-      filename: "file1.jpg",
-    },
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Downloaded",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-  {
-    id: "12",
-    user: TempUsers[2],
-    project: {
-      projectId: "1",
-      name: "Project 1",
-    },
-    action: "Modified tags",
-    timestamp: "2011-10-07T11:48:00.000Z",
-  },
-];
 
 interface ItemsProps {
   currentItems?: Log[];
 }
 
+function getIconForChangeType(changeType: string) {
+  switch (changeType) {
+    case 'Create':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Updated':
+      return <PencilIcon className="w-8 h-8 text-blue-400"/>;
+    case 'Uploaded':
+      return <ArrowUpOnSquareIcon className="w-8 h-8 text-blue-400" />;
+    case 'Added':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Import':
+      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+    case 'Export':
+      return <ArrowUpIcon className="w-8 h-8 text-blue-400" />;
+    case 'Archived':
+      return <ArchiveBoxArrowDownIcon className="w-8 h-8 text-blue-400" />;
+    case 'Deleted':
+      return <TrashIcon className="w-8 h-8 text-blue-400" />;
+    default:
+      return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
+  }
+}
+
 function Items({ currentItems }: ItemsProps) {
   return (
-    <div className="items min-h-[55vh] overflow-y-auto mt-4 rounded-lg p-4">
-      {currentItems &&
-        currentItems.map((log: any) => (
+    <div className="grid bg-gray-50 overflow-y-auto mt-4 p-4">
+      {currentItems && currentItems.map((log: Log) => {
+        const IconComponent = getIconForChangeType(log.change_type);
+
+        return (
           <div
-            key={log.id}
-            className="p-2 mb-2 bg-white rounded-md shadow-sm border border-gray-200"
+            key={log.change_id}
+            className="flex items-center p-2 m-1 border-b border-gray-200 last:border-0"
           >
-            <p className="text-gray-800">
-              <strong>{log.user?.name || "Unknown User"}</strong> {log.action}{" "}
-              {log.project?.name ? `on ${log.project.name}` : ""}
-              {log.asset ? ` (Asset: ${log.asset.filename})` : ""} -{" "}
-              <span className="text-gray-500 text-sm">
-                {new Date(log.timestamp).toLocaleString()}
+            <div className="mr-3">
+              {IconComponent}
+            </div>
+            <div className="flex flex-col items-start p-2">
+              {log.description}
+              <span className="text-gray-400 text-sm">
+                {convertUtcToLocal(log.date_time)}
               </span>
-            </p>
+            </div>
           </div>
-        ))}
+        );
+      })}
     </div>
   );
 }
 
-const itemsPerPage = 10;
-
 const LogsTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(4);
+  const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<Log[]>([]);
 
-  const [selectedUser, setSelectedUser] = useState<any>("");
-  const [selectedAsset, setSelectedAsset] = useState<any>("");
-  const [selectedProject, setSelectedProject] = useState<any>("");
-  const [selectedDate, setSelectedDate] = useState<any>("");
+  const [selectedUser, setSelectedUser] = useState<number>(0);
+  const [selectedProject, setSelectedProject] = useState<number>(0);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
-  // TODO: we need list of users with a log entry that we should be able to see
-  // TODO: we need list of all assets with a log entry that a user should be able to see
-  // TODO: we need list of all projects with a log entry that a user should be able to see
+  const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
 
-  const [users, setUsers] = useState<User[]>(TempUsers);
-  const [assets, setAssets] = useState<any>(TempAssets);
-  const [projects, setProjects] = useState<any>(TempProjects);
+  const getLogs = async (page: number) => {
+    const queryParams = new URLSearchParams({
+      pageSize: String(10),
+      pageNumber: String(page)
+    })
 
-  const handleChange = async (e: any, page: number) => {
-    // await mock api call
-    // order by lastmodified
-    const { items, totalPages } = await fetchLogs(page, {
-      selectedUser,
-      selectedAsset,
-      selectedProject,
-      selectedDate,
-    });
-    setCurrentPage(page);
-    setTotalPages(totalPages);
-    setCurrentItems(items);
-  };
+    if (startDate && endDate) {
+      queryParams.append("start", startDate);
+      queryParams.append("end", endDate);
+    }
 
-  const fetchLogs = async (page: number, filters: {}) => {
-    console.log("Fetching logs with filters: ", filters);
-    // TODO: await fetch logs
+    if (selectedUser !== 0) {
+      queryParams.append("userID", String(selectedUser));
+    }
+    if (selectedProject !== 0) {
+      queryParams.append("projectID", String(selectedProject));
+    }
+
+    const response = await fetchWithAuth(
+      `logs?${queryParams.toString()}`
+    );
+
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch assets (Status: ${response.status} - ${response.statusText})`
+      );
+      return { logs: [], totalPages: 0 };
+    }
+
+    const data = (await response.json()) as PaginatedLogs;
+
     return {
-      items: TempLogs.slice(
-        page * itemsPerPage - itemsPerPage,
-        page * itemsPerPage
-      ),
-      totalPages: totalPages,
+      logs: data.data,
+      totalPages: data.totalPages,
     };
   };
 
+  const getProjects = async () => {
+    const response = await fetchWithAuth("projects");
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch projects");
+    }
+
+    const data = await response.json();
+
+    return data.fullProjectInfos as Project[];
+  }
+
+  const getUsers = async () => {
+    const response = await fetchWithAuth("users");
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch users");
+    }
+
+    const data = await response.json();
+
+    return data.users as User[];
+  }
+
+  const handlePageChange = (e: any, page: number) => {
+    setCurrentPage(page);
+    getAllData(page);
+  };
+
   useEffect(() => {
-    fetchLogs(1, {
-      selectedUser,
-      selectedAsset,
-      selectedProject,
-      selectedDate,
-    }).then(({ items, totalPages }) => {
-      setCurrentItems(items);
-      setTotalPages(totalPages);
-    });
-  }, [selectedUser, selectedAsset, selectedProject, selectedDate]);
+    setCurrentPage(1);
+    getAllData(1);
+  }, [selectedUser, selectedProject, startDate, endDate]);
+
+  const getAllData = async (page: number) => {
+    const projects = await getProjects();
+    setProjects(projects);
+    const users = await getUsers();
+
+    const verboseUsers = users.map((user) => ({
+      ...user,
+      name: `${user.name} (${user.email})`,
+    }));
+    setUsers(verboseUsers);
+
+    const { logs, totalPages } = await getLogs(page);
+
+    setCurrentItems(logs);
+    setTotalPages(totalPages);
+  }
 
   return (
     <>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Filter by User</label>
           <select
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
+            onChange={(e) => setSelectedUser(Number(e.target.value))}
           >
-            <option value="">Filter by User</option>
-            {users.map((user) => (
-              <option key={user.userId} value={user.userId}>
-                {user.name}
+            <option value="">Select User</option>
+            {users.map((user: User) => (
+              <option key={user.userID} value={user.userID}>
+                {user.name} ({user.email})
               </option>
             ))}
           </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Filter by Project</label>
           <select
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(Number(e.target.value))}
           >
-            <option value="">Filter by Asset</option>
-            {assets.map((asset: any) => (
-              <option key={asset.blobId} value={asset.blobId}>
-                {asset.filename}
+            <option value="">Select Project</option>
+            {projects.map((project: Project) => (
+              <option key={project.projectID} value={project.projectID}>
+                {project.projectName} (ID: {project.projectID})
               </option>
             ))}
           </select>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <select
-            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-          >
-            <option value="">Filter by Project</option>
-            {projects.map((project: any) => (
-              <option key={project.projectId} value={project.name}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Start Date</label>
           <input
             type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Filter by Date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+
+        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">End Date</label>
+          <input
+            type="date"
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
       </div>
@@ -339,7 +235,7 @@ const LogsTable = () => {
       <Pagination
         count={totalPages}
         page={currentPage}
-        onChange={handleChange}
+        onChange={handlePageChange}
         shape="rounded"
         color="standard"
         className="border border-gray-300"

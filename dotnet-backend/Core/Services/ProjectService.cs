@@ -240,88 +240,106 @@ namespace Core.Services
                 List<User> retrievedUsers;
                 List<ProjectMembership> retrievedProjectMemberships;
 
-                (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
-                    await _repository.GetAllProjectsInDb();
-
+                try
+                {
+                    (retrievedProjects, retrievedUsers, retrievedProjectMemberships) = 
+                        await _repository.GetAllProjectsInDb();
+                }
+                catch (Exception e)
+                {
+                    throw;
+                }
+                
                 Dictionary<int, User> retrievedUserDictionary = retrievedUsers.ToDictionary(u => u.UserID);
 
                 GetAllProjectsRes result = new GetAllProjectsRes();
-
                 result.fullProjectInfos = new List<FullProjectInfo>();
-
                 result.projectCount = retrievedProjects.Count;
 
                 Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)> projectMembershipMap = new Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)>();
-                
+
                 foreach (ProjectMembership pm in retrievedProjectMemberships) 
                 {
-                    if (!projectMembershipMap.ContainsKey(pm.ProjectID))
+                    try
                     {
-                        projectMembershipMap[pm.ProjectID] = (new HashSet<UserCustomInfo>(), new HashSet<UserCustomInfo>());
+                        if (!projectMembershipMap.ContainsKey(pm.ProjectID))
+                        {
+                            projectMembershipMap[pm.ProjectID] = (new HashSet<UserCustomInfo>(), new HashSet<UserCustomInfo>());
+                        }
+
+                        if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
+                        {
+                            var user = retrievedUserDictionary[pm.UserID];
+                            var userInfo = new UserCustomInfo
+                            {
+                                name = user.Name,
+                                email = user.Email,
+                                userID = user.UserID
+                            };
+
+                            (HashSet<UserCustomInfo> adminSet, HashSet<UserCustomInfo> regularSet) = projectMembershipMap[pm.ProjectID];
+
+                            if (pm.UserRole == ProjectMembership.UserRoleType.Admin) 
+                            {
+                                adminSet.Add(userInfo);
+                            }
+                            else if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
+                            {
+                                regularSet.Add(userInfo);
+                            }
+                            projectMembershipMap[pm.ProjectID] = (adminSet, regularSet);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"UserID {pm.UserID} not found in dictionary.");
+                        }
                     }
-
-                    if (retrievedUserDictionary.ContainsKey(pm.UserID)) 
+                    catch (Exception e)
                     {
-                        var user = retrievedUserDictionary[pm.UserID];
-                        var userInfo = new UserCustomInfo
-                        {
-                            name = user.Name,
-                            email = user.Email,
-                            userID = user.UserID
-                        };
-
-                        (HashSet<UserCustomInfo> adminSet, HashSet<UserCustomInfo> regularSet) = projectMembershipMap[pm.ProjectID];
-                        
-                        if (pm.UserRole == ProjectMembership.UserRoleType.Admin) 
-                        {
-                            adminSet.Add(userInfo);
-                        }
-                        else if (pm.UserRole == ProjectMembership.UserRoleType.Regular) 
-                        {
-                            regularSet.Add(userInfo);
-                        }
-                        projectMembershipMap[pm.ProjectID] = (adminSet, regularSet); // Update the dictionary       
+                        Console.WriteLine($"Error processing ProjectMembership with UserID {pm.UserID}: {e.Message}");
                     }
                 }
 
-                // Constructing the result for return by looping through retrievedProjects
                 HashSet<Project> addedProjects = new HashSet<Project>();
                 foreach (var p in retrievedProjects)
                 {
-                    if (!addedProjects.Contains(p)) 
+                    try
                     {
-                        addedProjects.Add(p);
+                        if (!addedProjects.Contains(p)) 
+                        {
+                            addedProjects.Add(p);
 
-                        // Populate fullProjectInfo
-                        (HashSet<UserCustomInfo> adminSet, HashSet<UserCustomInfo> regularSet) = projectMembershipMap[p.ProjectID];
-                        FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
-                        fullProjectInfo.projectID = p.ProjectID;
-                        fullProjectInfo.projectName = p.Name;
-                        fullProjectInfo.location = p.Location;
-                        fullProjectInfo.description = p.Description;
-                        fullProjectInfo.creationTime = p.CreationTime;
-                        fullProjectInfo.active = p.Active;
-                        fullProjectInfo.archivedAt = p.Active ? null : p.ArchivedAt;
-                        fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
-                        fullProjectInfo.admins = adminSet;
-                        fullProjectInfo.regularUsers = regularSet;
+                            var (adminSet, regularSet) = projectMembershipMap.ContainsKey(p.ProjectID) ? projectMembershipMap[p.ProjectID] : (new HashSet<UserCustomInfo>(), new HashSet<UserCustomInfo>());
 
-                        // Add fullProjectInfo to result
-                        result.fullProjectInfos.Add(fullProjectInfo);
+                            FullProjectInfo fullProjectInfo = new FullProjectInfo(); 
+                            fullProjectInfo.projectID = p.ProjectID;
+                            fullProjectInfo.projectName = p.Name;
+                            fullProjectInfo.location = p.Location;
+                            fullProjectInfo.description = p.Description;
+                            fullProjectInfo.creationTime = p.CreationTime;
+                            fullProjectInfo.active = p.Active;
+                            fullProjectInfo.archivedAt = p.Active ? null : p.ArchivedAt;
+                            fullProjectInfo.assetCount = p.Assets != null ? p.Assets.Count : 0; // Get p's associated assets for count
+                            fullProjectInfo.admins = adminSet;
+                            fullProjectInfo.regularUsers = regularSet;
+
+                            result.fullProjectInfos.Add(fullProjectInfo);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Error processing project {p.ProjectID}: {e.Message}");
                     }
                 }
+
                 return result;
             }
-            catch (DataNotFoundException)
+            catch (Exception e)
             {
-                throw;
-            }
-            catch (Exception)
-            {
+                Console.WriteLine("An error occurred in GetAllProjects: " + e.Message);
                 throw;
             }
         }
-
 
         public async Task<GetPaginatedProjectAssetsRes> GetPaginatedProjectAssets(GetPaginatedProjectAssetsReq req, int requesterID)
         {
@@ -436,6 +454,18 @@ namespace Core.Services
             return result;
         }
 
+        public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
+        {
+            return await _repository.GetAssetNameByBlobIdAsync(blobID);
+        }
+
+        public async Task<string?> GetProjectNameByIdAsync(int projectID) {
+            return await _repository.GetProjectNameByIdAsync(projectID);
+        }
+
+        public async Task<string?> GetTagNameByIdAsync(int tagID) {
+            return await _repository.GetTagNameByIdAsync(tagID);
+        }
         public async Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID)
         {
             List<(string, string)> assetIdNameTuples = new List<(string, string)>();

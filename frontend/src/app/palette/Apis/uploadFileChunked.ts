@@ -1,4 +1,5 @@
 import { UploadProgressCallbacks } from './types';
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 /**
  * Uploads a file in chunks for better reliability with large files
@@ -11,19 +12,19 @@ export async function uploadFileChunked(
   callbacks: UploadProgressCallbacks
 ): Promise<string | undefined> {
   const { onProgress, onSuccess, onError } = callbacks;
-  
+
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
   const totalChunks = Math.ceil(file.size / chunkSize);
   const chunkProgress = 100 / totalChunks;
   let chunkNumber = 0;
   let start = 0;
   let end = chunkSize;
-  let lastResponse: { 
-    blobId?: string; 
-    message?: string; 
-    chunkNumber?: number; 
-    totalChunks?: number; 
-    fileName?: string 
+  let lastResponse: {
+    blobId?: string;
+    message?: string;
+    chunkNumber?: number;
+    totalChunks?: number;
+    fileName?: string
   } | null = null;
 
   try {
@@ -33,10 +34,10 @@ export async function uploadFileChunked(
     while (start < file.size) {
       // Adjust end to not exceed file size
       end = Math.min(start + chunkSize, file.size);
-      
+
       // Slice the file to get the current chunk
       const chunk = file.slice(start, end);
-      
+
       // Create form data for this chunk
       const formData = new FormData();
       formData.append("file", chunk, "chunk");
@@ -44,14 +45,12 @@ export async function uploadFileChunked(
       formData.append("totalChunks", totalChunks.toString());
       formData.append("originalname", file.name);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload/chunk`, {
+      const response = await fetchWithAuth("upload/chunk", {
         method: "POST",
-        headers: {
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: formData,
-      });
-      
+        body: formData as BodyInit,
+        headers: {}
+      })
+
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }

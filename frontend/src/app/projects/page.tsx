@@ -1,43 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
-import GenericForm, {
-  Field as FormFieldType,
-  FormData,
-  ChangeType,
-} from "@/app/components/GenericForm";
+import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
-import { Project, User } from "@/app/types";
+import { Asset, Project, User } from "@/app/types";
+import { useDropzone } from "react-dropzone";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 import PopupModal from "@/app/components/ConfirmModal";
+import Pagination from "@mui/material/Pagination";
+import Image from "next/image";
+import { ArrowDownTrayIcon, PencilIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 interface ProjectCardProps {
   projectID: number;
   name: string;
+  archived: boolean;
   creationTime: string;
   assetCount: number;
+  admins: User[];
   userNames: string[];
+  allUsers?: User[];
 }
 
 interface GetAllProjectsResponse {
   projectCount: number;
   fullProjectInfos: Project[];
 }
-
-const addTagFormFields: FormFieldType[] = [
-  {
-    name: "newTag",
-    label: "New Tag",
-    type: "text",
-    placeholder: "Enter new tag name",
-    required: true,
-  },
-];
 
 const newProjectFormFields: FormFieldType[] = [
   {
@@ -83,12 +77,90 @@ const newProjectFormFields: FormFieldType[] = [
   },
 ];
 
+function Items({ currentItems }: { currentItems?: any[] } ) {
+  return (
+    <div className="items overflow-y-auto mt-4 rounded-lg p-4">
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200">
+          <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              File Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Image
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Project
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+          {currentItems?.map((asset: any) => (
+            <tr
+              key={asset.blobID}
+              className="hover:bg-gray-50"
+            >
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">
+                  {asset.fileName}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="h-20 w-20 relative">
+                  <Image
+                    src={asset.src ?? ""}
+                    alt={`${asset.filename} thumbnail`}
+                    width={120}
+                    height={120}
+                    className="object-cover rounded w-full h-full"
+                  />
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium">
+                  <Link
+                    href={`/projects/${asset.projectID}`}
+                    className="hover:bg-gray-200 p-2 rounded text-blue-500"
+                  >
+                    {asset.projectName}
+                  </Link>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div className="flex gap-3">
+                  <button
+                    className="text-indigo-600 hover:text-indigo-900"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      alert("TODO: download");
+                      // TODO: EDIT LOGIC
+                    }}
+                  >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                        <ArrowDownTrayIcon className="h-5 w-5" />
+                      </span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsPage() {
   const { user } = useUser();
-  const [loading, setLoading] = useState<boolean>(true);
   const [query, setQuery] = useState<string>("");
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
+  const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
 
@@ -103,9 +175,20 @@ export default function ProjectsPage() {
   const [configureTagsOpen, setConfigureTagsOpen] = useState(false);
   const [configuredTags, setConfiguredTags] = useState<string[]>([]);
 
+  const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
+  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(null);
+
+  const importFormRef = useRef<HTMLDivElement>(null);
+
   const [confirmConfigurePopup, setConfirmConfigurePopup] = useState(false);
   const [pendingConfigureFormData, setPendingConfigureFormData] =
-    useState<FormData | null>(null);
+    useState<FormDataType | null>(null);
+
+  const [currentAssets, setCurrentAssets] = useState<any[]>([]);
+  const [paginatedAssets, setPaginatedAssets] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [searchDone, setSearchDone] = useState<boolean>(false);
 
   // Global Tags
   const fetchTags = async () => {
@@ -165,11 +248,15 @@ export default function ProjectsPage() {
           ({
             projectID: project.projectID,
             name: project.projectName,
+            archived: !project.active,
             creationTime: project.creationTime,
             assetCount: project.assetCount,
+            admins: project.admins,
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
+            allUsers: project.admins
+              .concat(project.regularUsers)
           }) as ProjectCardProps
       );
     } catch (error) {
@@ -178,7 +265,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleSubmitConfigureTags = async (formData: FormData) => {
+  const handleSubmitConfigureTags = async (formData: FormDataType) => {
     const updatedTags = (formData.tags as string[])
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
@@ -207,7 +294,7 @@ export default function ProjectsPage() {
     }
   }, [addTagsModalOpen]);
 
-  const handleAddProject = async (formData: FormData) => {
+  const handleAddProject = async (formData: FormDataType) => {
     const payload = [
       {
         defaultMetadata: {
@@ -250,6 +337,11 @@ export default function ProjectsPage() {
 
       const projects = await fetchAllProjects();
       setAllProjects(projects);
+      setMyProjects(
+        projects.filter((p: ProjectCardProps) =>
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        )
+      );
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
@@ -260,12 +352,17 @@ export default function ProjectsPage() {
     const projects = await fetchAllProjects();
     if (!query.trim()) {
       setAllProjects(projects);
+      setMyProjects(
+        projects.filter((p: ProjectCardProps) =>
+          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        )
+      );
+      setCurrentAssets([]);
+      setSearchDone(false);
       return;
     }
 
-    const response = await fetchWithAuth(
-      `/search?query=${encodeURIComponent(query)}`
-    );
+    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
 
     if (!response.ok) {
       throw new Error("Failed to do search");
@@ -280,6 +377,13 @@ export default function ProjectsPage() {
     );
 
     setAllProjects(filteredProjects);
+    setMyProjects(
+      filteredProjects.filter((p: ProjectCardProps) =>
+        p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+      )
+    );
+    setCurrentAssets(data.assets);
+    setSearchDone(true);
   };
 
   const fetchUsers = async () => {
@@ -296,27 +400,44 @@ export default function ProjectsPage() {
       return [] as User[];
     }
   };
-  useEffect(() => {
-    setLoading(true);
 
+  useEffect(() => {
+    if (currentAssets.length > 0) {
+      handlePageChange(null, 1);
+    }
+  }, [currentAssets]);
+
+  useEffect(() => {
     // Fetch all projects (for filtering "My Projects") AND all users
+    // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
         setAllProjects(projects);
-        setAllUsers(users);
-        setAdminOptions(users);
-        setRegularUserOptions(users);
+        setMyProjects(
+          projects.filter((p: ProjectCardProps) =>
+            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          )
+        );
+        setAllUsers(users as User[]);
+        setAdminOptions(users as User[]);
+        setRegularUserOptions(users as User[]);
       })
       .catch((error) => {
         console.error("Error loading initial data:", error);
       })
-      .finally(() => setLoading(false));
   }, []);
 
-  const onSubmitConfigureTags = (formData: FormData) => {
+  const onSubmitConfigureTags = (formData: FormDataType) => {
     setPendingConfigureFormData(formData);
     setConfirmConfigurePopup(true);
   };
+
+  const handlePageChange = (_: any, page: number) => {
+    setCurrentPage(page);
+    const startIndex = (page - 1) * 10;
+    const endIndex = startIndex + 10;
+    setPaginatedAssets(currentAssets.slice(startIndex, endIndex));
+  }
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
@@ -349,64 +470,124 @@ export default function ProjectsPage() {
     setFormFields(updatedFormFields);
   }, [adminOptions, regularUserOptions, tagOptions]);
 
-  const myProjects = allProjects.filter((project) =>
-    project.userNames.includes("Isabella Sanchez")
-  );
+  const onDrop = (acceptedFiles: File[]) => {
+    setImportedProjectFile(acceptedFiles[0]);
+  }
 
-  const filteredAllProjects = allProjects.filter(
-    (project) => !project.userNames.includes("Isabella Sanchez")
-  );
+  const onSubmitZip = async () => {
+    const formData = new FormData();
+    formData.append("file", importedProjectFile!);
 
-  const overallProjectsExist = allProjects.length > 0 || myProjects.length > 0;
+    try {
+      const response = await fetchWithAuth("/project/import", {
+        method: "POST",
+        body: formData as BodyInit,
+        headers: {}
+      });
 
+      if (response.ok) {
+        setImportedProjectFile(null);
+        setImportProjectModalOpen(false);
+        toast.success("Imported project successfully.");
+
+        doSearch();
+      } else {
+        console.log("Error uploading file", response.status);
+        toast.error("Failed to import project. Make sure zip's content is valid.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  }
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: {
+      "application/x-zip-compressed": []
+    }
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (importFormRef.current && !importFormRef.current.contains(event.target as Node)) {
+        setImportProjectModalOpen(false);
+        setImportedProjectFile(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+      
   return (
     <div className="p-6 min-h-screen">
-      {/* header: Always display search bar for all users and "New Project" button if superadmin */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-2 md:space-y-0">
-        <input
-          type="text"
-          placeholder="Search... <press enter or click outside>"
-          className="w-1/3 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:border-blue-500"
-          onChange={(e) => setQuery(e.target.value)}
-          onBlur={doSearch}
-          onKeyDown={(e) => e.key === "Enter" && doSearch()}
-        />
-        <div>
-          <button
-            onClick={async () => {
-              const response = await fetchWithAuth("tags");
-              const tags = await response.json();
-              setConfiguredTags(tags);
-              setConfigureTagsOpen(true);
-            }}
-            className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-          >
-            Configure Tags
-          </button>
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+        <div className="w-full md:w-1/3 flex items-center">
+          <input
+            id="search"
+            type="text"
+            placeholder="Search projects and assets..."
+            className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
+            onChange={(e) => setQuery(e.target.value)}
+            onBlur={doSearch}
+            onKeyDown={(e) => e.key === "Enter" && doSearch()}
+          />
+          {query.trim() !== "" && (
+            <button
+              onClick={doSearch}
+              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600"
+            >
+              Search
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+          {user?.superadmin && (
+            <button
+              onClick={async () => {
+                const response = await fetchWithAuth("tags");
+                const tags = await response.json();
+                setConfiguredTags(tags);
+                setConfigureTagsOpen(true);
+              }}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Configure Tags
+            </button>
+          )}
           {user?.superadmin && (
             <button
               onClick={() => {
-                fetchTags();
-                setNewProjectModalOpen(true);
+                fetchTags().then(() => {
+                  setNewProjectModalOpen(true);
+                });
               }}
               className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
             >
               New Project
             </button>
           )}
+          {user?.superadmin && (
+            <button
+              onClick={() => setImportProjectModalOpen(true)}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              Import Project
+            </button>
+          )}
         </div>
       </div>
-      {/* case 1: there are no projects overall */}
-      {!overallProjectsExist && (
+      {allProjects && allProjects.length < 1 && (
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-2xl text-gray-500">No projects to display!</p>
         </div>
       )}
 
-      {/* else display the project sections */}
-      {overallProjectsExist && (
+      {allProjects && allProjects.length > 0 && (
         <>
-          {/* My Projects */}
           <div>
             <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
             {myProjects.length > 0 ? (
@@ -416,9 +597,11 @@ export default function ProjectsPage() {
                     <ProjectCard
                       id={String(project.projectID)}
                       name={project.name}
+                      archived={project.archived}
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
+                      admins={project.admins}
                     />
                   </div>
                 ))}
@@ -430,19 +613,20 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          {/* All Projects Section filtering projects not belonging to me */}
-          {filteredAllProjects.length > 0 && (
+          {allProjects.length > 0 && (
             <div className="mt-8">
               <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {filteredAllProjects.map((project) => (
+                {allProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
                       name={project.name}
+                      archived={project.archived}
                       creationTime={project.creationTime}
                       assetCount={project.assetCount}
                       userNames={project.userNames}
+                      admins={project.admins}
                     />
                   </div>
                 ))}
@@ -450,6 +634,41 @@ export default function ProjectsPage() {
             </div>
           )}
         </>
+      )}
+
+      {searchDone && (
+        <div className="mt-8">
+          <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
+          {currentAssets && currentAssets.length < 1 && (
+            <div className="flex flex-col items-center justify-center h-64">
+              <p className="text-2xl text-gray-500">No assets found!</p>
+            </div>
+          )}
+          {currentAssets && currentAssets.length > 0 && (
+            <>
+              <Items currentItems={paginatedAssets} />
+              <Pagination
+                count={Math.ceil(currentAssets.length / 10)}
+                page={currentPage}
+                onChange={handlePageChange}
+                shape="rounded"
+                color="standard"
+                className="border border-gray-300"
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {!searchDone && (
+        <div className="mt-8">
+          <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
+          <div className="flex flex-col items-center justify-center h-64">
+            <p className="text-2xl text-gray-500">
+              Use the search field above to find assets!
+            </p>
+          </div>
+        </div>
       )}
 
       {newProjectModalOpen && (
@@ -461,6 +680,57 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
         />
       )}
+
+      {importProjectModalOpen && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center">
+          <div
+            ref={importFormRef}
+            className="bg-white p-6 rounded shadow-lg w-200 max-h-screen overflow-y-auto"
+          >
+            <div className="bg-white p-8 rounded shadow-md text-center w-full max-w-xl">
+              <div
+                {...getRootProps()}
+                className="border-2 border-dashed border-gray-300 p-8 rounded-lg mb-4 cursor-pointer"
+              >
+                <input {...getInputProps()} />
+                {isDragActive ? (
+                  <p className="text-xl text-teal-600">
+                    Drop the files here...
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xl mb-2">Drag and Drop here</p>
+                    <p className="text-gray-500 mb-4">or</p>
+                    <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
+                      Select file
+                    </button>
+                    <p className="text-sm text-gray-400 mt-2">Zip only</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {importedProjectFile && (
+              <div>
+                <div className="py-2">
+                  <p>
+                    Uploaded Project Zip: <i>{importedProjectFile.name}</i>
+                  </p>
+                </div>
+                <div className="flex justify-end py-2">
+                  <button
+                    className="bg-blue-500 text-white p-2 rounded float"
+                    onClick={() => onSubmitZip()}
+                  >
+                    Add Project
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {configureTagsOpen && (
         <GenericForm
           title="Configure Tags"
@@ -474,7 +744,7 @@ export default function ProjectsPage() {
               value: configuredTags,
             },
           ]}
-          onSubmit={onSubmitConfigureTags} // use our new handler here
+          onSubmit={onSubmitConfigureTags}
           onCancel={() => setConfigureTagsOpen(false)}
           confirmRemoval={true}
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
@@ -489,7 +759,6 @@ export default function ProjectsPage() {
             title="Confirm Tag Changes"
             isOpen={true}
             onClose={() => {
-              // Only clear the confirmation popup state, leaving the GenericForm open.
               setConfirmConfigurePopup(false);
             }}
             onConfirm={async () => {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import {
@@ -16,6 +16,7 @@ import { ZstdCodec } from "zstd-codec";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
+  name?: string;
 }
 
 interface PaginatedAssets {
@@ -78,7 +79,7 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
             {currentItems.map((asset: AssetWithSrc) => (
               <tr
                 key={asset.blobID}
-                className="cursor-pointer hover:bg-gray-50"
+                className="hover:bg-gray-50"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
@@ -127,26 +128,14 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                       className="text-indigo-600 hover:text-indigo-900"
                       onClick={(e) => {
                         e.stopPropagation();
+                        alert("TODO: download");
                         // TODO: EDIT LOGIC
                       }}
                     >
-                      <PencilIcon className="h-5 w-5" />
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                        <ArrowDownTrayIcon className="h-5 w-5" />
+                      </span>
                     </button>
-                    {/*<button*/}
-                    {/*  className="text-red-600 hover:text-red-900"*/}
-                    {/*  onClick={(e) => {*/}
-                    {/*    e.stopPropagation();*/}
-                    {/*    if (*/}
-                    {/*      confirm(*/}
-                    {/*        "Are you sure you want to delete this asset?"*/}
-                    {/*      )*/}
-                    {/*    ) {*/}
-                    {/*      // TODO*/}
-                    {/*    }*/}
-                    {/*  }}*/}
-                    {/*>*/}
-                    {/*  <TrashIcon className="h-5 w-5" />*/}
-                    {/*</button>*/}
                   </div>
                 </td>
               </tr>
@@ -172,6 +161,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
 
+  const [projectName, setProjectName] = useState<string>("");
+
   const getAssetFile = async (blobID: string, filename: string) => {
     // if (!filename.includes(".webp")) {
     //   // TODO: handle video
@@ -185,8 +176,6 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
     const blob = await response.blob();
     const contentType = response.headers.get("content-type");
-
-    console.log("Content type:", contentType);
 
     const fileContent = new Uint8Array(await blob.arrayBuffer());
 
@@ -215,6 +204,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       tagID: String(selectedTag),
       assetType: selectedAssetType,
     }).toString();
+
     const url = `projects/${projectID}/assets/pagination?${queryParams}`;
     const response = await fetchWithAuth(url);
 
@@ -265,7 +255,6 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   }
 
   const handlePageChange = (e: any, page: number) => {
-    console.log("setting page to: ", page)
     setCurrentPage(page);
     fetchAssets(page).then(({ assets, totalPages }) => {
       setCurrentItems(assets);
@@ -289,6 +278,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       .then((project: ProjectWithTags) => {
         setUsers(project.admins.concat(project.regularUsers));
         setTags(project.tags);
+        setProjectName(project.name!);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
@@ -297,45 +287,57 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   return (
     <>
+      <h1 className="text-2xl font-bold mb-4">
+        {"Project: " + projectName}
+      </h1>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <select
-            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(Number(e.target.value))}
-          >
-            <option value="">Filter by User</option>
-            {users.map((user: any) => (
-              <option key={user.userID} value={user.userID}>
-                {user.name}
-              </option>
-            ))}
-          </select>
+          <label className="text-gray-700 text-sm font-medium">Filter by User</label>
+          <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+            <select
+              className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(Number(e.target.value))}
+            >
+              <option value="">Select User</option>
+              {users.map((user: any) => (
+                <option key={user.userID} value={user.userID}>
+                  {user.name} ({user.email})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <select
-            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedTag}
-            onChange={(e) => setSelectedTag(Number(e.target.value))}
-          >
-            <option value="">Filter by Tag</option>
-            {tags.map((tag: Tag) => (
-              <option key={tag.tagID} value={tag.tagID}>
-                {tag.name}
-              </option>
-            ))}
-          </select>
+          <label className="text-gray-700 text-sm font-medium">Filter by Tag</label>
+          <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+            <select
+              className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedTag}
+              onChange={(e) => setSelectedTag(Number(e.target.value))}
+            >
+              <option value="">Select Tag</option>
+              {tags.map((tag: Tag) => (
+                <option key={tag.tagID} value={tag.tagID}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <select
-            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={selectedAssetType}
-            onChange={(e) => setSelectedAssetType(e.target.value)}
-          >
-            <option value="all">Filter by Asset Type</option>
-            <option value="image">image</option>
-            <option value="video">video</option>
-          </select>
+          <label className="text-gray-700 text-sm font-medium">Filter by Asset Type</label>
+          <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+            <select
+              className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedAssetType}
+              onChange={(e) => setSelectedAssetType(e.target.value)}
+            >
+              <option value="all">Select Asset Type</option>
+              <option value="image">image</option>
+              <option value="video">video</option>
+            </select>
+          </div>
         </div>
       </div>
       <Items currentItems={currentItems} setCurrentItems={setCurrentItems} projectID={projectID} />
