@@ -1,84 +1,84 @@
 [
   {
-    "Name": "user1",
-    "Email": "user1@example.com",
+    "Name": "superuser1",
+    "Email": "superuser1@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T12:45:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "user2",
-    "Email": "user2@example.com",
+    "Name": "superuser2",
+    "Email": "superuser2@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T13:00:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "user3",
-    "Email": "user3@example.com",
+    "Name": "superuser3",
+    "Email": "superuser3@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T13:30:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "user4",
-    "Email": "user4@example.com",
+    "Name": "superuser4",
+    "Email": "superuser4@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T14:00:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "user5",
-    "Email": "user5@example.com",
+    "Name": "superuser5",
+    "Email": "superuser5@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T14:15:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "user6",
-    "Email": "user6@example.com",
+    "Name": "superuser6",
+    "Email": "superuser6@example.com",
     "IsSuperAdmin": true,
     "LastUpdated": "2023-10-25T14:30:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Sophia Williams",
-    "Email": "sophia.williams@404found.com",
+    "Name": "user1",
+    "Email": "user1@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T15:00:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Alexander Davis",
-    "Email": "alexander.davis@404found.com",
+    "Name": "user2",
+    "Email": "user2@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T15:15:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Olivia Kim",
-    "Email": "olivia.kim@404found.com",
+    "Name": "user3",
+    "Email": "user3@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T15:45:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Ethan Clark",
-    "Email": "ethan.clark@404found.com",
+    "Name": "user4",
+    "Email": "user4@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T16:00:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Charlotte Miller",
-    "Email": "charlotte.miller@404found.com",
+    "Name": "user5",
+    "Email": "user5@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T16:15:00Z",
     "PasswordHash": "password123"
   },
   {
-    "Name": "Benjamin Harris",
-    "Email": "benjamin.harris@404found.com",
+    "Name": "user6",
+    "Email": "user6@example.com",
     "IsSuperAdmin": false,
     "LastUpdated": "2023-10-25T16:30:00Z",
     "PasswordHash": "password123"
