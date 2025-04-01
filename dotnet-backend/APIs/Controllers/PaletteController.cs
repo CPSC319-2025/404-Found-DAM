@@ -812,22 +812,11 @@ namespace APIs.Controllers
                 try
                 {
 
-                    string originalFileName = existingAsset.FileName;
-                    
-                    // Extract original filename without blobId prefix and .zst suffix if present
-                    if (originalFileName.EndsWith(".zst"))
-                    {
-                        originalFileName = originalFileName.Substring(0, originalFileName.Length - 4);
-                    }
-                    
-                    var parts = originalFileName.Split('.');
-                    string fileNameWithoutBlobId = string.Join('.', parts.Skip(1));
-                    
+
                     // Create update request
                     var updateRequest = new UpdateAssetReq
                     {
                         BlobId = blobId,
-                        OriginalFileName = fileNameWithoutBlobId,
                         AssetMimeType = assetMimeType,
                         UserId = userId
                     };
