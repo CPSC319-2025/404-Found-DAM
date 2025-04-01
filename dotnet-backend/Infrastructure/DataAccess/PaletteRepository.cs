@@ -165,35 +165,23 @@ namespace Infrastructure.DataAccess {
             return res;
         }
 
-        public async Task<(List<string>, List<string>)> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             using var _context = _contextFactory.CreateDbContext();
             // Get all Assets for the user
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == request.UserId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
             
+            var res = new GetAssetsRes();
             // Convert assets to list of tuples (BlobID, FileName)
-            var assetTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+            // TODO test this
+            var assetTuples = assets.Select(a => {
+                res.FileNames.Add(a.FileName);
+                return (a.BlobID, a.FileName);
+                }).ToList();
             var blobUris = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
-            return (blobUris,fieNames)
-        }
-
-        public async Task<string?> GetAssetByBlobIdAsync(string blobId, int userId) {
-            using var _context = _contextFactory.CreateDbContext();
-            // Get the asset with the specified blobId that belongs to the user
-            var asset = await _context.Assets
-                .FirstOrDefaultAsync(a => a.BlobID == blobId && a.UserID == userId);
-            
-            if (asset == null) {
-                return null;
-            }
-            
-            // Download the single asset - convert to tuple list
-            var assetTuples = new List<(string, string)> { (asset.BlobID, asset.FileName) };
-            var files = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
-            
-            // Return the first (and only) file, or null if no files were downloaded
-            return files.FirstOrDefault();
+            res.BlobUris = blobUris;
+            return res;
         }
 
         public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {
