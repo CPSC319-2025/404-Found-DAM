@@ -218,60 +218,110 @@ namespace Infrastructure.DataAccess {
             return files.FirstOrDefault();
         }
 
-        public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID)        {
+        public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false)
+        {
             List<string> successfulSubmissions = new List<string>();
- 
-             // check project exist & if submitter is a member
-             using DAMDbContext _context = _contextFactory.CreateDbContext();
-             var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
-             if (isProjectFound) 
-             {
-                 var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
-                 if (isSubmitterMember) 
-                 {
-                     // Retrieve assets using blobIDs
-                     var assetsToBeSubmitted = await _context.Assets
-                         .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID == projectID)
-                         .ToListAsync();
-                     
-                     if (assetsToBeSubmitted == null || assetsToBeSubmitted.Count == 0) 
-                     {
-                         // No assets to be submitted, return empty successfulSubmissions, and blobIDs = failedSubmissions
-                         return (successfulSubmissions, blobIDs);
-                     }
-                     else 
-                     {
-                         // process assets, if in project & done, add to successfulSubmissions
-                         foreach (Asset a in assetsToBeSubmitted) 
-                         {
-                             if (blobIDs.Contains(a.BlobID))
-                             {
-                                 a.assetState = Asset.AssetStateType.SubmittedToProject;
-                                 a.LastUpdated = DateTime.UtcNow;
-                                 successfulSubmissions.Add(a.BlobID);
-                                 var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, a.FileName) }); 
-                                 await _blobStorageService.DeleteAsync(a, "palette-assets");
-                                 using (var memoryStream = new MemoryStream())
-                                 {
-                                     await file.First().CopyToAsync(memoryStream);
-                                     var fileBytes = memoryStream.ToArray();
-                                     await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a); // Upload the asset to blob storage again
-                                 }
-                             }
-                         }
-                         await _context.SaveChangesAsync();
-                         return (successfulSubmissions, blobIDs.Except(successfulSubmissions).ToList());
-                     }
-                 }
-                 else 
-                 {
-                     throw new DataNotFoundException($"User ${submitterID} not a member of project ${projectID}");
-                 }
-             }
-             else 
-             {
-                 throw new DataNotFoundException($"Project ${projectID} not found");
-             }           
+
+            // check project exist & if submitter is a member
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            var isProjectFound = await _context.Projects.AnyAsync(p => p.ProjectID == projectID);
+            if (isProjectFound) 
+            {
+                var isSubmitterMember = await _context.ProjectMemberships.AnyAsync(pm => pm.ProjectID == projectID && pm.UserID == submitterID);
+                if (isSubmitterMember) 
+                {
+                    // Get project name for auto-naming
+                    string projectName = "";
+                    if (autoNaming)
+                    {
+                        var project = await _context.Projects.FirstOrDefaultAsync(p => p.ProjectID == projectID);
+                        if (project != null)
+                        {
+                            projectName = project.Name;
+                        }
+                    }
+
+                    // Retrieve assets using blobIDs
+                    var assetsToBeSubmitted = await _context.Assets
+                        .Where(a => blobIDs.Contains(a.BlobID) && a.ProjectID == projectID)
+                        .ToListAsync();
+                    
+                    if (assetsToBeSubmitted == null || assetsToBeSubmitted.Count == 0) 
+                    {
+                        // No assets to be submitted, return empty successfulSubmissions, and blobIDs = failedSubmissions
+                        return (successfulSubmissions, blobIDs);
+                    }
+                    else 
+                    {
+                        // For auto-naming, prepare the file counter
+                        int fileCounter = 1;
+                        if (autoNaming)
+                        {
+                            // Get the current count of auto-named assets in the project
+                            var existingAssetsCount = await _context.Assets
+                                .Where(a => a.ProjectID == projectID && 
+                                          a.assetState == Asset.AssetStateType.SubmittedToProject &&
+                                          a.FileName.StartsWith($"{projectName}-Asset"))
+                                .CountAsync();
+                            fileCounter = existingAssetsCount + 1;
+                        }
+
+                        // process assets, if in project & done, add to successfulSubmissions
+                        foreach (Asset a in assetsToBeSubmitted) 
+                        {
+                            if (blobIDs.Contains(a.BlobID))
+                            {
+                                // Store original filename and extension
+                                string originalFileName = a.FileName;
+                                string fileExtension = Path.GetExtension(originalFileName);
+
+                                // Add Ai naming maybe?
+                                // Create new filename if auto-naming is enabled
+                                string newFileName = autoNaming 
+                                    ? $"{projectName}-Asset{fileCounter:D3}{fileExtension}"
+                                    : originalFileName;
+
+                                // Download the file from palette-assets
+                                var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, originalFileName) }); 
+                                
+                                // Delete from palette-assets
+                                await _blobStorageService.DeleteAsync(a, "palette-assets");
+
+                                // Update the asset's properties
+                                a.assetState = Asset.AssetStateType.SubmittedToProject;
+                                a.LastUpdated = DateTime.UtcNow;
+                                a.FileName = newFileName;
+
+                                // Upload to project-specific storage with new filename
+                                using (var memoryStream = new MemoryStream())
+                                {
+                                    await file.First().CopyToAsync(memoryStream);
+                                    var fileBytes = memoryStream.ToArray();
+                                    await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a);
+                                }
+
+                                successfulSubmissions.Add(a.BlobID);
+                                
+                                // Only increment counter if auto-naming is enabled
+                                if (autoNaming)
+                                {
+                                    fileCounter++;
+                                }
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                        return (successfulSubmissions, blobIDs.Except(successfulSubmissions).ToList());
+                    }
+                }
+                else 
+                {
+                    throw new DataNotFoundException($"User ${submitterID} not a member of project ${projectID}");
+                }
+            }
+            else 
+            {
+                throw new DataNotFoundException($"Project ${projectID} not found");
+            }           
         }
 
         public async Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId)

@@ -142,7 +142,12 @@ namespace APIs.Controllers
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
-        app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
+        app.MapPatch("/palette/{projectID}/submit-assets", async (int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context, HttpRequest request) => 
+        {
+            // Read the autoNaming query parameter
+            bool autoNaming = request.Query.ContainsKey("Auto");
+            return await SubmitAssets(projectID, req, paletteService, context, autoNaming);
+        }).WithName("SubmitAssets").WithOpenApi();
 
         app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
             .WithName("RemoveTagsFromAssets")
@@ -571,11 +576,14 @@ namespace APIs.Controllers
             
         }
 
-        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context)
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context, bool autoNaming = false)
          {
              // May need to add varification to check if client data is bad.
              if (logDebug) {
                 Console.WriteLine("PaletteController.SubmitAssets - START");
+                if (autoNaming) {
+                    Console.WriteLine("Auto-naming is enabled for this submission");
+                }
              }
              try 
              {
@@ -587,7 +595,7 @@ namespace APIs.Controllers
                 var userService = serviceProvider.GetRequiredService<IUserService>();
                  int submitterID = MOCKEDUSERID; 
                  Console.WriteLine(req.blobIDs);
-                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID, autoNaming);
 
 
                  // add log (done)
