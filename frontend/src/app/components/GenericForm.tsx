@@ -49,6 +49,11 @@ interface GenericFormProps {
   confirmRemoval?: boolean;
   confirmRemovalMessage?: string;
   disableOutsideClose?: boolean;
+  extraButtonText?: string;
+  extraButtonCallback?: (
+    formData: FormData,
+    updateField: (field: string, value: any) => void
+  ) => void | Promise<void>;
 }
 
 export default function GenericForm({
@@ -62,6 +67,8 @@ export default function GenericForm({
   confirmRemoval = false,
   confirmRemovalMessage,
   disableOutsideClose = false,
+  extraButtonText,
+  extraButtonCallback,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -82,6 +89,11 @@ export default function GenericForm({
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [hasEdited, setHasEdited] = useState(false);
+
+  // Helper to update a specific field value
+  const updateField = (field: string, value: any) => {
+    setFormData((prevData) => ({ ...prevData, [field]: value }));
+  };
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -594,6 +606,15 @@ export default function GenericForm({
           </div>
 
           <div className="flex justify-end space-x-2">
+            {extraButtonText && extraButtonCallback && (
+              <button
+                type="button"
+                onClick={() => extraButtonCallback(formData, updateField)}
+                className="bg-blue-500 text-white p-2 rounded"
+              >
+                {extraButtonText}
+              </button>
+            )}
             {(isModal || hasEdited) && (
               <button
                 type="button"
