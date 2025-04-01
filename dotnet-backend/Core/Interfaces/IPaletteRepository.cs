@@ -13,7 +13,7 @@ namespace Core.Interfaces  {
         // Update method signature to accept GetPaletteAssetsReq
         public Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request);
         
-        Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID);    
+        Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false);    
 
         Task<bool> AssetTagAssociationExistsAsync(string blobId, int tagId);
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);

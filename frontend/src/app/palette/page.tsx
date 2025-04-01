@@ -69,6 +69,11 @@ export default function PalettePage() {
   // Upload status for drag and drop
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  // Automated naming convention toggle
+  const [autoNamingEnabled, setAutoNamingEnabled] = useState<boolean>(false);
+  // Delete confirmation modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fileToDeleteIndex, setFileToDeleteIndex] = useState<number | null>(null);
 
   // Helper function to get file dimensions from image/video and add to state
   const processFileMetadata = useCallback(async (fileMeta: FileMetadata): Promise<void> => {
@@ -163,6 +168,19 @@ export default function PalettePage() {
 
   // Remove a file by index
   const removeFile = useCallback((index: number) => {
+    // Only show confirmation if multiple files are selected
+    if (selectedIndices.length > 1 && selectedIndices.includes(index)) {
+      setFileToDeleteIndex(index);
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    // If not selected or only one file is selected, proceed with normal delete
+    deleteFile(index);
+  }, [selectedIndices]);
+
+  // Delete a single file
+  const deleteFile = useCallback((index: number) => {
     setFiles((prev) => {
       const updated = [...prev];
       const fileToRemove = updated[index];
@@ -176,7 +194,43 @@ export default function PalettePage() {
       updated.splice(index, 1);
       return updated;
     });
+    
+    // Also update selected indices to account for the removed file
+    setSelectedIndices(prev => {
+      return prev
+        .filter(i => i !== index) // Remove the deleted index
+        .map(i => i > index ? i - 1 : i); // Shift all indices above the deleted one
+    });
+
+    // Clear the file to delete index
+    setFileToDeleteIndex(null);
   }, [setFiles]);
+
+  // Delete all selected files
+  const deleteAllSelected = useCallback(() => {
+    // Sort indices in descending order to avoid index shifting issues
+    const sortedIndices = [...selectedIndices].sort((a, b) => b - a);
+    
+    sortedIndices.forEach(index => {
+      setFiles((prev) => {
+        const updated = [...prev];
+        const fileToRemove = updated[index];
+        
+        // Call the API to remove the file
+        if (fileToRemove.blobId) {
+          removeFileApi(fileToRemove);
+        }
+        
+        // Remove the file from state
+        updated.splice(index, 1);
+        return updated;
+      });
+    });
+    
+    // Clear selected indices
+    setSelectedIndices([]);
+    setShowDeleteConfirm(false);
+  }, [selectedIndices, setFiles]);
 
   // Prepare a file metadata object
   const createFileMetadata = useCallback((file: File): FileMetadata => {
@@ -320,7 +374,8 @@ export default function PalettePage() {
     for (const projectId in projectMap) {
       const blobIDs = projectMap[projectId];
       
-      const success = await submitAssets(projectId, blobIDs);
+      // Add autoNaming parameter if enabled
+      const success = await submitAssets(projectId, blobIDs, autoNamingEnabled ? "?Auto" : "");
       
       if (success) {
         // Remove these files from our palette state
@@ -346,7 +401,12 @@ export default function PalettePage() {
         );
       }
     }
-  }, [files, selectedIndices, setFiles]);
+  }, [files, selectedIndices, setFiles, autoNamingEnabled]);
+
+  // Toggle auto naming feature
+  const toggleAutoNaming = useCallback(() => {
+    setAutoNamingEnabled(prev => !prev);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b p-6">
@@ -382,7 +442,7 @@ export default function PalettePage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
               onClick={handleUploadNewDesign}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-[220px] h-[50px] justify-center"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -390,20 +450,35 @@ export default function PalettePage() {
               Upload Assets
             </Button>
 
-            <Button
-              onClick={handleSubmitAssets}
-              disabled={selectedIndices.length === 0}
-              className={`${
-                selectedIndices.length > 0 
-                  ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white" 
-                  : "bg-gray-300 text-gray-500"
-              }`}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Submit Selected ({selectedIndices.length})
-            </Button>
+            <div className="flex flex-col">
+              <Button
+                onClick={handleSubmitAssets}
+                disabled={selectedIndices.length === 0}
+                className={`w-[220px] h-[50px] justify-center ${
+                  selectedIndices.length > 0 
+                    ? "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white" 
+                    : "bg-gray-300 text-gray-500"
+                }`}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Submit Selected ({selectedIndices.length})
+              </Button>
+              
+              <div className="flex items-center mt-2 justify-end">
+                <button 
+                  onClick={toggleAutoNaming}
+                  className={`relative w-10 h-5 rounded-full transition-colors duration-300 focus:outline-none ${autoNamingEnabled ? 'bg-gradient-to-r from-teal-500 to-blue-500' : 'bg-gray-300'}`}
+                  title="Auto rename files to [Project####__File###]"
+                >
+                  <span 
+                    className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${autoNamingEnabled ? 'translate-x-5' : ''}`}
+                  />
+                </button>
+                <span className="text-xs font-medium ml-1 text-gray-700">Auto-naming</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -440,6 +515,38 @@ export default function PalettePage() {
             createFileMetadata={createFileMetadata}
             fetchAndUpdateBlobDetails={fetchAndUpdateBlobDetails}
           />
+        )}
+        
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg p-6 shadow-xl max-w-md w-full">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Confirm Deletion</h3>
+              <p className="text-gray-600 mb-6">
+                This item is part of your selection. Would you like to delete all {selectedIndices.length} selected items?
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button 
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                  onClick={() => {
+                    if (fileToDeleteIndex !== null) {
+                      deleteFile(fileToDeleteIndex);
+                    }
+                    setShowDeleteConfirm(false);
+                    setFileToDeleteIndex(null);
+                  }}
+                >
+                  No, Just This Item
+                </button>
+                <button 
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  onClick={deleteAllSelected}
+                >
+                  Yes, Delete All Selected
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

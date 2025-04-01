@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Infrastructure.DataAccess;
 using Core.Services;
+using Core.Dtos;
 
 namespace APIs.Controllers
 {
@@ -26,11 +27,12 @@ namespace APIs.Controllers
             .WithName("GetActivityLog")
             .WithOpenApi();
 
-            // app.MapPost("/addLog", async (HttpRequest request, [FromServices] IActivityLogService activityLogServuice) => )
-            // {
-            //     return await AddLogAsync(request, activityLogService);
-            // }
-
+            app.MapPost("/addLog", async (HttpRequest request, [FromServices] IActivityLogService activityLogService) =>
+            {
+                return await AddLogAsync(request, activityLogService);
+            })
+            .WithName("AddLogAsync")
+            .WithOpenApi();
         }
         
         public static async Task<IResult> GetActivityLog(HttpRequest request, [FromServices] IActivityLogService activityService)
@@ -85,10 +87,30 @@ namespace APIs.Controllers
             });
         }
 
-        // public static async Task<bool> AddLogAsync(int userID, string changeType, string description, int projectID, int assetID, IActivityLogService service) {
-        //     // IActivityLogService service = new ActivityLogService();
-        //     return await service.AddLogAsync(userID, changeType, description, projectID, assetID);
-        // }
+        public static async Task<IResult> AddLogAsync(HttpRequest request, [FromServices] IActivityLogService activityService)
+        {
+            try {
+
+                using var reader = new StreamReader(request.Body);
+                var body = await reader.ReadToEndAsync();
+                
+                var logDto = JsonSerializer.Deserialize<CreateActivityLogDto>(body, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (logDto == null)
+                {
+                    return Results.BadRequest("Invalid JSON payload.");
+                }
+
+                var log = await activityService.AddLogAsync(logDto);
+            
+                return Results.Ok(log);
+            } catch (Exception ex) {
+                return Results.BadRequest("Error in AddLogAsync endpoint - log not added");
+            }
+        }
 
     }
 }
