@@ -116,7 +116,7 @@ namespace APIs.Controllers
                 var log = await activityService.AddLogAsync(logDto);
             
             return Results.Ok(log);
-            } catch {
+            } catch (Exception ex) {
                 return Results.BadRequest("Error in AddLogAsync endpoint - log not added");
             }
 
