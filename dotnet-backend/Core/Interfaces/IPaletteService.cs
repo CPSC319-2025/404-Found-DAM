@@ -17,7 +17,7 @@ namespace Core.Interfaces
         Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId);
         Task<byte[]> DecompressZstdAsync(byte[] compressedData);
         Task<List<string>> GetProjectTagsAsync(int projectId);
-        Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID);   
+        Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false);   
         Task<RemoveTagsResult> RemoveTagsFromAssetsAsync(List<string> blobIds, List<int> tagIds);     
         Task<GetBlobProjectAndTagsRes> GetBlobProjectAndTagsAsync(string blobId);
         Task<AssignTagResult> AssignTagToAssetAsync(string blobId, int tagId);

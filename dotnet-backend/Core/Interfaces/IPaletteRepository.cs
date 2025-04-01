@@ -16,7 +16,7 @@ namespace Core.Interfaces  {
         // New method to get a specific asset by blobId
         public Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId);
         
-        Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID);    
+        Task<(List<string> successfulSubmissions, List<string> failedSubmissions)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false);    
 
         Task<bool> AssetTagAssociationExistsAsync(string blobId, int tagId);
         Task<bool> RemoveAssetTagsFromDb(string blobId, int tagId);

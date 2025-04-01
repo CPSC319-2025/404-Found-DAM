@@ -168,14 +168,14 @@ export default function PalettePage() {
 
   // Remove a file by index
   const removeFile = useCallback((index: number) => {
-    // Check if the file is part of the selected files
-    if (selectedIndices.includes(index)) {
+    // Only show confirmation if multiple files are selected
+    if (selectedIndices.length > 1 && selectedIndices.includes(index)) {
       setFileToDeleteIndex(index);
       setShowDeleteConfirm(true);
       return;
     }
 
-    // If not selected, proceed with normal delete
+    // If not selected or only one file is selected, proceed with normal delete
     deleteFile(index);
   }, [selectedIndices]);
 
@@ -476,7 +476,7 @@ export default function PalettePage() {
                     className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${autoNamingEnabled ? 'translate-x-5' : ''}`}
                   />
                 </button>
-                <span className="text-xs font-medium ml-1 text-gray-700">Auto-name</span>
+                <span className="text-xs font-medium ml-1 text-gray-700">Auto-naming</span>
               </div>
             </div>
           </div>
