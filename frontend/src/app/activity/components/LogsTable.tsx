@@ -1,15 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-// import Image from "next/image";
-// import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
   PencilIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   PlusIcon,
-  // DownloadIcon,
-  // UploadIcon,
+  DownloadIcon,
   ArrowUpOnSquareIcon,
   TrashIcon,
   ArchiveBoxArrowDownIcon,
@@ -26,6 +23,19 @@ interface PaginatedLogs extends PaginationType {
 interface ItemsProps {
   currentItems?: Log[];
 }
+
+const changeTypes = [
+  { value: "Create", icon: <PlusIcon className="w-8 h-8 text-blue-400"/> },
+  { value: "Updated" icon: <PencilIcon className="w-8 h-8 text-blue-400"/> },
+  { value: "Uploaded" icon: <ArrowUpOnSquareIcon className="w-8 h-8 text-blue-400"},
+  { value: "Added" icon: <PlusIcon className="w-8 h-8 text-blue-400"},
+  { value: "Import" icon: <PlusIcon className="w-8 h-8 text-blue-400"},
+  { value: "Export" icon: <ArrowUpIcon className="w-8 h-8 text-blue-400"},
+  { value: "Archived" icon: <ArchiveBoxArrownDownIcon className="w-8 h-8 text-blue-400"},
+  { value: "Deleted" icon: <TrashIcon className="w-8 h-8 text-blue-400"},
+  { value: "Downloaded" icon: <DownloadIcon className="w-8 h-8 text-blue-400"},
+  { value: "Other" icon: <ArrowDownIcon className="w-8 h-8 text-blue-400"},
+]
 
 function getIconForChangeType(changeType: string) {
   switch (changeType) {
@@ -45,6 +55,8 @@ function getIconForChangeType(changeType: string) {
       return <ArchiveBoxArrowDownIcon className="w-8 h-8 text-blue-400" />;
     case 'Deleted':
       return <TrashIcon className="w-8 h-8 text-blue-400" />;
+    case 'Downloaded':
+      return <DownloadIcon className="w-8 h-8 text-blue-400" />;
     default:
       return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
   }
@@ -84,6 +96,7 @@ const LogsTable = () => {
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedProject, setSelectedProject] = useState<number>(0);
+  const [selectedChangeType, setSelectedChangeType] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -106,6 +119,10 @@ const LogsTable = () => {
     }
     if (selectedProject !== 0) {
       queryParams.append("projectID", String(selectedProject));
+    }
+
+    if (selectedChangeType !== "") {
+      queryParams.append("changeType", String(selectedProject));
     }
 
     const response = await fetchWithAuth(
@@ -159,7 +176,7 @@ const LogsTable = () => {
   useEffect(() => {
     setCurrentPage(1);
     getAllData(1);
-  }, [selectedUser, selectedProject, startDate, endDate]);
+  }, [selectedUser, selectedProject, selectedChangeType, startDate, endDate]);
 
   const getAllData = async (page: number) => {
     const projects = await getProjects();
@@ -207,6 +224,21 @@ const LogsTable = () => {
             {projects.map((project: Project) => (
               <option key={project.projectID} value={project.projectID}>
                 {project.projectName} (ID: {project.projectID})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Filter by Log Type</label>
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(String(e.target.value))}
+          >
+            <option value="">Select Log Type</option>
+            {changeTypes.map((changeType: string) => (
+              <option key={changeType} value={changeType}>
+                {changeType}
               </option>
             ))}
           </select>
