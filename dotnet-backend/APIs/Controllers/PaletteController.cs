@@ -51,6 +51,16 @@ namespace APIs.Controllers
         .WithName("GetSingleAsset")
         .WithOpenApi();
 
+        // Update an existing asset by blobId
+        app.MapPut("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
+        {
+            return await UpdateAsset(blobId, request, paletteService);
+        })
+        .WithName("UpdateAsset")
+        .WithOpenApi();
+
+        
+
         app.MapPost("/palette/upload", async (HttpRequest request, IPaletteService paletteService, HttpContext context) =>
         {
             return await UploadAssets(request, paletteService, context);
@@ -105,6 +115,27 @@ namespace APIs.Controllers
         .WithName("GetBlobProjectAndTags")
         .WithOpenApi();
 
+        // Get all fields (field IDs and values) for a specific blob ID
+        app.MapGet("/palette/blob/{blobId}/fields", async (string blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobFieldsAsync(blobId);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob fields: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobFields")
+        .WithOpenApi();
+
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
  
@@ -113,9 +144,9 @@ namespace APIs.Controllers
 
         app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
 
-         app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
-               .WithName("RemoveTagsFromAssets")
-               .WithOpenApi();
+        app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
+            .WithName("RemoveTagsFromAssets")
+            .WithOpenApi();
 
         // Add single tag to asset
         app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService, HttpContext context) =>
@@ -185,6 +216,31 @@ namespace APIs.Controllers
             }
         })
         .WithName("AssignTagToAsset")
+        .WithOpenApi();
+
+        // Assign all project tags to an asset
+        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.AssignProjectTagsToAssetAsync(request);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignProjectTagsToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignProjectTagsToAsset")
         .WithOpenApi();
 
         }
@@ -886,6 +942,110 @@ namespace APIs.Controllers
             {
                 Console.WriteLine($"An error occurred getting asset: {ex.Message}");
                 return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
+        }
+
+        private static async Task<IResult> UpdateAsset(string blobId, HttpRequest request, IPaletteService paletteService)
+        {
+            try
+            {
+                // Check if the request has form data
+                if (!request.HasFormContentType || request.Form.Files.Count == 0)
+                {
+                    return Results.BadRequest("No files uploaded");
+                }
+
+                // Get the form fields
+                string assetMimeType = request.Form["mimeType"].ToString().ToLower();
+                int userId = int.Parse(request.Form["userId"].ToString());
+                string? toWebpParam = request.Query["toWebp"];
+
+                bool convertToWebp = true; // set webp conversion default to true 
+
+                if (string.IsNullOrEmpty(assetMimeType))
+                {
+                    return Results.BadRequest("mimeType is required");
+                }
+                else if (!assetMimeType.Contains("/")) 
+                {
+                    return Results.BadRequest("incorrect mimeType format");
+                }
+                
+                // Get convertToWebp's actual value if supplied by user
+                if (!string.IsNullOrEmpty(toWebpParam))
+                {
+                    if (bool.TryParse(toWebpParam, out bool parsedToWebp))
+                    {
+                        convertToWebp = parsedToWebp;
+                    }
+                    else 
+                    {
+                        return Results.BadRequest("Invalid value for toWebp query param");
+                    }
+                }
+
+                // Check if blob exists
+                try
+                {
+                    var existingAsset = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
+                    if (existingAsset == null)
+                    {
+                        return Results.NotFound($"Asset with blobId {blobId} not found");
+                    }
+
+                    // Get original file name from the existing asset
+                    string originalFileName = existingAsset.FileName;
+                    
+                    // Extract original filename without blobId prefix and .zst suffix if present
+                    if (originalFileName.EndsWith(".zst"))
+                    {
+                        originalFileName = originalFileName.Substring(0, originalFileName.Length - 4);
+                    }
+                    
+                    var parts = originalFileName.Split('.');
+                    string fileNameWithoutBlobId = string.Join('.', parts.Skip(1));
+                    
+                    // Create update request
+                    var updateRequest = new UpdateAssetReq
+                    {
+                        BlobId = blobId,
+                        OriginalFileName = fileNameWithoutBlobId,
+                        AssetMimeType = assetMimeType,
+                        UserId = userId
+                    };
+
+                    // Process the updated file
+                    var updatedFile = request.Form.Files[0];
+                    var result = await paletteService.UpdateAssetAsync(updatedFile, updateRequest, convertToWebp);
+                    
+                    if (result.Success)
+                    {
+                        return Results.Ok(new { 
+                            message = $"Asset with blobId {blobId} updated successfully",
+                            asset = result 
+                        });
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { 
+                            error = result.ErrorMessage ?? "Failed to update asset" 
+                        });
+                    }
+                }
+                catch (DataNotFoundException ex)
+                {
+                    return Results.NotFound(ex.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred updating asset: {ex.Message}");
+                return Results.Problem
+                (
                     detail: ex.Message,
                     statusCode: 500,
                     title: "Internal Server Error"

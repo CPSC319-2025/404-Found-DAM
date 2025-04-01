@@ -85,6 +85,27 @@ namespace Infrastructure.DataAccess
         {
             // nothing to do here, just return true
             return blobId;
+        }
+
+        public async Task<bool> UpdateAsync(byte[] file, string containerName, Asset assetMetaData)
+        {
+            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+            if (!Directory.Exists(storageDirectory))
+            {
+                Directory.CreateDirectory(storageDirectory);
+            }
+            
+            // Delete the old file if it exists
+            string oldFilePath = Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}.zst");
+            if (File.Exists(oldFilePath))
+            {
+                File.Delete(oldFilePath);
+            }
+            
+            // Write the new file using the same BlobID
+            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}.zst"), file);
+            
+            return true;
         }  
     }
 }

@@ -9,5 +9,6 @@ namespace Core.Interfaces
         Task<bool> DeleteAsync(Asset asset, string containerName);
         Task<List<string>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples);
         Task<string> MoveAsync(string sourceFolder, string fileName, string targetFolder);
+        Task<bool> UpdateAsync(byte[] file, string containerName, Asset assetMetaData);
     }
 }

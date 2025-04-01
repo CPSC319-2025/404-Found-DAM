@@ -389,6 +389,76 @@ namespace Infrastructure.DataAccess {
             };
         }
 
+        public async Task<List<int>> GetProjectTagIdsAsync(int projectId)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            var tagIds = await context.ProjectTags
+                .Where(pt => pt.ProjectID == projectId)
+                .Select(pt => pt.TagID)
+                .ToListAsync();
+
+            return tagIds;
+        }
+
+        public async Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(string blobId, List<int> tagIds)
+        {
+            using var context = _contextFactory.CreateDbContext();
+            
+            // Check if asset exists
+            var asset = await context.Assets.FirstOrDefaultAsync(a => a.BlobID == blobId);
+            if (asset == null)
+            {
+                return new AssignProjectTagsResult
+                {
+                    Success = false,
+                    BlobId = blobId,
+                    Message = $"Asset with BlobID {blobId} not found"
+                };
+            }
+
+            var result = new AssignProjectTagsResult
+            {
+                BlobId = blobId,
+                Success = true,
+                Message = "Successfully assigned project tags to asset"
+            };
+
+            foreach (var tagId in tagIds)
+            {
+                // Check if tag exists
+                var tag = await context.Tags.FirstOrDefaultAsync(t => t.TagID == tagId);
+                if (tag == null)
+                {
+                    continue;
+                }
+                
+                // Check if association already exists
+                bool associationExists = await AssetTagAssociationExistsAsync(blobId, tagId);
+                if (!associationExists)
+                {
+                    // Create new association
+                    var assetTag = new AssetTag
+                    {
+                        BlobID = blobId,
+                        Asset = asset,
+                        TagID = tagId,
+                        Tag = tag
+                    };
+                    
+                    await context.AssetTags.AddAsync(assetTag);
+                    result.AssignedTagIds.Add(tagId);
+                }
+            }
+
+            if (result.AssignedTagIds.Any())
+            {
+                await context.SaveChangesAsync();
+            }
+
+            return result;
+        }
+
         public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId)  {
             using var _context = _contextFactory.CreateDbContext();
             try 
@@ -429,6 +499,126 @@ namespace Infrastructure.DataAccess {
             }
         }
 
+        public async Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+            
+            try
+            {
+                // Check if asset exists
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == request.BlobId);
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with blob ID {request.BlobId} not found");
+                }
+
+                // Check if user has permission to update the asset
+                if (asset.UserID != request.UserId)
+                {
+                    throw new UnauthorizedAccessException("User does not have permission to update this asset");
+                }
+
+                // Process the file
+                byte[] fileBytes;
+                using (var ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    fileBytes = ms.ToArray();
+                }
+                
+                // Convert if needed (similar to UploadAssets)
+                if (convertToWebp && request.AssetMimeType.StartsWith("image/") && !request.AssetMimeType.EndsWith("webp"))
+                {
+                    try 
+                    {
+                        // Convert to WebP using the image service
+                        byte[] webpBuffer = imageService.toWebpNetVips(fileBytes, false);
+                        fileBytes = webpBuffer;
+                        
+                        // Update file extension and MIME type
+                        request.AssetMimeType = "image/webp";
+                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(request.OriginalFileName);
+                        request.OriginalFileName = fileNameNoExtension + ".webp";
+                    }
+                    catch (VipsException)
+                    {
+                        // Failed to convert, continue with original format
+                    }
+                }
+
+                // Compress the file for storage
+                byte[] compressedBytes = FileCompressionHelper.Compress(fileBytes);
+                
+                // Update the asset's file name and mime type before updating blob storage
+                asset.FileName = request.OriginalFileName;
+                asset.MimeType = request.AssetMimeType;
+                
+                // Update the blob storage with the new compressed file while preserving the blob ID
+                await _blobStorageService.UpdateAsync(compressedBytes, "palette-assets", asset);
+
+                // Update the remaining asset properties in the database
+                asset.FileSizeInKB = fileBytes.Length / 1024.0;
+                asset.LastUpdated = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                
+                return asset;
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error updating asset with blob ID {request.BlobId}: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            try
+            {
+                // Check if the asset exists
+                var asset = await _context.Assets
+                    .Where(a => a.BlobID == blobId)
+                    .FirstOrDefaultAsync();
+
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with BlobID {blobId} not found");
+                }
+
+                // Get all metadata fields for the asset
+                var assetMetadata = await _context.AssetMetadata
+                    .Where(am => am.BlobID == blobId)
+                    .Include(am => am.ProjectMetadataField)
+                    .ToListAsync();
+
+                // Create the response
+                var response = new GetBlobFieldsRes
+                {
+                    BlobId = blobId,
+                    Fields = assetMetadata.Select(am => new BlobFieldDto
+                    {
+                        FieldId = am.FieldID,
+                        FieldValue = am.FieldValue,
+                        FieldName = am.ProjectMetadataField.FieldName,
+                        FieldType = am.ProjectMetadataField.FieldType.ToString()
+                    }).ToList()
+                };
+
+                return response;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob fields: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
         {
             using var _context = _contextFactory.CreateDbContext(); // first create context
@@ -459,7 +649,5 @@ namespace Infrastructure.DataAccess {
         }
 
 
-    }
-
-    
+    } 
 }

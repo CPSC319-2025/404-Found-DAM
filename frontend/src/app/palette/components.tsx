@@ -171,25 +171,28 @@ export default function FileTable({
     // Get any existing tags from the blob
     
     
-    // Call API to update tags for the image
+    // Call API assign all project tags to the asset
     try {
-      // const response = await fetch(
-      //   `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/images/tags`,
-      //   {
-      //     method: "PATCH",
-      //     headers: {
-      //       "Content-Type": "application/json"
-      //     },
-      //     body: JSON.stringify({
-      //       ImageIds: [fileMeta.blobId],
-      //       ProjectId: newProjectID
-      //     })
-      //   }
-      // );
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/project-tags`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            blobId: fileMeta.blobId,
+            projectId: newProjectID
+          })
+        }
+      );
 
-      // if (!response.ok) {
-      //   console.error("Failed to update image tags:", response.status);
-      // }
+      if (!response.ok) {
+        console.error("Failed to update image tags:", response.status);
+      }
     } catch (err) {
       console.error("Error updating image tags:", err); 
     }

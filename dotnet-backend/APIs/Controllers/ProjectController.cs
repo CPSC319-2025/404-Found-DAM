@@ -97,11 +97,20 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> GetProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> GetProject(int projectID, IProjectService projectService, ITagRepository tagRepository)
         {
             try 
             {
                 GetProjectRes result = await projectService.GetProject(projectID);
+                
+                // Get all tags to include as suggested tags
+                var allTags = await tagRepository.GetTagsAsync();
+                result.suggestedTags = allTags.Select(t => new TagCustomInfo
+                {
+                    tagID = t.TagID,
+                    name = t.Name
+                }).ToList();
+                
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
@@ -171,7 +180,7 @@ namespace APIs.Controllers
 
                 ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
 
-                int submitterID = MOCKEDUSERID;
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (activityLogService == null) {
                     return Results.StatusCode(500);

@@ -19,4 +19,4 @@ if (-not $containerRunning) {
 
 # Run database updates and seed the database
 dotnet ef database update --project .\dotnet-backend\Infrastructure --startup-project .\dotnet-backend\APIs
-dotnet run --project .\dotnet-backend\APIs # --seed
+dotnet run --project .\dotnet-backend\APIs --seed

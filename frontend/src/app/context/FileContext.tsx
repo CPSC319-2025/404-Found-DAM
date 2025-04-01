@@ -22,6 +22,7 @@ export type FileMetadata = {
   duration?: number; // For videos
   project?: string; // Each file can store its own project name
   blobId?: string;
+  metadata?: Record<number, any>; // For custom metadata fields
 };
 
 type FileContextType = {

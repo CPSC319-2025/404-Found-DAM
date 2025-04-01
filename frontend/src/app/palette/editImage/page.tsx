@@ -87,7 +87,7 @@ export default function EditImagePage() {
         resizedHeight
       );
 
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob) {
           const editedFile = new File([blob], fileData.file.name, {
             type: blob.type,
@@ -107,10 +107,53 @@ export default function EditImagePage() {
             description: "Resized & Edited Image",
           });
 
-          alert("Image saved successfully! Returning to palette...");
-          router.push("/palette"); //  Return to palette
+          // Use blobId directly from fileData
+          const blobId = fileData.blobId;
+          
+          if (!blobId) {
+            alert("Failed to identify blob ID - no blobId in file metadata");
+            return;
+          }
+
+          // Save to backend via API - update existing image using blob ID
+          try {
+            const formData = new FormData();
+            formData.append("file", editedFile);
+            formData.append("mimeType", blob.type);
+            formData.append("userId", "1"); // Using mockedUserId from backend
+            
+            console.log("blobId", blobId);
+            // Get auth token
+            const token = localStorage.getItem("token");
+            
+            // Using PUT request to update existing asset
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/assets/${blobId}`, {
+              method: "PUT",
+              headers: {
+                Authorization: token ? `Bearer ${token}` : "",
+              },
+              body: formData,
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to update image: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.error) {
+              alert(`Error updating image: ${result.error}`);
+              return;
+            }
+
+            alert("Image updated successfully! Returning to palette...");
+            router.push("/palette"); // Return to palette
+          } catch (error) {
+            console.error("Error updating image:", error);
+            alert(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
-      });
+      }, fileData.file.type);
     };
   };
 

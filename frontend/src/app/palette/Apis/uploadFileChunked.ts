@@ -28,6 +28,9 @@ export async function uploadFileChunked(
   } | null = null;
 
   try {
+    // Get the auth token
+    const token = localStorage.getItem("token");
+    
     while (start < file.size) {
       // Adjust end to not exceed file size
       end = Math.min(start + chunkSize, file.size);
