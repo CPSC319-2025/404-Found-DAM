@@ -250,21 +250,13 @@ namespace Infrastructure.DataAccess {
                                 // Download the file from palette-assets
                                 var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, originalFileName) }); 
                                 
-                                // Delete from palette-assets
-                                await _blobStorageService.DeleteAsync(a, "palette-assets");
-
                                 // Update the asset's properties
                                 a.assetState = Asset.AssetStateType.SubmittedToProject;
                                 a.LastUpdated = DateTime.UtcNow;
                                 a.FileName = newFileName;
 
-                                // Upload to project-specific storage with new filename
-                                using (var memoryStream = new MemoryStream())
-                                {
-                                    await file.First().CopyToAsync(memoryStream);
-                                    var fileBytes = memoryStream.ToArray();
-                                    await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a);
-                                }
+                                // use move to move between containers
+                                await _blobStorageService.MoveAsync("palette-assets", a.BlobID, "project-" + projectID + "-assets");
 
                                 successfulSubmissions.Add(a.BlobID);
                                 
