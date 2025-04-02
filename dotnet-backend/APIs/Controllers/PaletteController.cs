@@ -250,7 +250,6 @@ namespace APIs.Controllers
                 // Get the metadata for all files (including their sizes)
                 var fileMetadata = files.FileNames.Select(f => new {
                     fileName = f,
-                    size = f.Length,
                     contentType = decompressFiles ? 
                         GetMimeTypeFromFileName(f.Replace(".zst", "")) : 
                         "application/zstd",
