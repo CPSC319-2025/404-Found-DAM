@@ -117,10 +117,11 @@ namespace Infrastructure.DataAccess {
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
 
-                if (compressedData.Length / 1024.0 > 2000)
-                {
-                    throw new Exception();
-                }
+                // WHY THROWING ERROR IF FILE SIZE > 2000 KB?
+                // if (compressedData.Length / 1024.0 > 2000)
+                // {
+                //     throw new Exception();
+                // }
 
                 string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
                 asset.BlobID = blobId;
