@@ -49,13 +49,6 @@ const newProjectFormFields: FormFieldType[] = [
     required: true,
   },
   {
-    name: "description",
-    label: "Description",
-    type: "text",
-    placeholder: "Enter project description",
-    required: true,
-  },
-  {
     name: "tags",
     label: "Tags",
     type: "select",
@@ -75,79 +68,83 @@ const newProjectFormFields: FormFieldType[] = [
     type: "select",
     isMultiSelect: true,
   },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    placeholder: "Enter project description",
+    required: true,
+  },
 ];
 
-function Items({ currentItems }: { currentItems?: any[] } ) {
+function Items({ currentItems }: { currentItems?: any[] }) {
   return (
     <div className="items overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200">
           <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              File Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Image
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Project
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                File Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Image
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-          {currentItems?.map((asset: any) => (
-            <tr
-              key={asset.blobID}
-              className="hover:bg-gray-50"
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {asset.fileName}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="h-20 w-20 relative">
-                  <Image
-                    src={asset.src ?? ""}
-                    alt={`${asset.filename} thumbnail`}
-                    width={120}
-                    height={120}
-                    className="object-cover rounded w-full h-full"
-                  />
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium">
-                  <Link
-                    href={`/projects/${asset.projectID}`}
-                    className="hover:bg-gray-200 p-2 rounded text-blue-500"
-                  >
-                    {asset.projectName}
-                  </Link>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex gap-3">
-                  <button
-                    className="text-indigo-600 hover:text-indigo-900"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      alert("TODO: download");
-                      // TODO: EDIT LOGIC
-                    }}
-                  >
+            {currentItems?.map((asset: any) => (
+              <tr key={asset.blobID} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {asset.fileName}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-20 w-20 relative">
+                    <Image
+                      src={asset.src ?? ""}
+                      alt={`${asset.filename} thumbnail`}
+                      width={120}
+                      height={120}
+                      className="object-cover rounded w-full h-full"
+                    />
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium">
+                    <Link
+                      href={`/projects/${asset.projectID}`}
+                      className="hover:bg-gray-200 p-2 rounded text-blue-500"
+                    >
+                      {asset.projectName}
+                    </Link>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex gap-3">
+                    <button
+                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        alert("TODO: download");
+                        // TODO: EDIT LOGIC
+                      }}
+                    >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -784,6 +781,7 @@ export default function ProjectsPage() {
               console.error("Error generating AI description:", error);
             }
           }}
+          showExtraHelperText={true}
         />
       )}
 
