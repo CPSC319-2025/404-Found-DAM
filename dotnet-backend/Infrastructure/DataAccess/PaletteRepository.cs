@@ -165,57 +165,23 @@ namespace Infrastructure.DataAccess {
             return res;
         }
 
-        public async Task<List<IFormFile>> GetAssetsAsync(int userId) {
-            using var _context = _contextFactory.CreateDbContext();
-            // Get all Assets for the user
-            var assets = await _context.Assets
-                .Where(ass => ass.UserID == userId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
-                .ToListAsync();
-
-            if (assets == null || assets.Count == 0) 
-            {
-                return new List<IFormFile>(); // Return an empty list
-            }
-            else 
-            {
-                            
-                // Construct tuple list to be passed into DownloadAsync
-                List<(string, string)> assetIdNameTupleList = assets
-                    .Select(a => (a.BlobID, a.FileName))
-                    .ToList();
-
-                return await _blobStorageService.DownloadAsync("palette-assets", assetIdNameTupleList);
-            }
-        }
-
-        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             using var _context = _contextFactory.CreateDbContext();
             // Get all Assets for the user
             var assets = await _context.Assets
                 .Where(ass => ass.UserID == request.UserId && ass.assetState == Asset.AssetStateType.UploadedToPalette)
                 .ToListAsync();
             
+            var res = new GetAssetsRes();
             // Convert assets to list of tuples (BlobID, FileName)
-            var assetTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
-            return await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
-        }
-
-        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId) {
-            using var _context = _contextFactory.CreateDbContext();
-            // Get the asset with the specified blobId that belongs to the user
-            var asset = await _context.Assets
-                .FirstOrDefaultAsync(a => a.BlobID == blobId && a.UserID == userId);
-            
-            if (asset == null) {
-                return null;
-            }
-            
-            // Download the single asset - convert to tuple list
-            var assetTuples = new List<(string, string)> { (asset.BlobID, asset.FileName) };
-            var files = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
-            
-            // Return the first (and only) file, or null if no files were downloaded
-            return files.FirstOrDefault();
+            // TODO test this
+            var assetTuples = assets.Select(a => {
+                res.FileNames.Add(a.FileName);
+                return (a.BlobID, a.FileName);
+                }).ToList();
+            var blobUris = await _blobStorageService.DownloadAsync("palette-assets", assetTuples);
+            res.BlobUris = blobUris;
+            return res;
         }
 
         public async Task<(List<string>, List<string>)> SubmitAssetstoDb(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false)
@@ -284,21 +250,13 @@ namespace Infrastructure.DataAccess {
                                 // Download the file from palette-assets
                                 var file = await _blobStorageService.DownloadAsync("palette-assets", new List<(string, string)> { (a.BlobID, originalFileName) }); 
                                 
-                                // Delete from palette-assets
-                                await _blobStorageService.DeleteAsync(a, "palette-assets");
-
                                 // Update the asset's properties
                                 a.assetState = Asset.AssetStateType.SubmittedToProject;
                                 a.LastUpdated = DateTime.UtcNow;
                                 a.FileName = newFileName;
 
-                                // Upload to project-specific storage with new filename
-                                using (var memoryStream = new MemoryStream())
-                                {
-                                    await file.First().CopyToAsync(memoryStream);
-                                    var fileBytes = memoryStream.ToArray();
-                                    await _blobStorageService.UploadAsync(fileBytes, "project-" + projectID + "-assets", a);
-                                }
+                                // use move to move between containers
+                                await _blobStorageService.MoveAsync("palette-assets", a.BlobID, "project-" + projectID + "-assets");
 
                                 successfulSubmissions.Add(a.BlobID);
                                 
@@ -591,8 +549,6 @@ namespace Infrastructure.DataAccess {
                         
                         // Update file extension and MIME type
                         request.AssetMimeType = "image/webp";
-                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(request.OriginalFileName);
-                        request.OriginalFileName = fileNameNoExtension + ".webp";
                     }
                     catch (VipsException)
                     {
@@ -603,9 +559,6 @@ namespace Infrastructure.DataAccess {
                 // Compress the file for storage
                 byte[] compressedBytes = FileCompressionHelper.Compress(fileBytes);
                 
-                // Update the asset's file name and mime type before updating blob storage
-                asset.FileName = request.OriginalFileName;
-                asset.MimeType = request.AssetMimeType;
                 
                 // Update the blob storage with the new compressed file while preserving the blob ID
                 await _blobStorageService.UpdateAsync(compressedBytes, "palette-assets", asset);

@@ -92,21 +92,8 @@ namespace Core.Services
             return await _paletteRepository.DeleteAsset(request);
         }
 
-        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             return await _paletteRepository.GetAssets(request);
-        }
-
-        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId)
-        {
-            try
-            {
-                return await _paletteRepository.GetAssetByBlobIdAsync(blobId, userId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting asset by blobId: {ex.Message}");
-                return null;
-            }
         }
 
         public async Task<byte[]> DecompressZstdAsync(byte[] compressedData)
