@@ -12,7 +12,6 @@ namespace APIs.Controllers
 {
     public static class FileUploadController
     {
-        // private const int MOCKEDUSERID = 1; DONE
 
         private const bool verboseLogs = false;
 

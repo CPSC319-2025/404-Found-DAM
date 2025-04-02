@@ -7,8 +7,6 @@ namespace APIs.Controllers
 {
     public static class PaletteController
     {
-        // private const int MOCKEDUSERID = 1; No longer used. Switched to authenticated userID
-
         private const bool AdminActionTrue = true;
 
         private const bool logDebug = false;

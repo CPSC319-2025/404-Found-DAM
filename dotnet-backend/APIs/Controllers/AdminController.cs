@@ -10,10 +10,6 @@ namespace APIs.Controllers
 {
     public static class AdminController
     {
-
-        // DONE: replace mocked userID with authenticated userID
-        // private const int MOCKEDUSERID = 1;
-
         private const bool AdminActionTrue = true;
 
         private const bool logDebug = false;
