@@ -15,8 +15,6 @@ interface Page {
   icon: ReactNode;
 }
 
-const isSuperAdmin = true;
-
 const pages: Page[] = [
   {
     path: "projects",
@@ -35,24 +33,14 @@ const pages: Page[] = [
     title: "Upload Palette",
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
-  },
-  // ...(isSuperAdmin
-  //   ? [
-  //       {
-  //         path: "users",
-  //         title: "Users",
-  //         mobileTitle: "Users",
-  //         icon: <UsersIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
-  //       },
-  //     ]
-  //   : []),
+  }
 ];
+
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
-      {/* Mobile */}
       <nav className="sm:hidden bg-navbar p-2 fixed top-0 left-0 right-0 z-50 flex justify-between items-center">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -107,7 +95,6 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Desktop */}
       <nav className="hidden sm:block group transition-all duration-300 w-24 hover:w-64 bg-navbar p-2 fixed sm:relative z-50">
         <div className="pl-3">
           <div className="flex justify-center mb-4 overflow-hidden">

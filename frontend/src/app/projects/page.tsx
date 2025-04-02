@@ -8,6 +8,7 @@ import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Asset, Project, User } from "@/app/types";
 import { useDropzone } from "react-dropzone";
+import { ArrowDownIcon } from "@heroicons/react/24/solid";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 

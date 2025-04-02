@@ -4,11 +4,13 @@ import { fetchWithAuth } from "@/app/utils/api/api";
  * Submits assets to a project
  * @param projectId The project ID to submit assets to
  * @param blobIds Array of blob IDs to submit
+ * @param autoNaming Optional parameter for automated naming convention
  * @returns True if successful, false otherwise
  */
-export async function submitAssets(projectId: string, blobIds: string[]): Promise<boolean> {
+export async function submitAssets(projectId: string, blobIds: string[], autoNaming: string = ""): Promise<boolean> {
   try {
-    const response = await fetchWithAuth(`palette/${projectId}/submit-assets`, {
+    const url = `palette/${projectId}/submit-assets${autoNaming}`;
+    const response = await fetchWithAuth(url, {
       method: "PATCH",
       body: JSON.stringify({ blobIDs: blobIds }), // e.g. { "blobIDs": [123, 456] }
     })

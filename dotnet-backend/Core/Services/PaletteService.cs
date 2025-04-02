@@ -14,12 +14,27 @@ namespace Core.Services
     {
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
-   
+        private readonly IActivityLogService _activityLogService;
+        private readonly IUserService _userService;
+        private readonly IProjectService _projectService;
+
+        private const bool verboseLogs = false;
+        private const bool logDebug = false;
+        private const bool AdminActionTrue = true;
+
         // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
-        public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
+        public PaletteService(
+            IPaletteRepository paletteRepository,
+            IImageService imageService,
+            IActivityLogService activityLogService,
+            IUserService userService,
+            IProjectService projectService)
         {
             _paletteRepository = paletteRepository;
             _imageService = imageService;
+            _activityLogService = activityLogService;
+            _userService = userService;
+            _projectService = projectService;
         }
 
         public async Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
@@ -77,21 +92,8 @@ namespace Core.Services
             return await _paletteRepository.DeleteAsset(request);
         }
 
-        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             return await _paletteRepository.GetAssets(request);
-        }
-
-        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId)
-        {
-            try
-            {
-                return await _paletteRepository.GetAssetByBlobIdAsync(blobId, userId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting asset by blobId: {ex.Message}");
-                return null;
-            }
         }
 
         public async Task<byte[]> DecompressZstdAsync(byte[] compressedData)
@@ -116,25 +118,64 @@ namespace Core.Services
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {
-            try 
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false)
+        {
+            try
             {
-                (List<string> successfulSubmissions, List<string> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
-                SubmitAssetsRes result = new SubmitAssetsRes      
+                var (successfulSubmissions, failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID, autoNaming);
+
+                // Log successful submissions
+                foreach (var blobID in successfulSubmissions)
+                {
+                    try
+                    {
+                        var user = await _userService.GetUser(submitterID);
+                        var assetName = await _projectService.GetAssetNameByBlobIdAsync(blobID);
+                        var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
+
+                        string description = $"{user.Email} added {assetName} into project {projectName}";
+                        if (verboseLogs)
+                        {
+                            description = $"{user.Name} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                        }
+
+                        if (logDebug)
+                        {
+                            description += "[Add Log called by PaletteService.SubmitAssets]";
+                            Console.WriteLine(description);
+                        }
+
+                        await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = submitterID,
+                            changeType = "Added",
+                            description = description,
+                            projID = projectID,
+                            assetID = blobID,
+                            isAdminAction = !AdminActionTrue
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to add log for asset {blobID}: {ex.Message}");
+                    }
+                }
+
+                return new SubmitAssetsRes
                 {
                     projectID = projectID,
                     successfulSubmissions = successfulSubmissions,
                     failedSubmissions = failedSubmissions,
                     submittedAt = DateTime.UtcNow
                 };
-                 return result; 
             }
-            catch (DataNotFoundException)
+            catch (DataNotFoundException ex)
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error in SubmitAssets: {ex.Message}");
                 throw;
             }
         }
