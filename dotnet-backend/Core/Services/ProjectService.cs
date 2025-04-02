@@ -348,7 +348,8 @@ namespace Core.Services
             {
                 (
                     List<Asset> retrievedAssets, 
-                    int totalFilteredAssetCount
+                    int totalFilteredAssetCount,
+                    List<string> assetBlobSASUrlList
                 ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
@@ -384,6 +385,7 @@ namespace Core.Services
                 {  
                     projectID = req.projectID, 
                     assets = paginatedProjectAssets, 
+                    assetBlobSASUrlList = assetBlobSASUrlList,
                     pagination = pagination,
                     assetIdNameList = assetIdNameList
                 };
