@@ -15,7 +15,6 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 1;
 
         private const bool adminActionTrue = true;
 
@@ -53,6 +52,7 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
+            HttpContext context,
             int? postedBy,
             int? tagID,
 
@@ -63,7 +63,7 @@ namespace APIs.Controllers
         )
         {
             // TODO: Get requester's ID and replace
-            int requesterID = MOCKEDUSERID; 
+            int requesterID = Convert.ToInt32(context.Items["userId"]); 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -253,11 +253,7 @@ namespace APIs.Controllers
                     return Results.BadRequest("Project ID mismatch between route and request body.");
                 }
 
-                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
-
-                
-
-
+                int submitterId = Convert.ToInt32(context.Items["userId"]);
 
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
                 var user = await userService.GetUser(submitterId);
@@ -315,7 +311,7 @@ namespace APIs.Controllers
             {
                 var result = await projectService.UpdateProject(projectID, req);
 
-                int submitterID = MOCKEDUSERID;
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (activityLogService == null) {
                     return Results.StatusCode(500);
@@ -430,7 +426,7 @@ namespace APIs.Controllers
                 );
             }
         }
-       
+
         private static async Task<IResult> GetMyProjects(IProjectService projectService, HttpContext context)
         {
             int userId = Convert.ToInt32(context.Items["userId"]);
