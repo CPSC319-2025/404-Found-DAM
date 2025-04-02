@@ -260,8 +260,7 @@ namespace APIs.Controllers
                 // Return just the metadata for all files
                 return Results.Ok(new {
                     blobUris = files.BlobUris, 
-                    files = fileMetadata,
-                    message = "Get file metadata only. Use /palette/assets/{blobId} endpoint to download individual files."
+                    files = fileMetadata
                 });
             } catch (Exception ex) {
                 Console.WriteLine($"An error occurred: {ex.Message}");
