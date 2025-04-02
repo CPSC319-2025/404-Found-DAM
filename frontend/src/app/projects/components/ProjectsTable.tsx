@@ -13,6 +13,8 @@ import {
   Pagination as PaginationType,
 } from "@/app/types";
 import { ZstdCodec } from "zstd-codec";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -35,16 +37,6 @@ interface AssetWithSrc extends Asset {
   src?: string;
 }
 
-function formatFileSize(sizeInKB: number) {
-  if (sizeInKB >= 1024 * 1024) {
-    return (sizeInKB / (1024 * 1024)).toFixed(2) + " GB";
-  } else if (sizeInKB >= 1024) {
-    return (sizeInKB / 1024).toFixed(2) + " MB";
-  } else {
-    return sizeInKB.toFixed(2) + " KB";
-  }
-}
-
 function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
@@ -65,7 +57,7 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                 Last Updated
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Posted By
+                Uploaded By
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Tags
@@ -103,11 +95,11 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(asset.date).toLocaleString()}
+                  {convertUtcToLocal(asset.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {asset.uploadedBy?.name}
+                    {asset.uploadedBy?.email}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -153,13 +145,13 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [currentItems, setCurrentItems] = useState<AssetWithSrc[]>([]);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
-  const [selectedTag, setSelectedTag] = useState<number>(0);
+  const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedAssetType, setSelectedAssetType] = useState<string>("all");
 
   // TODO: ADD IMAGE SIZE
 
   const [users, setUsers] = useState<User[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
 
   const [projectName, setProjectName] = useState<string>("");
 
@@ -201,7 +193,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       assetsPerPage: String(10),
       pageNumber: String(page),
       postedBy: String(selectedUser),
-      tagID: String(selectedTag),
+      tagName: String(selectedTag),
       assetType: selectedAssetType,
     }).toString();
 
@@ -238,6 +230,22 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
     return project as ProjectWithTags;
   };
+
+  const getTags = async () => {
+    const response = await fetchWithAuth("/tags");
+
+    if (!response.ok) {
+      throw new Error("Failed to get tags.");
+    }
+
+    const tags = await response.json();
+
+    if (!tags) {
+      throw new Error("No tags returned from the API.");
+    }
+
+    return tags as string[];
+  }
 
   const setAssetSrcs = (assets: AssetWithSrc[]) => {
     assets.forEach(async (asset: AssetWithSrc) => {
@@ -277,12 +285,15 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     getProject()
       .then((project: ProjectWithTags) => {
         setUsers(project.admins.concat(project.regularUsers));
-        setTags(project.tags);
         setProjectName(project.name!);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
       });
+    getTags()
+      .then((tags: any) => {
+        setTags(tags);
+      })
   }, []);
 
   return (
@@ -314,12 +325,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={selectedTag}
-              onChange={(e) => setSelectedTag(Number(e.target.value))}
+              onChange={(e) => setSelectedTag(String(e.target.value))}
             >
               <option value="">Select Tag</option>
-              {tags.map((tag: Tag) => (
-                <option key={tag.tagID} value={tag.tagID}>
-                  {tag.name}
+              {tags.map((tag: string) => (
+                <option key={tag} value={tag}>
+                  {tag}
                 </option>
               ))}
             </select>

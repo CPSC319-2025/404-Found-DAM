@@ -51,6 +51,7 @@ export interface Asset {
   uploadedBy: {
     userID: number;
     name: string;
+    email: string;
   };
   date: string;
   filesizeInKB: 0;

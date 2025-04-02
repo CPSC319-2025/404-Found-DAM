@@ -9,7 +9,7 @@ namespace Core.Dtos
         public int pageNumber {get; set; }
         public int assetsPerPage {get; set; }
         public int? postedBy {get; set; } // userID
-        public int? tagID { get; set; }
+        public string? tagName { get; set; }
     }
 
     public class GetPaginatedProjectAssetsRes
@@ -35,6 +35,7 @@ namespace Core.Dtos
     {
         public int userID { get; set; }
         public string name { get; set; }
+        public string email { get; set; }
     }
 
     public class ProjectAssetsPagination

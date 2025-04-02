@@ -244,9 +244,9 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
                     }
 
-                    if (req.tagID.HasValue && req.tagID.Value > 0) 
+                    if (!string.IsNullOrEmpty(req.tagName))
                     {
-                        query = query.Where(a => a.AssetTags.Any(at => at.TagID == req.tagID.Value));
+                        query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
                     }
 
 

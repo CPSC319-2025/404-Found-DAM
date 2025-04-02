@@ -54,7 +54,7 @@ namespace APIs.Controllers
             int projectID, 
             HttpContext context,
             int? postedBy,
-            int? tagID,
+            string? tagName,
 
             IProjectService projectService,
             string assetType = DefaultAssetType,
@@ -80,7 +80,7 @@ namespace APIs.Controllers
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
                     postedBy = postedBy,
-                    tagID = tagID
+                    tagName = tagName
                 };
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
