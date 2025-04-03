@@ -49,6 +49,7 @@ interface GenericFormProps {
   confirmRemoval?: boolean;
   confirmRemovalMessage?: string;
   disableOutsideClose?: boolean;
+  noRequired?: boolean;
 }
 
 export default function GenericForm({
@@ -62,6 +63,7 @@ export default function GenericForm({
   confirmRemoval = false,
   confirmRemovalMessage,
   disableOutsideClose = false,
+  noRequired = false,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -590,7 +592,7 @@ export default function GenericForm({
           </fieldset>
 
           <div>
-            <i className="opacity-50">* Required field</i>
+            {!noRequired && (<i className="opacity-50">* Required field</i>)}
           </div>
 
           <div className="flex justify-end space-x-2">

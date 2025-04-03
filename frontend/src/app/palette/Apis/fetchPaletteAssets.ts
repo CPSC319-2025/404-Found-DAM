@@ -1,5 +1,6 @@
 import { FileMetadata } from "@/app/context/FileContext";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
 
 // Function to get MIME type from filename
 export function getMimeTypeFromFileName(filename: string): string {
@@ -117,7 +118,7 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
         { type: getMimeTypeFromFileName(originalFilename) }
       );
 
-      const fileSize = (file.size / 1024).toFixed(2) + " KB";
+      const fileSize = formatFileSize(file.size);
       const fileMeta: FileMetadata = {
         file,
         fileSize,

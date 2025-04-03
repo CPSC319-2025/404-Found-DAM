@@ -18,6 +18,7 @@ import {
   Project
 } from "./Apis";
 import { useUser } from "@/app/context/UserContext";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
 
 // Simple Button component
 const Button = ({ 
@@ -234,7 +235,7 @@ export default function PalettePage() {
 
   // Prepare a file metadata object
   const createFileMetadata = useCallback((file: File): FileMetadata => {
-    const fileSize = (file.size / 1024).toFixed(2) + " KB";
+    const fileSize = formatFileSize(file.size);
     return {
       file,
       fileSize,
