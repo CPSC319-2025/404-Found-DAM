@@ -30,7 +30,7 @@ export const getAssetFile = async (url: string, mimetype: string) => {
   });
 };
 
-export const downloadAsset = (asset: any) => {
+export const downloadAsset = async (asset: any) => {
   if (!asset.src) {
     throw new Error("Asset has not loaded yet! Please try again.")
   }
@@ -38,14 +38,14 @@ export const downloadAsset = (asset: any) => {
   // TODO: take in user, project
   try {
     const downloadLog = {
-        userID = user.userID,
-        changeType = "Downloaded",
-      // TODO: fix this
-        description = `${user.email} downloaded ${asset.filename} from project ${project.name}`,
-      // TODO: fix
-        projID = project.projectID,
-        assetID = asset.blobID,
-        isAdminAction = false
+      //   userID = user.userID,
+      //   changeType = "Downloaded",
+      // // TODO: fix this
+      //   description = `${user.email} downloaded ${asset.filename} from project ${project.name}`,
+      // // TODO: fix
+      //   projID = project.projectID,
+      //   assetID = asset.blobID,
+      //   isAdminAction = false
     };
 
     const response = await fetchWithAuth("addLog", {

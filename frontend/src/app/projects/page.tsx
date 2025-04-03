@@ -11,6 +11,7 @@ import { useDropzone } from "react-dropzone";
 import { ArrowDownIcon } from "@heroicons/react/24/solid";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import JSZip from "jszip";
 
 import PopupModal from "@/app/components/ConfirmModal";
 import Pagination from "@mui/material/Pagination";
@@ -557,11 +558,21 @@ export default function ProjectsPage() {
     setImportedProjectFile(acceptedFiles[0]);
   }
 
-  const onSubmitZip = async () => {
-    const formData = new FormData();
-    formData.append("file", importedProjectFile!);
+  const onSubmitImport = async () => {
+    if (!importedProjectFile) {
+      toast.error("No file selected.");
+      return;
+    }
+
+    const zip = new JSZip();
+    zip.file(importedProjectFile.name, importedProjectFile);
 
     try {
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      const formData = new FormData();
+      formData.append("file", zipBlob, `${importedProjectFile.name}.zip`);
+
       const response = await fetchWithAuth("/project/import", {
         method: "POST",
         body: formData as BodyInit,
@@ -572,22 +583,22 @@ export default function ProjectsPage() {
         setImportedProjectFile(null);
         setImportProjectModalOpen(false);
         toast.success("Imported project successfully.");
-
         doSearch();
       } else {
         console.log("Error uploading file", response.status);
-        toast.error("Failed to import project. Make sure zip's content is valid.");
+        toast.error("Failed to import project. Make sure the file's content is valid.");
       }
     } catch (error) {
       console.error("Error:", error);
+      toast.error("An error occurred while zipping the file.");
     }
-  }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
     accept: {
-      "application/x-zip-compressed": []
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": []
     }
   });
 
@@ -786,7 +797,7 @@ export default function ProjectsPage() {
                     <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
                       Select file
                     </button>
-                    <p className="text-sm text-gray-400 mt-2">Zip only</p>
+                    <p className="text-sm text-gray-400 mt-2">.xlsx only</p>
                   </>
                 )}
               </div>
@@ -796,13 +807,13 @@ export default function ProjectsPage() {
               <div>
                 <div className="py-2">
                   <p>
-                    Uploaded Project Zip: <i>{importedProjectFile.name}</i>
+                    Uploaded Project: <i>{importedProjectFile.name}</i>
                   </p>
                 </div>
                 <div className="flex justify-end py-2">
                   <button
                     className="bg-blue-500 text-white p-2 rounded float"
-                    onClick={() => onSubmitZip()}
+                    onClick={() => onSubmitImport()}
                   >
                     Add Project
                   </button>

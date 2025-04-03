@@ -170,7 +170,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [previewType, setPreviewType] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState<string>("");
-  const [projectDescription, setProjectDescription = useState<string>("");
+  const [projectDescription, setProjectDescription] = useState<string>("");
 
   function openPreview(asset: any) {
     if (asset.src) {
