@@ -198,9 +198,9 @@ namespace APIs.Controllers
                         var projectName = project.name;
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {submitterID}) archived project '{projectName}' (Project ID: {projectID})";
                         } else {
-                            theDescription = $"{user.Email} archived project {projectName}";
+                            theDescription = $"{user.Email} archived project '{projectName}'";
                         }
 
                         if (logDebug) {

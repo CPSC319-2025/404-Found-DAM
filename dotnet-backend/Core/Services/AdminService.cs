@@ -73,7 +73,7 @@ namespace Core.Services
             }
         }
 
-        public async Task<(string, byte[])> ExportProject(int projectID, int requesterID)
+        public async Task<(string, string, byte[])> ExportProject(int projectID, int requesterID)
         {
             try
             {
@@ -94,7 +94,7 @@ namespace Core.Services
                     
 
                     // TODO: get the asset files to be retunr together
-                    return (fileName, excelByteArray);
+                    return (fileName, project.Name, excelByteArray);
                 }
                 else
                 {
@@ -332,5 +332,4 @@ namespace Core.Services
         }
     }
 }
-
 

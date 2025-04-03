@@ -68,7 +68,7 @@ namespace APIs.Controllers
                 int requesterID = Convert.ToInt32(context.Items["userId"]);
 
                 // Get binary data of the Excel file containing details of the exported project
-                (string fileName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
+                (string fileName, string projectName, byte[] excelData) = await adminService.ExportProject(projectID, requesterID);
                 if (excelData == null || excelData.Length == 0)
                 {
                     return Results.NotFound("No project is found to be exported");
@@ -90,11 +90,10 @@ namespace APIs.Controllers
                         string userEmail = user.Email;
                         string theDescription = "";
 
-
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {requesterID}) exported project {fileName} (project id: {projectID})";
+                            theDescription = $"{username} (User ID: {requesterID}) exported project '{projectName}' (project id: {projectID})";
                         } else {
-                            theDescription = $"{userEmail} exported project {fileName}";
+                            theDescription = $"{userEmail} exported project '{projectName}'";
                         }
                         if (logDebug) {
                             theDescription += " [Add Log done by AdminController.ExportProject]";
