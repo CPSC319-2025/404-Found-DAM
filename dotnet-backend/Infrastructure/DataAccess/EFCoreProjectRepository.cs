@@ -162,7 +162,7 @@ namespace Infrastructure.DataAccess
 
             var projects = await _context.Projects
                 .Include(p => p.ProjectMemberships)
-                .Include(p => p.Assets)
+                .Include(p => p.Assets.Where(a => a.assetState == Asset.AssetStateType.SubmittedToProject))
                 .AsNoTracking()
                 .ToListAsync();
 
