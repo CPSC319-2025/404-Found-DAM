@@ -15,6 +15,7 @@ import Pagination from "@mui/material/Pagination";
 import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/types";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
+import { getEndOfDayUtc, getStartOfDayUtc } from "@/app/utils/api/localToUtc";
 
 interface PaginatedLogs extends PaginationType {
   data: Log[];
@@ -107,11 +108,14 @@ const LogsTable = () => {
     const queryParams = new URLSearchParams({
       pageSize: String(10),
       pageNumber: String(page)
-    })
+    });
 
-    if (startDate && endDate) {
-      queryParams.append("start", startDate);
-      queryParams.append("end", endDate);
+    if (startDate) {
+      queryParams.append("start", getStartOfDayUtc(startDate));
+    }
+
+    if (endDate) {
+      queryParams.append("end", getEndOfDayUtc(endDate));
     }
 
     if (selectedUser !== 0) {

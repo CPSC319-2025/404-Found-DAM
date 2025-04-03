@@ -10,6 +10,8 @@ namespace Core.Dtos
         public int assetsPerPage {get; set; }
         public int? postedBy {get; set; } // userID
         public string? tagName { get; set; }
+        public DateTime? fromDate {get; set; }
+        public DateTime? toDate {get; set; }
     }
 
     public class GetPaginatedProjectAssetsRes
@@ -29,6 +31,7 @@ namespace Core.Dtos
         public DateTime date { get; set; }
         public double filesizeInKB { get; set; }
         public List<string> tags { get; set; }  
+        public string mimetype { get; set; }
     }
 
     public class PaginatedProjectAssetUploadedBy

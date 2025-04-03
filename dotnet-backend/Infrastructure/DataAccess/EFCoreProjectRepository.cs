@@ -249,6 +249,17 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
                     }
 
+                    if (req.fromDate.HasValue)
+                    {
+                        DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
+                        query = query.Where(a => a.LastUpdated >= utcFromDate);
+                    }
+
+                    if (req.toDate.HasValue)
+                    {
+                        DateTime utcToDate = req.toDate.Value.ToUniversalTime();
+                        query = query.Where(a => a.LastUpdated <= utcToDate);
+                    }
 
                     // number of total assets
                     int totalAssetCount = await query.CountAsync();

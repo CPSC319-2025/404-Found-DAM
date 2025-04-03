@@ -52,10 +52,16 @@ namespace Infrastructure.DataAccess;
                 query = query.Where(log => log.AssetID.Equals(assetID));
 
             if (fromDate.HasValue)
-                query = query.Where(log => log.Timestamp >= fromDate.Value);
+            {
+                DateTime utcFromDate = fromDate.Value.ToUniversalTime();
+                query = query.Where(log => log.Timestamp >= utcFromDate);
+            }
 
             if (toDate.HasValue)
-                query = query.Where(log => log.Timestamp <= toDate.Value);
+            {
+                DateTime utcToDate = toDate.Value.ToUniversalTime();
+                query = query.Where(log => log.Timestamp <= utcToDate);
+            }
 
             return await query.AsNoTracking().OrderByDescending(log => log.Timestamp).ToListAsync();
         }

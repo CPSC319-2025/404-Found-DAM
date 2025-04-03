@@ -56,6 +56,7 @@ export interface Asset {
   date: string;
   filesizeInKB: 0;
   tags: string[];
+  mimetype?: string;
 }
 
 export interface Pagination {

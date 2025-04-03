@@ -374,6 +374,7 @@ namespace Core.Services
                     },
                     date = a.LastUpdated,
                     filesizeInKB = a.FileSizeInKB,
+                    mimetype = a.MimeType,
                     tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
                 }).ToList();
 
