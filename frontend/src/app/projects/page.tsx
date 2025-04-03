@@ -409,13 +409,15 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     // Fetch all projects (for filtering "My Projects") AND all users
-    // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
         setAllProjects(projects);
         setMyProjects(
           projects.filter((p: ProjectCardProps) =>
-            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+            p.allUsers?.some(
+              (projectUser: { userID: number }) =>
+                projectUser.userID === user?.userID
+            )
           )
         );
         setAllUsers(users as User[]);
@@ -424,8 +426,15 @@ export default function ProjectsPage() {
       })
       .catch((error) => {
         console.error("Error loading initial data:", error);
-      })
+      });
   }, []);
+
+  const otherProjects = allProjects.filter(
+    (project) =>
+      !project.allUsers.some(
+        (projectUser) => projectUser.userID === user?.userID
+      )
+  );
 
   const onSubmitConfigureTags = (formData: FormDataType) => {
     setPendingConfigureFormData(formData);
@@ -613,11 +622,11 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          {allProjects.length > 0 && (
+          {otherProjects && otherProjects.length > 0 && (
             <div className="mt-8">
-              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+              <h1 className="text-2xl font-semibold mb-4">Other Projects</h1>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {allProjects.map((project) => (
+                {otherProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
