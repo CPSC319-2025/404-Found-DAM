@@ -6,16 +6,21 @@ import { useUser } from "@/app/context/UserContext";
 import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
-import { Asset, Project, User } from "@/app/types";
+import { Project, User } from "@/app/types";
 import { useDropzone } from "react-dropzone";
+import { ArrowDownIcon } from "@heroicons/react/24/solid";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import JSZip from "jszip";
 
 import PopupModal from "@/app/components/ConfirmModal";
 import Pagination from "@mui/material/Pagination";
 import Image from "next/image";
 import { ArrowDownTrayIcon, PencilIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
+import { downloadAsset, getAssetFile } from "@/app/utils/api/getAssetFile";
 
 interface ProjectCardProps {
   projectID: number;
@@ -77,66 +82,103 @@ const newProjectFormFields: FormFieldType[] = [
   },
 ];
 
-function Items({ currentItems }: { currentItems?: any[] }) {
+function Items({ currentItems, user, openPreview }: { currentItems?: any[], user: any, openPreview: any } ) {
   return (
-    <div className="items overflow-y-auto mt-4 rounded-lg p-4">
+    <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200">
           <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                File Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Image
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Project
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              File Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Image
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Filesize
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Last Updated
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Uploaded By
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Tags
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Project
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentItems?.map((asset: any) => (
-              <tr key={asset.blobID} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {asset.fileName}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-20 w-20 relative">
-                    <Image
-                      src={asset.src ?? ""}
-                      alt={`${asset.filename} thumbnail`}
-                      width={120}
-                      height={120}
-                      className="object-cover rounded w-full h-full"
-                    />
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium">
-                    <Link
-                      href={`/projects/${asset.projectID}`}
-                      className="hover:bg-gray-200 p-2 rounded text-blue-500"
+          {currentItems?.map((asset: any) => (
+            <tr
+              key={asset.blobID}
+              className="hover:bg-gray-50"
+            >
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">
+                  {asset.filename}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="h-20 w-20 relative">
+                  <Image
+                    src={asset.src ?? ""}
+                    alt={`${asset.filename}`}
+                    width={120}
+                    height={120}
+                    className="object-cover rounded w-full h-full cursor-pointer"
+                    onClick={() => openPreview(asset)}
+                  />
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">
+                  {formatFileSize(asset.filesizeInKB)}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {convertUtcToLocal(asset.date)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900">
+                  {asset.uploadedBy?.email}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex gap-1">
+                  {asset.tags.map((tag: any) => (
+                    <span
+                      key={tag}
+                      className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
                     >
-                      {asset.projectName}
-                    </Link>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex gap-3">
-                    <button
-                      className="text-indigo-600 hover:text-indigo-900"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        alert("TODO: download");
-                        // TODO: EDIT LOGIC
-                      }}
-                    >
+                        {tag}
+                      </span>
+                  ))}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium">
+                  <Link
+                    href={`/projects/${asset.projectID}`}
+                    className="hover:bg-gray-200 p-2 rounded text-blue-500"
+                  >
+                    {asset.projectName}
+                  </Link>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div className="flex gap-3">
+                  <button
+                    className="text-indigo-600 hover:text-indigo-900"
+                    onClick={() => downloadAssetWrapper(asset, user)}
+                  >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </span>
@@ -150,6 +192,15 @@ function Items({ currentItems }: { currentItems?: any[] }) {
       </div>
     </div>
   );
+}
+
+const downloadAssetWrapper = async (asset: any, user: any) => {
+  try {
+    toast.success("Starting download...");
+    await downloadAsset(asset, { projectID: asset.projectID, projectName: asset.projectName }, user);
+  } catch (e) {
+    toast.error((e as Error).message);
+  }
 }
 
 export default function ProjectsPage() {
@@ -191,6 +242,10 @@ export default function ProjectsPage() {
   const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
   const [addTagsModalOpen, setAddTagsModalOpen] = useState(false);
 
+  const [isPreviewAsset, setIsPreviewAsset] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string | null>(null);
+
   const [formFields, setFormFields] =
     useState<FormFieldType[]>(newProjectFormFields);
 
@@ -213,11 +268,40 @@ export default function ProjectsPage() {
   const [pendingConfigureFormData, setPendingConfigureFormData] =
     useState<FormDataType | null>(null);
 
+  const [searchDone, setSearchDone] = useState<boolean>(false);
+
   const [currentAssets, setCurrentAssets] = useState<any[]>([]);
   const [paginatedAssets, setPaginatedAssets] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [searchDone, setSearchDone] = useState<boolean>(false);
+  function openPreview(asset: any) {
+    if (asset.src) {
+      setPreviewUrl(asset.src);
+      setPreviewType(asset.mimetype);
+      setIsPreviewAsset(true);
+    }
+  }
+
+  function closeModal() {
+    setIsPreviewAsset(false);
+    setPreviewUrl(null);
+    setPreviewType(null);
+  }
+
+  const setAssetSrcs = (assets: any[]) => {
+    assets.forEach(async (asset: any) => {
+      try {
+        const src = (await getAssetFile(asset.blobSASUrl, asset.mimetype || "")) as string;
+        setPaginatedAssets((prevItems: any[]) =>
+          prevItems.map((item: any) =>
+            item.blobID === asset.blobID ? { ...item, src } : item
+          )
+        );
+      } catch (error) {
+        console.error(`Error loading asset ${asset.blobID}:`, error);
+      }
+    });
+  }
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -235,6 +319,7 @@ export default function ProjectsPage() {
       console.error("Error fetching tags:", error);
     }
   };
+
   const onUserChange = (
     changeItem: { id: number; name: string },
     fieldName: string,
@@ -479,8 +564,10 @@ export default function ProjectsPage() {
     setCurrentPage(page);
     const startIndex = (page - 1) * 10;
     const endIndex = startIndex + 10;
-    setPaginatedAssets(currentAssets.slice(startIndex, endIndex));
-  };
+    const assets = currentAssets.slice(startIndex, endIndex)
+    setPaginatedAssets(assets);
+    setAssetSrcs(assets)
+  }
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
@@ -517,11 +604,21 @@ export default function ProjectsPage() {
     setImportedProjectFile(acceptedFiles[0]);
   };
 
-  const onSubmitZip = async () => {
-    const formData = new FormData();
-    formData.append("file", importedProjectFile!);
+  const onSubmitImport = async () => {
+    if (!importedProjectFile) {
+      toast.error("No file selected.");
+      return;
+    }
+
+    const zip = new JSZip();
+    zip.file(importedProjectFile.name, importedProjectFile);
 
     try {
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      const formData = new FormData();
+      formData.append("file", zipBlob, `${importedProjectFile.name}.zip`);
+
       const response = await fetchWithAuth("/project/import", {
         method: "POST",
         body: formData as BodyInit,
@@ -532,16 +629,14 @@ export default function ProjectsPage() {
         setImportedProjectFile(null);
         setImportProjectModalOpen(false);
         toast.success("Imported project successfully.");
-
         doSearch();
       } else {
         console.log("Error uploading file", response.status);
-        toast.error(
-          "Failed to import project. Make sure zip's content is valid."
-        );
+        toast.error("Failed to import project. Make sure the file's content is valid.");
       }
     } catch (error) {
       console.error("Error:", error);
+      toast.error("An error occurred while zipping the file.");
     }
   };
 
@@ -549,8 +644,8 @@ export default function ProjectsPage() {
     onDrop,
     multiple: false,
     accept: {
-      "application/x-zip-compressed": [],
-    },
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": []
+    }
   });
 
   useEffect(() => {
@@ -611,6 +706,7 @@ export default function ProjectsPage() {
             placeholder="Search projects and assets..."
             className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && doSearch()}
           />
           {query.trim() !== "" && (
             <button
@@ -724,7 +820,7 @@ export default function ProjectsPage() {
           )}
           {currentAssets && currentAssets.length > 0 && (
             <>
-              <Items currentItems={paginatedAssets} />
+              <Items currentItems={paginatedAssets} user={user} openPreview={openPreview}/>
               <Pagination
                 count={Math.ceil(currentAssets.length / 10)}
                 page={currentPage}
@@ -808,7 +904,7 @@ export default function ProjectsPage() {
                     <button className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded">
                       Select file
                     </button>
-                    <p className="text-sm text-gray-400 mt-2">Zip only</p>
+                    <p className="text-sm text-gray-400 mt-2">.xlsx only</p>
                   </>
                 )}
               </div>
@@ -818,13 +914,13 @@ export default function ProjectsPage() {
               <div>
                 <div className="py-2">
                   <p>
-                    Uploaded Project Zip: <i>{importedProjectFile.name}</i>
+                    Uploaded Project: <i>{importedProjectFile.name}</i>
                   </p>
                 </div>
                 <div className="flex justify-end py-2">
                   <button
                     className="bg-blue-500 text-white p-2 rounded float"
-                    onClick={() => onSubmitZip()}
+                    onClick={() => onSubmitImport()}
                   >
                     Add Project
                   </button>
@@ -846,6 +942,7 @@ export default function ProjectsPage() {
               isMulti: true,
               required: false,
               value: configuredTags,
+              placeholder: "type and press <enter> to add new tag>"
             },
           ]}
           onSubmit={onSubmitConfigureTags}
@@ -854,6 +951,7 @@ export default function ProjectsPage() {
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
           submitButtonText="Update Tags"
           disableOutsideClose={confirmConfigurePopup}
+          noRequired={true}
         />
       )}
 
@@ -875,6 +973,34 @@ export default function ProjectsPage() {
               "Are you sure you would like to make these changes? This may cause unexpected project and asset changes across the system.",
             ]}
           />
+        </div>
+      )}
+
+      {isPreviewAsset && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="relative bg-white p-4 rounded shadow-lg max-w-3xl max-h-[80vh] overflow-auto">
+            <button
+              onClick={closeModal}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            {previewType?.startsWith("image/") && (
+              <img
+                src={previewUrl}
+                alt="Full Preview"
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+            {previewType?.startsWith("video/") && (
+              <video
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

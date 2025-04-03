@@ -55,6 +55,7 @@ interface GenericFormProps {
     updateField: (field: string, value: any) => void
   ) => void | Promise<void>;
   showExtraHelperText?: boolean;
+  noRequired?: boolean;
 }
 
 export default function GenericForm({
@@ -71,6 +72,7 @@ export default function GenericForm({
   extraButtonText,
   extraButtonCallback,
   showExtraHelperText = false,
+  noRequired = false,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -609,7 +611,7 @@ export default function GenericForm({
           </fieldset>
 
           <div>
-            <i className="opacity-50">* Required field</i>
+            {!noRequired && (<i className="opacity-50">* Required field</i>)}
           </div>
 
           {extraButtonText && extraButtonCallback ? (

@@ -43,41 +43,48 @@ namespace Infrastructure.DataAccess
             return true;
         }
 
-        public async Task<List<IFormFile>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
+        public async Task<List<string>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
-            var compressedFiles = new List<IFormFile>();
+            // var compressedFiles = new List<IFormFile>();
             
-            // Create storage directory if it doesn't exist
-            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-            if (!Directory.Exists(storageDirectory)) {
-                Directory.CreateDirectory(storageDirectory);
-            }
+            // // Create storage directory if it doesn't exist
+            // string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+            // if (!Directory.Exists(storageDirectory)) {
+            //     Directory.CreateDirectory(storageDirectory);
+            // }
                 
-            // Create tasks for parallel file reading
-            var readTasks = assetIdNameTuples.Select(async assetIdNameTuple => {
-                var filePath = Path.Combine(storageDirectory, $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst");
-                var bytes = await File.ReadAllBytesAsync(filePath);
+            // // Create tasks for parallel file reading
+            // var readTasks = assetIdNameTuples.Select(async assetIdNameTuple => {
+            //     var filePath = Path.Combine(storageDirectory, $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst");
+            //     var bytes = await File.ReadAllBytesAsync(filePath);
                 
-                string fileName = $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst";
+            //     string fileName = $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst";
                 
-                // Convert byte array to IFormFile
-                var stream = new MemoryStream(bytes);
-                var formFile = new FormFile(
-                    baseStream: stream,
-                    baseStreamOffset: 0,
-                    length: bytes.Length,
-                    name: "file",
-                    fileName: fileName
-                );
+            //     // Convert byte array to IFormFile
+            //     var stream = new MemoryStream(bytes);
+            //     var formFile = new FormFile(
+            //         baseStream: stream,
+            //         baseStreamOffset: 0,
+            //         length: bytes.Length,
+            //         name: "file",
+            //         fileName: fileName
+            //     );
                 
-                return formFile;
-            }).ToList();
+            //     return formFile;
+            // }).ToList();
             
-            // Wait for all tasks to complete
-            var files = await Task.WhenAll(readTasks);
+            // // Wait for all tasks to complete
+            // var files = await Task.WhenAll(readTasks);
             
-            compressedFiles.AddRange(files);
-            return compressedFiles;
+            // compressedFiles.AddRange(files);
+            // return compressedFiles;
+            return new List<string>();
+        }
+
+        public async Task<string> MoveAsync(string sourceContainer, string blobId, string targetContainer)
+        {
+            // nothing to do here, just return true
+            return blobId;
         }
 
         public async Task<bool> UpdateAsync(byte[] file, string containerName, Asset assetMetaData)

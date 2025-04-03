@@ -299,35 +299,27 @@ export default function FileTable({
                 </span>
               </div>
             </th>
-            {/* Preview */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Preview
             </th>
-            {/* File Name */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Name
             </th>
-            {/* File Type */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Type
             </th>
-            {/* File Size */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               File Size
             </th>
-            {/* Project dropdown */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Project
             </th>
-            {/* Tags */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Tags
             </th>
-            {/* Edit */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Edit
             </th>
-            {/* Remove */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Remove
             </th>
@@ -356,7 +348,6 @@ export default function FileTable({
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleSelectRow(index)}
               >
-                {/* Checkbox */}
                 <td className="px-6 py-4 text-center">
                   <input
                     type="checkbox"
@@ -369,7 +360,6 @@ export default function FileTable({
                   />
                 </td>
 
-                {/* Preview cell */}
                 <td className="px-6 py-4">
                   {isImage && previewUrlObj && (
                     <div
@@ -402,16 +392,12 @@ export default function FileTable({
                   )}
                 </td>
 
-                {/* File name */}
                 <td className="px-6 py-4">{displayName}</td>
 
-                {/* File Type */}
                 <td className="px-6 py-4">{rawFile.type}</td>
 
-                {/* File Size */}
                 <td className="px-6 py-4">{fileMeta.fileSize}</td>
 
-                {/* Project dropdown */}
                 <td className="px-6 py-4">
                   <select
                     className="border border-gray-300 rounded p-1"

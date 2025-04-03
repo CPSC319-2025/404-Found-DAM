@@ -20,6 +20,5 @@ namespace Core.Interfaces
         Task<string?> GetTagNameByIdAsync(int tagID);
 
         Task<string?> GetProjectNameByIdAsync(int projectID);
-        Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID);
     }
 }
