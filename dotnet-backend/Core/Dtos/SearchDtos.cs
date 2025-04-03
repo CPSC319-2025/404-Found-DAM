@@ -14,8 +14,9 @@ namespace Core.Dtos
         public List<TagCustomInfo> tags { get; set; } = new();
 
         public int projectID { get; set; }
-
+        
         public string projectName { get; set; }
-
+        
+        public string BlobSASUrl { get; set; }
     }
 }

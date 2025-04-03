@@ -149,7 +149,8 @@ namespace Infrastructure.DataAccess
             }
                 
             // Initialize the list of form files
-            List<IFormFile> formFiles = new List<IFormFile>();
+            // formFiles NOT USED
+            // List<IFormFile> formFiles = new List<IFormFile>();
             
             // Create a list of tasks for parallel execution
             var downloadTasks = assetIdNameTuples.Select(async assetIdNameTuple =>

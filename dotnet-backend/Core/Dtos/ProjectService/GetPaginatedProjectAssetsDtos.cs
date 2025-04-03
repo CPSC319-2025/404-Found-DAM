@@ -16,6 +16,7 @@ namespace Core.Dtos
     {
         public int projectID {get; set; }
         public List<PaginatedProjectAsset> assets { get; set; }
+        public List<string> assetBlobSASUrlList { get; set; }
         public ProjectAssetsPagination pagination {get; set; }
         public List<GetAssetFileFromStorageReq> assetIdNameList {get; set; }
     }

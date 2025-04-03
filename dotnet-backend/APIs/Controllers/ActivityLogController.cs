@@ -48,7 +48,7 @@ namespace APIs.Controllers
             bool? isAdminAction = query.ContainsKey("isAdminAction") ? bool.Parse(query["isAdminAction"]) : null;
 
             int pageNumber = query.ContainsKey("pageNumber") ? int.Parse(query["pageNumber"]) : 1;
-            int pageSize = query.ContainsKey("pageSize") ? int.Parse(query["pageSize"]) : 10; // todo
+            int pageSize = query.ContainsKey("pageSize") ? int.Parse(query["pageSize"]) : 10;
             
 
             if (pageNumber <= 0 || pageSize <= 0)

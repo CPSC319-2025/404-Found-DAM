@@ -8,6 +8,7 @@ import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
 import { Asset, Project, User } from "@/app/types";
 import { useDropzone } from "react-dropzone";
+import { ArrowDownIcon } from "@heroicons/react/24/solid";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 
@@ -77,6 +78,34 @@ const newProjectFormFields: FormFieldType[] = [
   },
 ];
 
+const downloadAsset = async (asset: any) => {
+  try {
+    if (!asset.blobSASUrl) {
+      throw new Error("Blob url doesnt exist")
+    }
+
+    const response = await fetch(asset.blobSASUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch asset: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = asset.fileName || 'download';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    console.error("Download failed:", error);
+  }
+};
+
 function Items({ currentItems }: { currentItems?: any[] } ) {
   return (
     <div className="items overflow-y-auto mt-4 rounded-lg p-4">
@@ -111,13 +140,15 @@ function Items({ currentItems }: { currentItems?: any[] } ) {
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="h-20 w-20 relative">
-                  <Image
-                    src={asset.src ?? ""}
-                    alt={`${asset.filename} thumbnail`}
-                    width={120}
-                    height={120}
-                    className="object-cover rounded w-full h-full"
-                  />
+                  <a href={asset.blobSASUrl ?? ""}>
+                    <Image
+                      src={asset.blobSASUrl ?? ""}
+                      alt={`${asset.filename} thumbnail`}
+                      width={120}
+                      height={120}
+                      className="object-cover rounded w-full h-full"
+                    />
+                  </a>
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -134,11 +165,7 @@ function Items({ currentItems }: { currentItems?: any[] } ) {
                 <div className="flex gap-3">
                   <button
                     className="text-indigo-600 hover:text-indigo-900"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      alert("TODO: download");
-                      // TODO: EDIT LOGIC
-                    }}
+                    onClick={() => downloadAsset(asset)}
                   >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />

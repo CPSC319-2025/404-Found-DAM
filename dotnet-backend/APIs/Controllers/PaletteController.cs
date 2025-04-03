@@ -7,8 +7,6 @@ namespace APIs.Controllers
 {
     public static class PaletteController
     {
-        private const int MOCKEDUSERID = 1;
-
         private const bool AdminActionTrue = true;
 
         private const bool logDebug = false;
@@ -24,9 +22,9 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
+        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService, HttpContext context) =>
         {
-            return await GetPaletteAssets(request, paletteService);
+            return await GetPaletteAssets(request, paletteService, context);
         })
         .WithName("GetPaletteAssets")
         .WithOpenApi();
@@ -61,6 +59,7 @@ namespace APIs.Controllers
         {
             try
             {
+                // int userID = Convert.ToInt32(context.Items["userId"]);
                 var result = await paletteService.GetBlobProjectAndTagsAsync(blobId); //also returns tag id in the same order a s tag
                 return Results.Ok(result);
             }
@@ -135,7 +134,7 @@ namespace APIs.Controllers
                 if (result.Success)
                 {
                     // add log (DONE)
-                    int userID = MOCKEDUSERID;
+                    int userID = Convert.ToInt32(context.Items["userId"]);
 
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
 
@@ -212,10 +211,10 @@ namespace APIs.Controllers
 
         }
 
-        private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
+        private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService, HttpContext context)
         {
             try {
-                int userId = MOCKEDUSERID;
+                int userId = Convert.ToInt32(context.Items["userId"]);
 
                 if (string.IsNullOrEmpty(userId.ToString()))
                 {
@@ -277,6 +276,7 @@ namespace APIs.Controllers
         // Helper function to extract the blobId from a filename
         private static string ExtractBlobId(string filename)
         {
+            // int userId = Convert.ToInt32(context.Items["userId"]);
             // Format: BlobID.OriginalFilename.zst
             var parts = filename.Split('.');
             if (parts.Length < 2)
@@ -313,7 +313,7 @@ namespace APIs.Controllers
         */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService, HttpContext context)
         {
-            Console.WriteLine("in UploadAssets");
+            // Console.WriteLine("in UploadAssets");
             try {
 
                 // Get services from IServiceProvider
@@ -330,7 +330,8 @@ namespace APIs.Controllers
             // Get the form fields that match your DTO
             string uploadTaskName = request.Form["name"].ToString();
             string asasetMimeType = request.Form["mimeType"].ToString().ToLower();
-            int userId = int.Parse(request.Form["userId"].ToString());
+            // int userId = int.Parse(request.Form["userId"].ToString());
+            int userId = Convert.ToInt32(context.Items["userId"]);
             string? toWebpParam = request.Query["toWebp"];
 
             bool convertToWebp = true; // set webp conversion default to true 
@@ -375,7 +376,7 @@ namespace APIs.Controllers
                 ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
 
 
-                var user = await userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(userId);
                 string username = user.Name;
                 
 
@@ -421,7 +422,7 @@ namespace APIs.Controllers
                         {
                             string theDescription = "";
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
+                                theDescription = $"{username} (User ID: {userId}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
                             } else {
                                 theDescription = $"{user.Email} uploaded {file.FileName} to their palette";
                             }
@@ -432,7 +433,7 @@ namespace APIs.Controllers
                             }
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = userId,
                                 changeType = "Uploaded",
                                 description = theDescription,
                                 projID = 0, // Assuming no specific project is associated here
@@ -473,7 +474,8 @@ namespace APIs.Controllers
                 var userService = serviceProvider.GetRequiredService<IUserService>();
                 // Get the form fields that match your DTO
                 string name = request.Form["Name"].ToString();
-                int userId = int.Parse(request.Form["UserId"].ToString());
+                // int userId = int.Parse(request.Form["UserId"].ToString());
+                int userId = Convert.ToInt32(context.Items["userId"]);
 
                 
 
@@ -493,7 +495,7 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
-                var user = await userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(userId);
                 string username = user.Name;
 
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
@@ -502,7 +504,7 @@ namespace APIs.Controllers
                 string theDescription = "";
                 try {
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
+                        theDescription = $"{username} (User ID: {userId}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
                     } else {
                         theDescription = $"{user.Email} deleted asset {assetName} from their palette";
                     }
@@ -512,7 +514,7 @@ namespace APIs.Controllers
                     }
                     var logDto = new CreateActivityLogDto
                     {
-                        userID = MOCKEDUSERID,
+                        userID = userId,
                         changeType = "Deleted",
                         description = theDescription,
                         projID = 0, // Assuming no specific project is associated here
@@ -550,13 +552,13 @@ namespace APIs.Controllers
              }
              try 
              {
-                 // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
+                 // TODO: verify submitter is in the system and retrieve the userID
                  // Get services from IServiceProvider
                 var serviceProvider = GetServiceProvider(context);
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
-                 int submitterID = MOCKEDUSERID; 
+                 int submitterID = Convert.ToInt32(context.Items["userId"]); 
                  Console.WriteLine(req.blobIDs);
                  SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID, autoNaming);
 
@@ -637,6 +639,7 @@ namespace APIs.Controllers
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
                 
                 RemoveTagsResult result = await paletteService.RemoveTagsFromAssetsAsync(request.BlobIds, request.TagIds);
                 
@@ -669,13 +672,13 @@ namespace APIs.Controllers
                         
                             var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                            var user = await userService.GetUser(MOCKEDUSERID);
+                            var user = await userService.GetUser(submitterID);
                             string username = user.Name;
 
                             string theDescription = "";
                             if (verboseLogs) {
 
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
                             } else {
                                 theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
                             }
@@ -686,7 +689,7 @@ namespace APIs.Controllers
 
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = submitterID,
                                 changeType = "Removed",
                                 description = theDescription,
                                 projID = 0, // no project
@@ -729,12 +732,12 @@ namespace APIs.Controllers
                             string tagDescription = string.Join(", ", tagNames);
                             string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                            var user = await userService.GetUser(MOCKEDUSERID);
+                            var user = await userService.GetUser(submitterID);
                             string username = user.Name;
                             string theDescription = "";
 
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
                             } else {
                                 theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
                             }
@@ -745,7 +748,7 @@ namespace APIs.Controllers
 
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = submitterID,
                                 changeType = "Removed",
                                 description = theDescription,
                                 projID = 0, // no project

@@ -22,7 +22,7 @@ namespace Core.Services
             try
             {
                 List<Project> matchingProjects = await _searchRepository.SearchProjectsAsync(query);
-                List<Asset> matchingAssets = await _searchRepository.SearchAssetsAsync(query);
+                var (matchingAssets, sasUrlMap) = await _searchRepository.SearchAssetsAsync(query);
 
                 var projectResults = matchingProjects.Select(p => new GetProjectRes
                 {
@@ -31,17 +31,10 @@ namespace Core.Services
                     description = p.Description,
                     location = p.Location,
                     active = p.Active,
-                    archivedAt = null, //TODO: implement later
-                    admins = null, // dont need this
-                    regularUsers = null, // dont need this
-                    tags = null // dont need this
-                    // tags = p.ProjectTags
-                    //     .Select(pt => new TagCustomInfo
-                    //     {
-                    //         tagID = pt.Tag.TagID,
-                    //         name = pt.Tag.Name
-                    //     })
-                    //     .ToList()
+                    archivedAt = null, // TODO: implement later
+                    admins = null, // Don't need this
+                    regularUsers = null, // Don't need this
+                    tags = null // Don't need this
                 }).ToList();
 
                 var assetResults = matchingAssets.Select(a => new AssetSearchResultDto
@@ -56,7 +49,8 @@ namespace Core.Services
                         })
                         .ToList(),
                     projectID = a.Project != null ? a.Project.ProjectID : 0,
-                    projectName = a.Project != null ? a.Project.Name : "Unknown"
+                    projectName = a.Project != null ? a.Project.Name : "Unknown",
+                    BlobSASUrl = sasUrlMap.TryGetValue(a.BlobID, out var url) ? url : null
                 }).ToList();
 
                 return new SearchResultDto
@@ -65,8 +59,9 @@ namespace Core.Services
                     assets = assetResults
                 };
             }
-            catch (Exception e) {
-                throw;
+            catch (Exception e)
+            {
+                throw; // This catch block isn't doing anything, consider logging `e`
             }
         }
     }

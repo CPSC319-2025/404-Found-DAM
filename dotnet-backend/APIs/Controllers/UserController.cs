@@ -13,7 +13,7 @@ namespace APIs.Controllers
             app.MapGet("/users/{userID}", GetUser).WithName("GetUser").WithOpenApi();
         }
 
-        private static async Task<IResult> GetUser(IUserService userService, int userID)
+        private static async Task<IResult> GetUser(IUserService userService, int userID, HttpContext context) //userID is the userID we are trying to lookup. It is not the person who is making the call.
         {
             try
             {
