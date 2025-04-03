@@ -10,9 +10,11 @@ namespace Infrastructure.DataAccess
     public class SearchRepository : ISearchRepository
     {
         private readonly DAMDbContext _context;
+        private readonly IBlobStorageService _blobStorageService;
 
-        public SearchRepository(DAMDbContext context) {
+        public SearchRepository(DAMDbContext context, IBlobStorageService blobStorageService) {
             _context = context;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<List<Project>> SearchProjectsAsync(string query)
@@ -30,19 +32,58 @@ namespace Infrastructure.DataAccess
                     p.Assets.Any(a => a.AssetMetadata.Any(am => EF.Functions.Like(am.FieldValue, $"%{query}%"))))
                 .ToListAsync();
         }
-
-        public async Task<List<Asset>> SearchAssetsAsync(string query) 
+        
+        public async Task<(List<Asset>, Dictionary<string, string>)> SearchAssetsAsync(string query) 
         {
-            return await _context.Assets
+            var assets = await _context.Assets
                 .Include(a => a.AssetTags)
                     .ThenInclude(at => at.Tag)
                 .Include(a => a.AssetMetadata)
                 .Include(a => a.Project)
                 .Where(a => 
-                EF.Functions.Like(a.FileName, $"%{query}%") ||
-                a.AssetTags.Any(at => EF.Functions.Like(at.Tag.Name, $"%{query}%")) ||
-                a.AssetMetadata.Any(am => EF.Functions.Like(am.FieldValue, $"%{query}%")))
+                    EF.Functions.Like(a.FileName, $"%{query}%") ||
+                    a.AssetTags.Any(at => EF.Functions.Like(at.Tag.Name, $"%{query}%")) ||
+                    a.AssetMetadata.Any(am => EF.Functions.Like(am.FieldValue, $"%{query}%")))
                 .ToListAsync();
+            
+            var sasUrlMap = new Dictionary<string, string>();
+
+            var groupedAssets = assets
+                .Where(a => a.Project != null)
+                .GroupBy(a => a.Project!.ProjectID)
+                .ToList();
+
+            var downloadTasks = new List<Task<(string container, List<(string, string)> assets, List<string> urls)>>();
+
+            foreach (var projectGroup in groupedAssets)
+            {
+                string containerName = $"project-{projectGroup.Key}-assets";
+                var assetIdNameTuples = projectGroup
+                    .Select(a => (a.BlobID, a.FileName))
+                    .ToList();
+
+                var task = DownloadWithContainerName(containerName, assetIdNameTuples);
+                downloadTasks.Add(task);
+            }
+
+            var results = await Task.WhenAll(downloadTasks);
+
+            foreach (var (container, assetIdNameTuples, sasUrls) in results)
+            {
+                for (int i = 0; i < assetIdNameTuples.Count; i++)
+                {
+                    sasUrlMap[assetIdNameTuples[i].Item1] = sasUrls[i];
+                }
+            }
+
+            return (assets, sasUrlMap);
+        }
+
+        private async Task<(string container, List<(string, string)> assets, List<string> urls)> 
+        DownloadWithContainerName(string containerName, List<(string, string)> assetIdNameTuples)
+        {
+            var sasUrls = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+            return (containerName, assetIdNameTuples, sasUrls);
         }
     }
 }

@@ -1,5 +1,3 @@
-using ZstdSharp;
-
 namespace Core.Services.Utils
 {
     public static class FileCompressionHelper 
@@ -8,28 +6,28 @@ namespace Core.Services.Utils
         {
             try
             {
-                Compressor _compressor = new Compressor();
-                return _compressor.Wrap(data).ToArray();
+                // No compression, just return the original data
+                return data;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Compression error: {ex.Message}");
-                throw new Exception($"Failed to compress data: {ex.Message}", ex);
+                Console.WriteLine($"Data handling error: {ex.Message}");
+                throw new Exception($"Failed to process data: {ex.Message}", ex);
             }
         }
 
-        // A method to compress byte array
+        // A method to decompress byte array (now just returns the data as-is)
         public static byte[] Decompress(byte[] compressedData)
         {
             try
             {
-                Decompressor _decompressor = new Decompressor();
-                return _decompressor.Unwrap(compressedData).ToArray();
+                // No decompression, just return the original data
+                return compressedData;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Decompression error: {ex.Message}");
-                throw new Exception($"Failed to decompress data: {ex.Message}", ex);
+                Console.WriteLine($"Data handling error: {ex.Message}");
+                throw new Exception($"Failed to process data: {ex.Message}", ex);
             }
         }
     }

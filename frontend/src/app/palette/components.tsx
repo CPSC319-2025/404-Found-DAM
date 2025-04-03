@@ -406,7 +406,7 @@ export default function FileTable({
                 <td className="px-6 py-4">{displayName}</td>
 
                 {/* File Type */}
-                <td className="px-6 py-4">{rawFile.type}</td>
+                <td className="px-6 py-4">{isImage ? "image/webp" : rawFile.type}</td>
 
                 {/* File Size */}
                 <td className="px-6 py-4">{fileMeta.fileSize}</td>

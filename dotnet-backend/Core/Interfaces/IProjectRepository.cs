@@ -12,7 +12,7 @@ namespace Core.Interfaces
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<Project> GetProjectInDb(int projectID);
         Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb();
-        Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
+        Task<(List<Asset>, int, List<string>)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID);
         Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req);
         Task AddAssetTagAssociationAsync(string imageId, int tagId);
         Task<bool> CheckProjectAssetExistence(int projectID, string blobId, int userID);

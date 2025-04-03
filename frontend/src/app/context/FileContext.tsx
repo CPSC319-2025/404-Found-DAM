@@ -23,6 +23,7 @@ export type FileMetadata = {
   project?: string; // Each file can store its own project name
   blobId?: string;
   metadata?: Record<number, any>; // For custom metadata fields
+  url?: string; // Direct object URL for image display
 };
 
 type FileContextType = {

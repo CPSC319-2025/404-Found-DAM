@@ -9,7 +9,6 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using ZstdSharp;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -157,14 +156,9 @@ namespace Core.Services
                     }
                 }
                 
-                Console.WriteLine($"File Name:{sanitizedFileName}");
-                Console.WriteLine($"File path:{mergedFilePath}");
-                Console.WriteLine($"User ID:{userId}");
-                
+        
                 // Get MIME type based on file extension
                 string mimeType = GetMimeTypeFromExtension(Path.GetExtension(mergedFilePath));
-                Console.WriteLine($"File MimeType:{mimeType}");
-
                 Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId, true, _imageService);
 
                 // Delete the merged file from disk

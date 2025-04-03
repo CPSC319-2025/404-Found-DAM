@@ -209,7 +209,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int, List<string>)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -263,8 +263,14 @@ namespace Infrastructure.DataAccess
                     .Take(req.assetsPerPage)
                     .Include(a => a.User)
                     .ToListAsync();
+
+                    // Get asset blobSASUrl
+                    List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+                    string containerName = "project-" + req.projectID.ToString() + "-assets";
+                    List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+
                     
-                    return (assets, totalFilteredAssetCount);
+                    return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
                 }
             }
             else 

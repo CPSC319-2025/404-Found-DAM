@@ -12,7 +12,6 @@ namespace APIs.Controllers
 {
     public static class FileUploadController
     {
-        private const int MOCKEDUSERID = 1;
 
         private const bool verboseLogs = false;
 
@@ -93,7 +92,7 @@ namespace APIs.Controllers
                 }
                 
                 string fileName = request.Form["originalname"];
-                int userId = MOCKEDUSERID; // Use actual user ID in production
+                int userId = Convert.ToInt32(context.Items["userId"]);
 
                 if (string.IsNullOrEmpty(fileName))
                 {
@@ -142,7 +141,7 @@ namespace APIs.Controllers
 
                             var log = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = userId,
                                 changeType = "Uploaded",
                                 description = theDescription,
                                 projID = 0, // no project

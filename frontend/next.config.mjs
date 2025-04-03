@@ -24,6 +24,10 @@ const nextConfig = {
     }
     return config;
   },
+
+  images: {
+    domains: ['assetsblobstandard.blob.core.windows.net'],
+  },
 };
 
 export default nextConfig;
