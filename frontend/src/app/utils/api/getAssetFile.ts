@@ -1,5 +1,6 @@
 // gets zstd compressed file and returns file from it
 import { ZstdCodec } from "zstd-codec";
+import { fetchWithAuth } from "@/app/utils/api/api";
 
 export const getAssetFile = async (url: string, mimetype: string) => {
   const response = await fetch(url);
@@ -34,6 +35,31 @@ export const downloadAsset = (asset: any) => {
     throw new Error("Asset has not loaded yet! Please try again.")
   }
 
+  // TODO: take in user, project
+  try {
+    const downloadLog = {
+        userID = user.userID,
+        changeType = "Downloaded",
+      // TODO: fix this
+        description = `${user.email} downloaded ${asset.filename} from project ${project.name}`,
+      // TODO: fix
+        projID = project.projectID,
+        assetID = asset.blobID,
+        isAdminAction = false
+    };
+
+    const response = await fetchWithAuth("addLog", {
+      method: "POST",
+      body: JSON.stringify(downloadLog),
+    });
+
+    if (!response.ok) {
+      throw new Error("Unable to download asset!");
+    }
+  } catch (error) {
+    throw new Error((error as Error).message);
+  }
+
   const a = document.createElement("a");
   a.href = asset.src;
   a.download = asset.filename || "downloaded-file";
@@ -41,4 +67,3 @@ export const downloadAsset = (asset: any) => {
   a.click();
   document.body.removeChild(a);
 };
-

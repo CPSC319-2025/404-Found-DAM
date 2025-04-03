@@ -170,6 +170,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [previewType, setPreviewType] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState<string>("");
+  const [projectDescription, setProjectDescription = useState<string>("");
 
   function openPreview(asset: any) {
     if (asset.src) {
@@ -292,6 +293,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       .then((project: ProjectWithTags) => {
         setUsers(project.admins.concat(project.regularUsers));
         setProjectName(project.name!);
+        setProjectDescription(project.description);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
@@ -307,6 +309,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       <h1 className="text-2xl font-bold mb-4">
         {"Project: " + projectName}
       </h1>
+      <h6 className="mb-4">
+        {projectDescription}
+      </h6>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
           <label className="text-gray-700 text-sm font-medium">Filter by User</label>
