@@ -359,6 +359,9 @@ export default function GenericForm({
     }
   };
 
+  const isValidName =
+    typeof formData["name"] === "string" && formData["name"].trim() !== "";
+
   useEffect(() => {
     if (isModal) {
       const handleClickOutside = (event: MouseEvent) => {
@@ -611,7 +614,7 @@ export default function GenericForm({
           </fieldset>
 
           <div>
-            {!noRequired && (<i className="opacity-50">* Required field</i>)}
+            {!noRequired && <i className="opacity-50">* Required field</i>}
           </div>
 
           {extraButtonText && extraButtonCallback ? (
@@ -627,11 +630,9 @@ export default function GenericForm({
               <button
                 type="button"
                 onClick={() => extraButtonCallback(formData, updateField)}
-                disabled={!formData["name"] || formData["name"].trim() === ""}
+                disabled={!isValidName}
                 className={`w-full bg-blue-500 text-white p-2 rounded text-center ${
-                  !formData["name"] || formData["name"].trim() === ""
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
+                  !isValidName ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 {extraButtonText}
