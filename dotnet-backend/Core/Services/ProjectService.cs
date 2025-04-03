@@ -369,10 +369,12 @@ namespace Core.Services
                     uploadedBy = new PaginatedProjectAssetUploadedBy
                     {
                         userID = a.User?.UserID ?? -1,
-                        name = a.User?.Name ?? "Unknown"
+                        name = a.User?.Name ?? "Unknown",
+                        email = a.User?.Email ?? "Unknown",
                     },
                     date = a.LastUpdated,
                     filesizeInKB = a.FileSizeInKB,
+                    mimetype = a.MimeType,
                     tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
                 }).ToList();
 

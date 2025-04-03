@@ -40,10 +40,14 @@ namespace Infrastructure.DataAccess
                     .ThenInclude(at => at.Tag)
                 .Include(a => a.AssetMetadata)
                 .Include(a => a.Project)
+                .Include(a => a.User)
                 .Where(a => 
+                    a.assetState == Asset.AssetStateType.SubmittedToProject &&
+                    (
                     EF.Functions.Like(a.FileName, $"%{query}%") ||
                     a.AssetTags.Any(at => EF.Functions.Like(at.Tag.Name, $"%{query}%")) ||
                     a.AssetMetadata.Any(am => EF.Functions.Like(am.FieldValue, $"%{query}%")))
+                )
                 .ToListAsync();
             
             var sasUrlMap = new Dictionary<string, string>();

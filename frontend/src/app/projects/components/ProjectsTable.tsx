@@ -13,6 +13,13 @@ import {
   Pagination as PaginationType,
 } from "@/app/types";
 import { ZstdCodec } from "zstd-codec";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
+import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
+import { getEndOfDayUtc, getStartOfDayUtc } from "@/app/utils/api/localToUtc";
+import { getAssetFile } from "@/app/utils/api/getAssetFile";
+import { toast } from "react-toastify";
+import { downloadAsset } from "@/app/utils/api/getAssetFile";
+import { useUser } from "@/app/context/UserContext";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -22,30 +29,22 @@ interface ProjectWithTags extends Project {
 interface PaginatedAssets {
   assets: Asset[];
   assetIdNameList: { blobID: string, filename: string };
+  assetBlobSASUrlList: string[];
   pagination: PaginationType;
 }
 
 interface ItemsProps {
   currentItems?: any;
-  setCurrentItems?: any;
-  projectID: any;
+  project: any;
+  user: any;
+  openPreview: any;
 }
 
 interface AssetWithSrc extends Asset {
   src?: string;
 }
 
-function formatFileSize(sizeInKB: number) {
-  if (sizeInKB >= 1024 * 1024) {
-    return (sizeInKB / (1024 * 1024)).toFixed(2) + " GB";
-  } else if (sizeInKB >= 1024) {
-    return (sizeInKB / 1024).toFixed(2) + " MB";
-  } else {
-    return sizeInKB.toFixed(2) + " KB";
-  }
-}
-
-function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
+function Items({ currentItems, project, user, openPreview }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -65,7 +64,7 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                 Last Updated
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Posted By
+                Uploaded By
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Tags
@@ -90,10 +89,11 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                   <div className="h-20 w-20 relative">
                     <Image
                       src={asset.src ?? ""}
-                      alt={`${asset.filename} thumbnail`}
+                      alt={`${asset.filename}`}
                       width={120}
                       height={120}
-                      className="object-cover rounded w-full h-full"
+                      className="object-cover rounded w-full h-full cursor-pointer"
+                      onClick={() => openPreview(asset)}
                     />
                   </div>
                 </td>
@@ -103,11 +103,11 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(asset.date).toLocaleString()}
+                  {convertUtcToLocal(asset.date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {asset.uploadedBy?.name}
+                    {asset.uploadedBy?.email}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -126,11 +126,7 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
                   <div className="flex gap-3">
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        alert("TODO: download");
-                        // TODO: EDIT LOGIC
-                      }}
+                      onClick={() => downloadAssetWrapper(asset, project, user)}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
@@ -147,65 +143,69 @@ function Items({ currentItems, setCurrentItems, projectID }: ItemsProps) {
   );
 }
 
+const downloadAssetWrapper = async (asset: AssetWithSrc, project: any, user: any) => {
+  try {
+    toast.success("Starting download...");
+    await downloadAsset(asset, project, user);
+  } catch (e) {
+    toast.error((e as Error).message);
+  }
+}
+
 const ProjectsTable = ({ projectID }: { projectID: string }) => {
+  const { user } = useUser();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<AssetWithSrc[]>([]);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
-  const [selectedTag, setSelectedTag] = useState<number>(0);
+  const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedAssetType, setSelectedAssetType] = useState<string>("all");
-
-  // TODO: ADD IMAGE SIZE
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const [users, setUsers] = useState<User[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+
+  const [isPreviewAsset, setIsPreviewAsset] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState<string>("");
+  const [projectDescription, setProjectDescription] = useState<string>("");
 
-  const getAssetFile = async (blobID: string, filename: string) => {
-    // if (!filename.includes(".webp")) {
-    //   // TODO: handle video
-    //   return Promise.reject("Unable to handle video yet")
-    // }
-    const response = await fetchWithAuth(`project/${projectID}/asset-files/storage/${blobID}/${filename}`);
-
-    if (!response.ok) {
-      throw new Error(`Fetch failed with status ${response.status}`);
+  function openPreview(asset: any) {
+    if (asset.src) {
+      setPreviewUrl(asset.src);
+      setPreviewType(asset.mimetype);
+      setIsPreviewAsset(true);
     }
+  }
 
-    const blob = await response.blob();
-    const contentType = response.headers.get("content-type");
-
-    const fileContent = new Uint8Array(await blob.arrayBuffer());
-
-    return new Promise((resolve, reject) => {
-      ZstdCodec.run((zstd: any) => {
-        try {
-          const simple = new zstd.Simple();
-          const decompressed = simple.decompress(fileContent);
-
-          const decompressedBlob = new Blob([decompressed], { type: contentType || "image/webp" });
-
-          const url = URL.createObjectURL(decompressedBlob);
-          resolve(url);
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-  };
+  function closeModal() {
+    setIsPreviewAsset(false);
+    setPreviewUrl(null);
+    setPreviewType(null);
+  }
 
   const fetchAssets = async (page: number) => {
     const queryParams = new URLSearchParams({
       assetsPerPage: String(10),
       pageNumber: String(page),
       postedBy: String(selectedUser),
-      tagID: String(selectedTag),
+      tagName: String(selectedTag),
       assetType: selectedAssetType,
-    }).toString();
+    });
 
-    const url = `projects/${projectID}/assets/pagination?${queryParams}`;
+    if (startDate) {
+      queryParams.append("fromDate", getStartOfDayUtc(startDate));
+    }
+
+    if (endDate) {
+      queryParams.append("toDate", getEndOfDayUtc(endDate));
+    }
+
+    const url = `projects/${projectID}/assets/pagination?${queryParams.toString()}`;
     const response = await fetchWithAuth(url);
 
     if (!response.ok) {
@@ -219,6 +219,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
     return {
       assets: data.assets,
+      assetBlobSASUrlList: data.assetBlobSASUrlList,
       totalPages: data.pagination.totalPages,
     };
   };
@@ -239,10 +240,26 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     return project as ProjectWithTags;
   };
 
-  const setAssetSrcs = (assets: AssetWithSrc[]) => {
-    assets.forEach(async (asset: AssetWithSrc) => {
+  const getTags = async () => {
+    const response = await fetchWithAuth("/tags");
+
+    if (!response.ok) {
+      throw new Error("Failed to get tags.");
+    }
+
+    const tags = await response.json();
+
+    if (!tags) {
+      throw new Error("No tags returned from the API.");
+    }
+
+    return tags as string[];
+  }
+
+  const setAssetSrcs = (assets: AssetWithSrc[], assetBlobSASUrlList: string[]) => {
+    assets.forEach(async (asset: AssetWithSrc, index: number) => {
       try {
-        const src = (await getAssetFile(asset.blobID, asset.filename)) as string;
+        const src = (await getAssetFile(assetBlobSASUrlList[index], asset.mimetype || "")) as string;
         setCurrentItems((prevItems: AssetWithSrc[]) =>
           prevItems.map((item: AssetWithSrc) =>
             item.blobID === asset.blobID ? { ...item, src } : item
@@ -256,33 +273,37 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const handlePageChange = (e: any, page: number) => {
     setCurrentPage(page);
-    fetchAssets(page).then(({ assets, totalPages }) => {
+    fetchAssets(page).then(({ assets, assetBlobSASUrlList, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
-      setAssetSrcs(assets);
+      setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
     });
   };
 
   useEffect(() => {
     // upon filter change we go back to page 1
     setCurrentPage(1);
-    fetchAssets(1).then(({ assets, totalPages }) => {
+    fetchAssets(1).then(({ assets, assetBlobSASUrlList, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
-      setAssetSrcs(assets);
+      setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
     });
-  }, [selectedUser, selectedTag, selectedAssetType]);
+  }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
 
   useEffect(() => {
     getProject()
       .then((project: ProjectWithTags) => {
         setUsers(project.admins.concat(project.regularUsers));
-        setTags(project.tags);
         setProjectName(project.name!);
+        setProjectDescription(project.description);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
       });
+    getTags()
+      .then((tags: any) => {
+        setTags(tags);
+      })
   }, []);
 
   return (
@@ -290,6 +311,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       <h1 className="text-2xl font-bold mb-4">
         {"Project: " + projectName}
       </h1>
+      <h6 className="mb-4">
+        {"Description: " + projectDescription}
+      </h6>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
           <label className="text-gray-700 text-sm font-medium">Filter by User</label>
@@ -314,12 +338,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={selectedTag}
-              onChange={(e) => setSelectedTag(Number(e.target.value))}
+              onChange={(e) => setSelectedTag(String(e.target.value))}
             >
               <option value="">Select Tag</option>
-              {tags.map((tag: Tag) => (
-                <option key={tag.tagID} value={tag.tagID}>
-                  {tag.name}
+              {tags.map((tag: string) => (
+                <option key={tag} value={tag}>
+                  {tag}
                 </option>
               ))}
             </select>
@@ -339,8 +363,27 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             </select>
           </div>
         </div>
+        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Start Date</label>
+          <input
+            type="date"
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+
+        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">End Date</label>
+          <input
+            type="date"
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
       </div>
-      <Items currentItems={currentItems} setCurrentItems={setCurrentItems} projectID={projectID} />
+      <Items currentItems={currentItems} project={{ projectName, projectID }} user={user} openPreview={openPreview} />
       <Pagination
         count={totalPages}
         page={currentPage}
@@ -349,6 +392,33 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         color="standard"
         className="border border-gray-300"
       />
+      {isPreviewAsset && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="relative bg-white p-4 rounded shadow-lg max-w-3xl max-h-[80vh] overflow-auto">
+            <button
+              onClick={closeModal}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            {previewType?.startsWith("image/") && (
+              <img
+                src={previewUrl}
+                alt="Full Preview"
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+            {previewType?.startsWith("video/") && (
+              <video
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh]"
+              />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
