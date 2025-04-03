@@ -10,7 +10,7 @@ export default function EditImagePage() {
   const router = useRouter();
   const { files, updateMetadata, setFiles } = useFileContext();
 
-  const fileName = searchParams.get("file");
+  const fileName = searchParams?.get("file") ?? "";
   const fileIndex = files.findIndex((f) => f.file.name === fileName);
   const fileData = files[fileIndex];
 
