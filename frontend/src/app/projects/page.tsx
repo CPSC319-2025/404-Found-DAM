@@ -54,13 +54,6 @@ const newProjectFormFields: FormFieldType[] = [
     required: true,
   },
   {
-    name: "description",
-    label: "Description",
-    type: "text",
-    placeholder: "Enter project description",
-    required: true,
-  },
-  {
     name: "tags",
     label: "Tags",
     type: "select",
@@ -79,6 +72,13 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Users",
     type: "select",
     isMultiSelect: true,
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    placeholder: "Enter project description",
+    required: true,
   },
 ];
 
@@ -182,11 +182,11 @@ function Items({ currentItems, user, openPreview }: { currentItems?: any[], user
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -206,6 +206,36 @@ const downloadAssetWrapper = async (asset: any, user: any) => {
 export default function ProjectsPage() {
   const { user } = useUser();
   const [query, setQuery] = useState<string>("");
+
+  const [aiDescription, setAIDescription] = useState("");
+
+  const [aiLoading, setAILoading] = useState(false);
+
+  const generateAIDescription = async (formData) => {
+    const { name, location, tags } = formData;
+    // Create a prompt using the project name, location, and tags
+    const prompt = `Given the following project details:
+  - Project Name: ${name}
+  - Project Location: ${location}
+  - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
+  Generate a creative and engaging project description.`;
+
+    try {
+      const response = await fetch("/api/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      setAIDescription(data.description);
+    } catch (error) {
+      console.error("Error generating AI description:", error);
+    }
+  };
+
+  const handleFormChange = (fieldName, value) => {
+    setFormValues((prev) => ({ ...prev, [fieldName]: value }));
+  };
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
@@ -228,7 +258,9 @@ export default function ProjectsPage() {
   const [configuredTags, setConfiguredTags] = useState<string[]>([]);
 
   const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
-  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(null);
+  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(
+    null
+  );
 
   const importFormRef = useRef<HTMLDivElement>(null);
 
@@ -270,6 +302,8 @@ export default function ProjectsPage() {
       }
     });
   }
+
+  const [isLoading, setIsLoading] = useState(false);
 
   // Global Tags
   const fetchTags = async () => {
@@ -337,8 +371,7 @@ export default function ProjectsPage() {
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
-            allUsers: project.admins
-              .concat(project.regularUsers)
+            allUsers: project.admins.concat(project.regularUsers),
           }) as ProjectCardProps
       );
     } catch (error) {
@@ -421,7 +454,10 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          p.allUsers?.some(
+            (projectUser: { userID: number }) =>
+              projectUser.userID === user?.userID
+          )
         )
       );
     } catch (error) {
@@ -436,7 +472,10 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          p.allUsers?.some(
+            (projectUser: { userID: number }) =>
+              projectUser.userID === user?.userID
+          )
         )
       );
       setCurrentAssets([]);
@@ -444,7 +483,9 @@ export default function ProjectsPage() {
       return;
     }
 
-    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
+    const response = await fetchWithAuth(
+      `/search?query=${encodeURIComponent(query)}`
+    );
 
     if (!response.ok) {
       throw new Error("Failed to do search");
@@ -461,7 +502,10 @@ export default function ProjectsPage() {
     setAllProjects(filteredProjects);
     setMyProjects(
       filteredProjects.filter((p: ProjectCardProps) =>
-        p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        p.allUsers?.some(
+          (projectUser: { userID: number }) =>
+            projectUser.userID === user?.userID
+        )
       )
     );
     setCurrentAssets(data.assets);
@@ -490,14 +534,15 @@ export default function ProjectsPage() {
   }, [currentAssets]);
 
   useEffect(() => {
-    // Fetch all projects (for filtering "My Projects") AND all users
-    // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
         setAllProjects(projects);
         setMyProjects(
           projects.filter((p: ProjectCardProps) =>
-            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+            p.allUsers?.some(
+              (projectUser: { userID: number }) =>
+                projectUser.userID === user?.userID
+            )
           )
         );
         setAllUsers(users as User[]);
@@ -507,6 +552,7 @@ export default function ProjectsPage() {
       .catch((error) => {
         console.error("Error loading initial data:", error);
       })
+      .finally(() => {});
   }, []);
 
   const onSubmitConfigureTags = (formData: FormDataType) => {
@@ -556,7 +602,7 @@ export default function ProjectsPage() {
 
   const onDrop = (acceptedFiles: File[]) => {
     setImportedProjectFile(acceptedFiles[0]);
-  }
+  };
 
   const onSubmitImport = async () => {
     if (!importedProjectFile) {
@@ -576,7 +622,7 @@ export default function ProjectsPage() {
       const response = await fetchWithAuth("/project/import", {
         method: "POST",
         body: formData as BodyInit,
-        headers: {}
+        headers: {},
       });
 
       if (response.ok) {
@@ -604,20 +650,54 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (importFormRef.current && !importFormRef.current.contains(event.target as Node)) {
+      if (
+        importFormRef.current &&
+        !importFormRef.current.contains(event.target as Node)
+      ) {
         setImportProjectModalOpen(false);
         setImportedProjectFile(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-      
+
+  const handleSearch = async () => {
+    setIsLoading(true);
+    const startTime = Date.now();
+    try {
+      await doSearch();
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const minDelay = 200;
+      if (elapsed < minDelay) {
+        setTimeout(() => {
+          setIsLoading(false);
+        }, minDelay - elapsed);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!query.trim()) {
+      doSearch(); // This resets to the main screen (all projects)
+    }
+  }, [query]);
+
   return (
     <div className="p-6 min-h-screen">
+      {isLoading && (
+        <div className="flex min-h-screen items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      )}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 space-y-4 md:space-y-0">
         <div className="w-full md:w-1/3 flex items-center">
           <input
@@ -630,13 +710,14 @@ export default function ProjectsPage() {
           />
           {query.trim() !== "" && (
             <button
-              onClick={doSearch}
-              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600"
+              onClick={handleSearch}
+              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
             >
-              Search
+              {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
             </button>
           )}
         </div>
+
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
             <button
@@ -767,10 +848,36 @@ export default function ProjectsPage() {
       {newProjectModalOpen && (
         <GenericForm
           title="Create New Project"
-          fields={formFields}
+          fields={newProjectFormFields}
           onSubmit={handleAddProject}
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"
+          extraButtonText="AI Description"
+          extraButtonCallback={async (currentFormData, updateField) => {
+            const { name, location, tags } = currentFormData;
+            const prompt = `Given the following project details:
+            - Project Name: ${name}
+            - Project Location: ${location}
+            - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
+            Generate a project description aimed for Projects in a Digital Asset Management system for Field Engineers. Note that tags are metadata 
+            that may be associated with assets in the project. Use tags to come up with descriptive description. Do not include any headings, titles, or extraneous text—only provide a clean description. `;
+            try {
+              const response = await fetch("/api/gemini", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt }),
+              });
+              const data = await response.json();
+              const generatedDescription = data.description;
+              if (generatedDescription) {
+                // Update the description field with the AI-generated text
+                updateField("description", generatedDescription);
+              }
+            } catch (error) {
+              console.error("Error generating AI description:", error);
+            }
+          }}
+          showExtraHelperText={true}
         />
       )}
 

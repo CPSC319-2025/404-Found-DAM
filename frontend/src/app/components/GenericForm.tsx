@@ -49,6 +49,12 @@ interface GenericFormProps {
   confirmRemoval?: boolean;
   confirmRemovalMessage?: string;
   disableOutsideClose?: boolean;
+  extraButtonText?: string;
+  extraButtonCallback?: (
+    formData: FormData,
+    updateField: (field: string, value: any) => void
+  ) => void | Promise<void>;
+  showExtraHelperText?: boolean;
   noRequired?: boolean;
 }
 
@@ -63,6 +69,9 @@ export default function GenericForm({
   confirmRemoval = false,
   confirmRemovalMessage,
   disableOutsideClose = false,
+  extraButtonText,
+  extraButtonCallback,
+  showExtraHelperText = false,
   noRequired = false,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
@@ -84,6 +93,16 @@ export default function GenericForm({
   const [formData, setFormData] = useState(initialState);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [hasEdited, setHasEdited] = useState(false);
+
+  const hasExtraButton = Boolean(extraButtonText && extraButtonCallback);
+  const hasCancelButton = isModal || hasEdited;
+  const buttonCount = (hasExtraButton ? 1 : 0) + (hasCancelButton ? 1 : 0) + 1; // submit is always rendered
+  const buttonAlignment = buttonCount === 3 ? "justify-center" : "justify-end";
+
+  // Helper to update a specific field value
+  const updateField = (field: string, value: any) => {
+    setFormData((prevData) => ({ ...prevData, [field]: value }));
+  };
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -595,24 +614,64 @@ export default function GenericForm({
             {!noRequired && (<i className="opacity-50">* Required field</i>)}
           </div>
 
-          <div className="flex justify-end space-x-2">
-            {(isModal || hasEdited) && (
+          {extraButtonText && extraButtonCallback ? (
+            // Three-button layout (full width rows)
+            <div className="flex flex-col space-y-2">
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white p-2 rounded text-center disabledButton"
+                disabled={disabled || !hasEdited}
+              >
+                {submitButtonText}
+              </button>
+              <button
+                type="button"
+                onClick={() => extraButtonCallback(formData, updateField)}
+                disabled={!formData["name"] || formData["name"].trim() === ""}
+                className={`w-full bg-blue-500 text-white p-2 rounded text-center ${
+                  !formData["name"] || formData["name"].trim() === ""
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                {extraButtonText}
+              </button>
               <button
                 type="button"
                 onClick={onCancel}
-                className="bg-gray-300 text-black p-2 rounded"
+                className="w-full bg-gray-300 text-black p-2 rounded text-center"
               >
                 Cancel
               </button>
-            )}
-            <button
-              type="submit"
-              className="bg-blue-500 text-white p-2 rounded disabledButton"
-              disabled={disabled || !hasEdited}
-            >
-              {submitButtonText}
-            </button>
-          </div>
+            </div>
+          ) : (
+            // Two-button layout (right aligned)
+            <div className="flex justify-end space-x-2">
+              {(isModal || hasEdited) && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="bg-gray-300 text-black p-2 rounded"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                className="bg-blue-500 text-white p-2 rounded disabledButton"
+                disabled={disabled || !hasEdited}
+              >
+                {submitButtonText}
+              </button>
+            </div>
+          )}
+
+          {showExtraHelperText && (
+            <p className="text-sm text-gray-500 mt-2">
+              For the best AI-generated description, provide a detailed project
+              name, location, and select relevant tags.
+            </p>
+          )}
         </form>
       </div>
       {pendingRemoval && (
