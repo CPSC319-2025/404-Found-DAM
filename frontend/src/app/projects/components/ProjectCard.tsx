@@ -101,6 +101,7 @@ export default function ProjectCard({
 
   const handleExport = async (event: any) => {
     event.stopPropagation();
+    toast.success("Exporting project...");
     try {
       const response = await fetchWithAuth(`projects/${id}/export`, {
         method: "POST",

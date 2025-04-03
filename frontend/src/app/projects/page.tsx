@@ -82,7 +82,7 @@ const newProjectFormFields: FormFieldType[] = [
   },
 ];
 
-function Items({ currentItems, openPreview }: { currentItems?: any[], openPreview: any } ) {
+function Items({ currentItems, user, openPreview }: { currentItems?: any[], user: any, openPreview: any } ) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -177,7 +177,7 @@ function Items({ currentItems, openPreview }: { currentItems?: any[], openPrevie
                 <div className="flex gap-3">
                   <button
                     className="text-indigo-600 hover:text-indigo-900"
-                    onClick={() => downloadAssetWrapper(asset)}
+                    onClick={() => downloadAssetWrapper(asset, user)}
                   >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
@@ -194,10 +194,10 @@ function Items({ currentItems, openPreview }: { currentItems?: any[], openPrevie
   );
 }
 
-const downloadAssetWrapper = (asset: any) => {
+const downloadAssetWrapper = async (asset: any, user: any) => {
   try {
     toast.success("Starting download...");
-    downloadAsset(asset);
+    await downloadAsset(asset, { projectID: asset.projectID, projectName: asset.projectName }, user);
   } catch (e) {
     toast.error((e as Error).message);
   }
@@ -739,7 +739,7 @@ export default function ProjectsPage() {
           )}
           {currentAssets && currentAssets.length > 0 && (
             <>
-              <Items currentItems={paginatedAssets} openPreview={openPreview}/>
+              <Items currentItems={paginatedAssets} user={user} openPreview={openPreview}/>
               <Pagination
                 count={Math.ceil(currentAssets.length / 10)}
                 page={currentPage}

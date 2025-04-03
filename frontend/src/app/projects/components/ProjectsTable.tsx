@@ -19,6 +19,7 @@ import { getEndOfDayUtc, getStartOfDayUtc } from "@/app/utils/api/localToUtc";
 import { getAssetFile } from "@/app/utils/api/getAssetFile";
 import { toast } from "react-toastify";
 import { downloadAsset } from "@/app/utils/api/getAssetFile";
+import { useUser } from "@/app/context/UserContext";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -34,8 +35,8 @@ interface PaginatedAssets {
 
 interface ItemsProps {
   currentItems?: any;
-  setCurrentItems?: any;
-  projectID: any;
+  project: any;
+  user: any;
   openPreview: any;
 }
 
@@ -43,7 +44,7 @@ interface AssetWithSrc extends Asset {
   src?: string;
 }
 
-function Items({ currentItems, setCurrentItems, projectID, openPreview }: ItemsProps) {
+function Items({ currentItems, project, user, openPreview }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -125,7 +126,7 @@ function Items({ currentItems, setCurrentItems, projectID, openPreview }: ItemsP
                   <div className="flex gap-3">
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => downloadAssetWrapper(asset)}
+                      onClick={() => downloadAssetWrapper(asset, project, user)}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
@@ -142,16 +143,17 @@ function Items({ currentItems, setCurrentItems, projectID, openPreview }: ItemsP
   );
 }
 
-const downloadAssetWrapper = (asset: AssetWithSrc) => {
+const downloadAssetWrapper = async (asset: AssetWithSrc, project: any, user: any) => {
   try {
     toast.success("Starting download...");
-    downloadAsset(asset);
+    await downloadAsset(asset, project, user);
   } catch (e) {
     toast.error((e as Error).message);
   }
 }
 
 const ProjectsTable = ({ projectID }: { projectID: string }) => {
+  const { user } = useUser();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<AssetWithSrc[]>([]);
@@ -310,7 +312,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         {"Project: " + projectName}
       </h1>
       <h6 className="mb-4">
-        {projectDescription}
+        {"Description: " + projectDescription}
       </h6>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
@@ -381,7 +383,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           />
         </div>
       </div>
-      <Items currentItems={currentItems} setCurrentItems={setCurrentItems} projectID={projectID} openPreview={openPreview} />
+      <Items currentItems={currentItems} project={{ projectName, projectID }} user={user} openPreview={openPreview} />
       <Pagination
         count={totalPages}
         page={currentPage}
