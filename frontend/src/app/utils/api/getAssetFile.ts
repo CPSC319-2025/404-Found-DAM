@@ -12,6 +12,10 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
+// gets zstd compressed file and returns file from it
+import { ZstdCodec } from "zstd-codec";
+import { fetchWithAuth } from "@/app/utils/api/api";
+
 export const getAssetFile = async (url: string, mimetype: string) => {
   const response = await fetch(url);
 
@@ -20,6 +24,7 @@ export const getAssetFile = async (url: string, mimetype: string) => {
   }
 
   const blob = await response.blob();
+
   const fileContent = new Uint8Array(await blob.arrayBuffer());
 
   return new Promise((resolve, reject) => {
@@ -43,18 +48,17 @@ export const getAssetFile = async (url: string, mimetype: string) => {
 
 export const downloadAsset = async (asset: any, project: any, user: any) => {
   if (!asset.src) {
-    throw new Error("Asset has not loaded yet! Please try again.");
+    throw new Error("Asset has not loaded yet! Please try again.")
   }
-
 
   try {
     const downloadLog = {
-      userID: user.userID,
-      changeType: "Downloaded",
-      description: `${user.email} downloaded '${asset.filename}' from project ${project.projectName}`,
-      projID: Number(project.projectID),
-      assetID: asset.blobID,
-      isAdminAction: false,
+        userID: user.userID,
+        changeType: "Downloaded",
+        description:  `${user.email} downloaded '${asset.filename}' from project ${project.projectName}`,
+        projID: Number(project.projectID),
+        assetID: asset.blobID,
+        isAdminAction: false
     };
 
     const response = await fetchWithAuth("addLog", {

@@ -33,6 +33,12 @@ interface ProjectCardProps {
   allUsers?: User[];
 }
 
+interface LoadingSpinnerProps {
+  message?: string;
+  size?: number;
+  className?: string;
+}
+
 interface GetAllProjectsResponse {
   projectCount: number;
   fullProjectInfos: Project[];
@@ -51,13 +57,6 @@ const newProjectFormFields: FormFieldType[] = [
     label: "Project Location",
     type: "text",
     placeholder: "Enter project location",
-    required: true,
-  },
-  {
-    name: "description",
-    label: "Description",
-    type: "text",
-    placeholder: "Enter project description",
     required: true,
   },
   {
@@ -80,113 +79,125 @@ const newProjectFormFields: FormFieldType[] = [
     type: "select",
     isMultiSelect: true,
   },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    placeholder: "Enter project description",
+    required: true,
+  },
 ];
 
-function Items({ currentItems, user, openPreview }: { currentItems?: any[], user: any, openPreview: any } ) {
+function Items({
+  currentItems,
+  user,
+  openPreview,
+}: {
+  currentItems?: any[];
+  user: any;
+  openPreview: any;
+}) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200">
           <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              File Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Image
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Filesize
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Last Updated
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Uploaded By
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Tags
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Project
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                File Name
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Image
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Filesize
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Last Updated
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Uploaded By
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tags
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-          {currentItems?.map((asset: any) => (
-            <tr
-              key={asset.blobID}
-              className="hover:bg-gray-50"
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {asset.filename}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="h-20 w-20 relative">
-                  <Image
-                    src={asset.src ?? ""}
-                    alt={`${asset.filename}`}
-                    width={120}
-                    height={120}
-                    className="object-cover rounded w-full h-full cursor-pointer"
-                    onClick={() => openPreview(asset)}
-                  />
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {formatFileSize(asset.filesizeInKB)}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {convertUtcToLocal(asset.date)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {asset.uploadedBy?.email}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex gap-1">
-                  {asset.tags.map((tag: any) => (
-                    <span
-                      key={tag}
-                      className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
-                    >
+            {currentItems?.map((asset: any) => (
+              <tr key={asset.blobID} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {asset.filename}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-20 w-20 relative">
+                    <Image
+                      src={asset.src ?? ""}
+                      alt={`${asset.filename}`}
+                      width={120}
+                      height={120}
+                      className="object-cover rounded w-full h-full cursor-pointer"
+                      onClick={() => openPreview(asset)}
+                    />
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    {formatFileSize(asset.filesizeInKB)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {convertUtcToLocal(asset.date)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {asset.uploadedBy?.email}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-1">
+                    {asset.tags.map((tag: any) => (
+                      <span
+                        key={tag}
+                        className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
+                      >
                         {tag}
                       </span>
-                  ))}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium">
-                  <Link
-                    href={`/projects/${asset.projectID}`}
-                    className="hover:bg-gray-200 p-2 rounded text-blue-500"
-                  >
-                    {asset.projectName}
-                  </Link>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex gap-3">
-                  <button
-                    className="text-indigo-600 hover:text-indigo-900"
-                    onClick={() => downloadAssetWrapper(asset, user)}
-                  >
+                    ))}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium">
+                    <Link
+                      href={`/projects/${asset.projectID}`}
+                      className="hover:bg-gray-200 p-2 rounded text-blue-500"
+                    >
+                      {asset.projectName}
+                    </Link>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex gap-3">
+                    <button
+                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={() => downloadAssetWrapper(asset, user)}
+                    >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -197,15 +208,45 @@ function Items({ currentItems, user, openPreview }: { currentItems?: any[], user
 const downloadAssetWrapper = async (asset: any, user: any) => {
   try {
     toast.success("Starting download...");
-    await downloadAsset(asset, { projectID: asset.projectID, projectName: asset.projectName }, user);
+    await downloadAsset(
+      asset,
+      { projectID: asset.projectID, projectName: asset.projectName },
+      user
+    );
   } catch (e) {
     toast.error((e as Error).message);
   }
-}
+};
 
 export default function ProjectsPage() {
   const { user } = useUser();
   const [query, setQuery] = useState<string>("");
+
+  const [aiDescription, setAIDescription] = useState("");
+
+  const [aiLoading, setAILoading] = useState(false);
+
+  const generateAIDescription = async (formData: Record<string, any>) => {
+    const { name, location, tags } = formData;
+    // Create a prompt using the project name, location, and tags
+    const prompt = `Given the following project details:
+  - Project Name: ${name}
+  - Project Location: ${location}
+  - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
+  Generate a creative and engaging project description.`;
+
+    try {
+      const response = await fetch("/api/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      setAIDescription(data.description);
+    } catch (error) {
+      console.error("Error generating AI description:", error);
+    }
+  };
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
@@ -228,7 +269,9 @@ export default function ProjectsPage() {
   const [configuredTags, setConfiguredTags] = useState<string[]>([]);
 
   const [importProjectModalOpen, setImportProjectModalOpen] = useState(false);
-  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(null);
+  const [importedProjectFile, setImportedProjectFile] = useState<File | null>(
+    null
+  );
 
   const importFormRef = useRef<HTMLDivElement>(null);
 
@@ -259,7 +302,10 @@ export default function ProjectsPage() {
   const setAssetSrcs = (assets: any[]) => {
     assets.forEach(async (asset: any) => {
       try {
-        const src = (await getAssetFile(asset.blobSASUrl, asset.mimetype || "")) as string;
+        const src = (await getAssetFile(
+          asset.blobSASUrl,
+          asset.mimetype || ""
+        )) as string;
         setPaginatedAssets((prevItems: any[]) =>
           prevItems.map((item: any) =>
             item.blobID === asset.blobID ? { ...item, src } : item
@@ -269,7 +315,9 @@ export default function ProjectsPage() {
         console.error(`Error loading asset ${asset.blobID}:`, error);
       }
     });
-  }
+  };
+
+  const [isLoading, setIsLoading] = useState(false);
 
   // Global Tags
   const fetchTags = async () => {
@@ -337,8 +385,7 @@ export default function ProjectsPage() {
             userNames: project.admins
               .concat(project.regularUsers)
               .map((user: User) => user.name),
-            allUsers: project.admins
-              .concat(project.regularUsers)
+            allUsers: project.admins.concat(project.regularUsers),
           }) as ProjectCardProps
       );
     } catch (error) {
@@ -421,7 +468,10 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          p.allUsers?.some(
+            (projectUser: { userID: number }) =>
+              projectUser.userID === user?.userID
+          )
         )
       );
     } catch (error) {
@@ -436,7 +486,10 @@ export default function ProjectsPage() {
       setAllProjects(projects);
       setMyProjects(
         projects.filter((p: ProjectCardProps) =>
-          p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+          p.allUsers?.some(
+            (projectUser: { userID: number }) =>
+              projectUser.userID === user?.userID
+          )
         )
       );
       setCurrentAssets([]);
@@ -444,7 +497,9 @@ export default function ProjectsPage() {
       return;
     }
 
-    const response = await fetchWithAuth(`/search?query=${encodeURIComponent(query)}`);
+    const response = await fetchWithAuth(
+      `/search?query=${encodeURIComponent(query)}`
+    );
 
     if (!response.ok) {
       throw new Error("Failed to do search");
@@ -461,7 +516,10 @@ export default function ProjectsPage() {
     setAllProjects(filteredProjects);
     setMyProjects(
       filteredProjects.filter((p: ProjectCardProps) =>
-        p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+        p.allUsers?.some(
+          (projectUser: { userID: number }) =>
+            projectUser.userID === user?.userID
+        )
       )
     );
     setCurrentAssets(data.assets);
@@ -491,13 +549,15 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     // Fetch all projects (for filtering "My Projects") AND all users
-    // @ts-ignore
     Promise.all([fetchAllProjects(), fetchUsers()])
       .then(([projects, users]) => {
         setAllProjects(projects);
         setMyProjects(
           projects.filter((p: ProjectCardProps) =>
-            p.allUsers?.some((projectUser: { userID: number }) => projectUser.userID === user?.userID)
+            p.allUsers?.some(
+              (projectUser: { userID: number }) =>
+                projectUser.userID === user?.userID
+            )
           )
         );
         setAllUsers(users as User[]);
@@ -506,8 +566,15 @@ export default function ProjectsPage() {
       })
       .catch((error) => {
         console.error("Error loading initial data:", error);
-      })
+      });
   }, []);
+
+  const otherProjects = allProjects.filter(
+    (project) =>
+      !project.allUsers?.some(
+        (projectUser) => projectUser.userID === user?.userID
+      )
+  );
 
   const onSubmitConfigureTags = (formData: FormDataType) => {
     setPendingConfigureFormData(formData);
@@ -518,10 +585,11 @@ export default function ProjectsPage() {
     setCurrentPage(page);
     const startIndex = (page - 1) * 10;
     const endIndex = startIndex + 10;
-    const assets = currentAssets.slice(startIndex, endIndex)
+
+    const assets = currentAssets.slice(startIndex, endIndex);
     setPaginatedAssets(assets);
-    setAssetSrcs(assets)
-  }
+    setAssetSrcs(assets);
+  };
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
@@ -556,7 +624,7 @@ export default function ProjectsPage() {
 
   const onDrop = (acceptedFiles: File[]) => {
     setImportedProjectFile(acceptedFiles[0]);
-  }
+  };
 
   const onSubmitImport = async () => {
     if (!importedProjectFile) {
@@ -576,7 +644,7 @@ export default function ProjectsPage() {
       const response = await fetchWithAuth("/project/import", {
         method: "POST",
         body: formData as BodyInit,
-        headers: {}
+        headers: {},
       });
 
       if (response.ok) {
@@ -586,7 +654,10 @@ export default function ProjectsPage() {
         doSearch();
       } else {
         console.log("Error uploading file", response.status);
-        toast.error("Failed to import project. Make sure the file's content is valid.");
+
+        toast.error(
+          "Failed to import project. Make sure the file's content is valid."
+        );
       }
     } catch (error) {
       console.error("Error:", error);
@@ -598,26 +669,60 @@ export default function ProjectsPage() {
     onDrop,
     multiple: false,
     accept: {
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": []
-    }
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [],
+    },
   });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (importFormRef.current && !importFormRef.current.contains(event.target as Node)) {
+      if (
+        importFormRef.current &&
+        !importFormRef.current.contains(event.target as Node)
+      ) {
         setImportProjectModalOpen(false);
         setImportedProjectFile(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-      
+
+  const handleSearch = async () => {
+    setIsLoading(true);
+    const startTime = Date.now();
+    try {
+      await doSearch();
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const minDelay = 200;
+      if (elapsed < minDelay) {
+        setTimeout(() => {
+          setIsLoading(false);
+        }, minDelay - elapsed);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!query.trim()) {
+      doSearch(); // This resets to the main screen (all projects)
+    }
+  }, [query]);
+
   return (
     <div className="p-6 min-h-screen">
+      {isLoading && (
+        <div className="flex min-h-screen items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      )}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between mb-6 space-y-4 md:space-y-0">
         <div className="w-full md:w-1/3 flex items-center">
           <input
@@ -630,13 +735,14 @@ export default function ProjectsPage() {
           />
           {query.trim() !== "" && (
             <button
-              onClick={doSearch}
-              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600"
+              onClick={handleSearch}
+              className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
             >
-              Search
+              {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
             </button>
           )}
         </div>
+
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
             <button
@@ -706,11 +812,11 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          {allProjects.length > 0 && (
+          {otherProjects && otherProjects.length > 0 && (
             <div className="mt-8">
-              <h1 className="text-2xl font-semibold mb-4">All Projects</h1>
+              <h1 className="text-2xl font-semibold mb-4">Other Projects</h1>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {allProjects.map((project) => (
+                {otherProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -739,7 +845,11 @@ export default function ProjectsPage() {
           )}
           {currentAssets && currentAssets.length > 0 && (
             <>
-              <Items currentItems={paginatedAssets} user={user} openPreview={openPreview}/>
+              <Items
+                currentItems={paginatedAssets}
+                user={user}
+                openPreview={openPreview}
+              />
               <Pagination
                 count={Math.ceil(currentAssets.length / 10)}
                 page={currentPage}
@@ -767,10 +877,36 @@ export default function ProjectsPage() {
       {newProjectModalOpen && (
         <GenericForm
           title="Create New Project"
-          fields={formFields}
+          fields={newProjectFormFields}
           onSubmit={handleAddProject}
           onCancel={() => setNewProjectModalOpen(false)}
           submitButtonText="Create Project"
+          extraButtonText="AI Description"
+          extraButtonCallback={async (currentFormData, updateField) => {
+            const { name, location, tags } = currentFormData;
+            const prompt = `Given the following project details:
+            - Project Name: ${name}
+            - Project Location: ${location}
+            - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
+            Generate a project description aimed for Projects in a Digital Asset Management system for Field Engineers. Note that tags are metadata 
+            that may be associated with assets in the project. Use tags to come up with descriptive description. Do not include any headings, titles, or extraneous text—only provide a clean description. `;
+            try {
+              const response = await fetch("/api/gemini", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt }),
+              });
+              const data = await response.json();
+              const generatedDescription = data.description;
+              if (generatedDescription) {
+                // Update the description field with the AI-generated text
+                updateField("description", generatedDescription);
+              }
+            } catch (error) {
+              console.error("Error generating AI description:", error);
+            }
+          }}
+          showExtraHelperText={true}
         />
       )}
 
@@ -835,7 +971,7 @@ export default function ProjectsPage() {
               isMulti: true,
               required: false,
               value: configuredTags,
-              placeholder: "type and press <enter> to add new tag>"
+              placeholder: "type and press <enter> to add new tag>",
             },
           ]}
           onSubmit={onSubmitConfigureTags}
