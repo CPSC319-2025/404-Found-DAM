@@ -99,7 +99,7 @@ fi
 
 
 echo "Setup ef core tool and update database using the commented out commands commands in setup.sh "
-# dotnet tool install --global dotnet-ef
+dotnet tool install --global dotnet-ef
 # copy paste the exporting path to bash_profile at the buttom of dotnet tool install --global dotnet-ef
 dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
 
