@@ -15,7 +15,7 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
 export const getAssetFile = async (
   url: string,
   mimetype: string,
-  shouldDecompress: boolean = true
+  shouldDecompress: boolean = false
 ): Promise<string> => {
   const response = await fetch(url);
 
