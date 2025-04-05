@@ -20,6 +20,7 @@ import { getAssetFile } from "@/app/utils/api/getAssetFile";
 import { toast } from "react-toastify";
 import { downloadAsset } from "@/app/utils/api/getAssetFile";
 import { useUser } from "@/app/context/UserContext";
+import PopupModal from "@/app/components/ConfirmModal";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -35,16 +36,15 @@ interface PaginatedAssets {
 
 interface ItemsProps {
   currentItems?: any;
-  project: any;
-  user: any;
   openPreview: any;
+  downloadAssetConfirm: any,
 }
 
 interface AssetWithSrc extends Asset {
   src?: string;
 }
 
-function Items({ currentItems, project, user, openPreview }: ItemsProps) {
+function Items({ currentItems, openPreview, downloadAssetConfirm }: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -126,7 +126,7 @@ function Items({ currentItems, project, user, openPreview }: ItemsProps) {
                   <div className="flex gap-3">
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => downloadAssetWrapper(asset, project, user)}
+                      onClick={() => downloadAssetConfirm(asset)}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
@@ -173,6 +173,35 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const [projectName, setProjectName] = useState<string>("");
   const [projectDescription, setProjectDescription] = useState<string>("");
+
+  const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
+  const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
+
+  const downloadAssetConfirm = async (asset: any) => {
+    setRequestedDownloadAsset(asset);
+    if (asset.mimetype.includes('image')) {
+      setConfirmDownloadPopup(true);
+    } else {
+      downloadAssetWrapper(false);
+    }
+  };
+
+  const downloadAssetWrapper = async (addWatermark: boolean) => {
+    setConfirmDownloadPopup(false);
+    try {
+      toast.success("Starting download...");
+      await downloadAsset(
+        requestedDownloadAsset,
+        { projectName, projectID },
+        user,
+        addWatermark
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRequestedDownloadAsset(null);
+    }
+  };
 
   function openPreview(asset: any) {
     if (asset.src) {
@@ -383,7 +412,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           />
         </div>
       </div>
-      <Items currentItems={currentItems} project={{ projectName, projectID }} user={user} openPreview={openPreview} />
+      <Items currentItems={currentItems} openPreview={openPreview} downloadAssetConfirm={downloadAssetConfirm} />
       <Pagination
         count={totalPages}
         page={currentPage}
@@ -392,6 +421,19 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         color="standard"
         className="border border-gray-300"
       />
+
+      {confirmDownloadPopup && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Would you like to add a watermark to the image?"
+            isOpen={true}
+            onClose={() => downloadAssetWrapper(false)}
+            onConfirm={() => downloadAssetWrapper(true)}
+            messages={[]}
+          />
+        </div>
+      )}
+
       {isPreviewAsset && previewUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="relative bg-white p-4 rounded shadow-lg max-w-3xl max-h-[80vh] overflow-auto">

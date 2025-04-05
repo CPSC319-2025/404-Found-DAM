@@ -90,12 +90,12 @@ const newProjectFormFields: FormFieldType[] = [
 
 function Items({
   currentItems,
-  user,
   openPreview,
+  downloadAssetConfirm,
 }: {
   currentItems?: any[];
-  user: any;
   openPreview: any;
+  downloadAssetConfirm: any,
 }) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
@@ -188,7 +188,7 @@ function Items({
                   <div className="flex gap-3">
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => downloadAssetWrapper(asset, user)}
+                      onClick={() => downloadAssetConfirm(asset)}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
                         <ArrowDownTrayIcon className="h-5 w-5" />
@@ -205,19 +205,6 @@ function Items({
   );
 }
 
-const downloadAssetWrapper = async (asset: any, user: any) => {
-  try {
-    toast.success("Starting download...");
-    await downloadAsset(
-      asset,
-      { projectID: asset.projectID, projectName: asset.projectName },
-      user
-    );
-  } catch (e) {
-    toast.error((e as Error).message);
-  }
-};
-
 export default function ProjectsPage() {
   const { user } = useUser();
   const [query, setQuery] = useState<string>("");
@@ -228,7 +215,6 @@ export default function ProjectsPage() {
 
   const generateAIDescription = async (formData: Record<string, any>) => {
     const { name, location, tags } = formData;
-    // Create a prompt using the project name, location, and tags
     const prompt = `Given the following project details:
   - Project Name: ${name}
   - Project Location: ${location}
@@ -245,6 +231,35 @@ export default function ProjectsPage() {
       setAIDescription(data.description);
     } catch (error) {
       console.error("Error generating AI description:", error);
+    }
+  };
+
+  const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
+  const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
+
+  const downloadAssetConfirm = async (asset: any) => {
+    setRequestedDownloadAsset(asset);
+    if (asset.mimetype.includes('image')) {
+      setConfirmDownloadPopup(true);
+    } else {
+      downloadAssetWrapper(false);
+    }
+  };
+
+  const downloadAssetWrapper = async (addWatermark: boolean) => {
+    setConfirmDownloadPopup(false);
+    try {
+      toast.success("Starting download...");
+      await downloadAsset(
+        requestedDownloadAsset,
+        { projectID: requestedDownloadAsset.projectID, projectName: requestedDownloadAsset.projectName },
+        user,
+        addWatermark
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRequestedDownloadAsset(null);
     }
   };
 
@@ -653,7 +668,7 @@ export default function ProjectsPage() {
         toast.success("Imported project successfully.");
         doSearch();
       } else {
-        console.log("Error uploading file", response.status);
+        console.error("Error uploading file", response.status);
 
         toast.error(
           "Failed to import project. Make sure the file's content is valid."
@@ -847,8 +862,8 @@ export default function ProjectsPage() {
             <>
               <Items
                 currentItems={paginatedAssets}
-                user={user}
                 openPreview={openPreview}
+                downloadAssetConfirm={downloadAssetConfirm}
               />
               <Pagination
                 count={Math.ceil(currentAssets.length / 10)}
@@ -1001,6 +1016,18 @@ export default function ProjectsPage() {
             messages={[
               "Are you sure you would like to make these changes? This may cause unexpected project and asset changes across the system.",
             ]}
+          />
+        </div>
+      )}
+
+      {confirmDownloadPopup && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Would you like to add a watermark to the image?"
+            isOpen={true}
+            onClose={() => downloadAssetWrapper(false)}
+            onConfirm={() => downloadAssetWrapper(true)}
+            messages={[]}
           />
         </div>
       )}
