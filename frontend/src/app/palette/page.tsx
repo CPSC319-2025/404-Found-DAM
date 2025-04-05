@@ -316,20 +316,31 @@ export default function PalettePage() {
   useEffect(() => {
     // If this is initial mount, check if we're returning from editing
     if (didFetchRef.current === false) {
-      // Check if we're returning from editing metadata
-      const savedPage = localStorage.getItem('palettePage');
-      if (savedPage) {
-        const page = parseInt(savedPage);
-        setCurrentPage(page);
+      // Check if we need to refresh to page 1 after upload
+      const refreshPage = localStorage.getItem('paletteRefreshPage');
+      if (refreshPage === '1') {
+        // Clear the refresh flag
+        localStorage.removeItem('paletteRefreshPage');
         
-        // Clear the saved page now that we've used it
-        localStorage.removeItem('palettePage');
-        
-        // Load assets for the saved page
-        loadAssets(page);
+        // Set to page 1 and load assets
+        setCurrentPage(1);
+        loadAssets(1);
       } else {
-        // Just load the first page
-        loadAssets(currentPage);
+        // Check if we're returning from editing metadata
+        const savedPage = localStorage.getItem('palettePage');
+        if (savedPage) {
+          const page = parseInt(savedPage);
+          setCurrentPage(page);
+          
+          // Clear the saved page now that we've used it
+          localStorage.removeItem('palettePage');
+          
+          // Load assets for the saved page
+          loadAssets(page);
+        } else {
+          // Just load the first page
+          loadAssets(currentPage);
+        }
       }
       
       didFetchRef.current = true;
@@ -415,6 +426,12 @@ export default function PalettePage() {
 
   // Delete all selected files
   const deleteAllSelected = useCallback(() => {
+    // Show loading state immediately
+    setIsLoading(true);
+    
+    // Show notification
+    setUploadStatus(`Deleting ${selectedBlobIds.length} assets...`);
+    
     // Get the files that will be deleted from the current page
     const filesToDelete = files.filter(file => 
       file.blobId && selectedBlobIds.includes(file.blobId)
@@ -424,53 +441,138 @@ export default function PalettePage() {
     const currentPageBlobIdsToDelete = filesToDelete
       .map(file => file.blobId)
       .filter((id): id is string => !!id);
+    
+    // Get blobIds that are selected but not on the current page
+    const otherPageBlobIdsToDelete = selectedBlobIds.filter(
+      id => !currentPageBlobIdsToDelete.includes(id)
+    );
+    
+    // Track deletion completion
+    let allDeletionsComplete = false;
+    
+    // Function to finalize deletion and refresh the view
+    const finalizeDelete = () => {
+      if (allDeletionsComplete) return;
+      allDeletionsComplete = true;
       
-    // Call the API to delete each file
-    filesToDelete.forEach(fileToRemove => {
+      // Clear delete confirmation state
+      setShowDeleteConfirm(false);
+      setFileToDeleteIndex(null);
+      setFileToDeleteBlobId(null);
+      
+      // Clear selections
+      setSelectedBlobIds([]);
+      setSelectedIndices([]);
+      localStorage.removeItem('paletteSelections');
+      
+      // Clear status after all operations complete
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+        setIsLoading(false);
+        
+        // After deleting multiple files, we need to recalculate total pages
+        const remainingFiles = totalCount - selectedBlobIds.length;
+        const newTotalPages = Math.max(1, Math.ceil(remainingFiles / pageSize));
+        
+        // Decide which page to show after deletion
+        let targetPage = currentPage;
+        
+        // If we've deleted all files on current page
+        if (files.length === filesToDelete.length) {
+          if (remainingFiles === 0) {
+            // If no files left at all, go to page 1
+            targetPage = 1;
+          } else if (currentPage > newTotalPages) {
+            // If current page is now beyond total pages, go to last available page
+            targetPage = newTotalPages;
+          } else if (currentPage > 1) {
+            // If not on first page and current page still valid, stay there
+            // otherwise go to previous page
+            targetPage = currentPage;
+          }
+        }
+        
+        // Update total pages state
+        setTotalPages(newTotalPages);
+        setTotalCount(remainingFiles);
+        
+        // Reload the appropriate page
+        loadAssets(targetPage);
+      }, 500);
+    };
+      
+    // Call the API to delete each file on the current page
+    const currentPagePromises = filesToDelete.map(fileToRemove => {
       if (fileToRemove.blobId) {
-        removeFileApi(fileToRemove);
+        return removeFileApi(fileToRemove);
       }
+      return Promise.resolve();
     });
     
-    // Remove the files from state
+    // Process files on other pages
+    if (otherPageBlobIdsToDelete.length > 0) {
+      // Process in batches to avoid overwhelming the API
+      const processBatch = async (blobIds: string[], index = 0) => {
+        if (index >= blobIds.length) {
+          // When other page deletions are complete, check if all deletions are done
+          Promise.all(currentPagePromises)
+            .then(() => {
+              finalizeDelete();
+            })
+            .catch(error => {
+              console.error("Error during current page deletion:", error);
+              finalizeDelete();
+            });
+          return;
+        }
+        
+        try {
+          const blobId = blobIds[index];
+          
+          // Create a minimal file object for deletion
+          const dummyFile = new File([], "dummy");
+          const fileToRemove = {
+            file: dummyFile,
+            blobId,
+            fileSize: "0 B",
+            description: "",
+            location: "",
+            tags: [],
+            tagIds: []
+          };
+          
+          await removeFileApi(fileToRemove);
+          
+          // Process next batch after a small delay
+          setTimeout(() => processBatch(blobIds, index + 1), 10);
+        } catch (error) {
+          console.error(`Error deleting file ${blobIds[index]}:`, error);
+          // Continue with next batch even if there's an error
+          setTimeout(() => processBatch(blobIds, index + 1), 10);
+        }
+      };
+      
+      // Start processing batches
+      processBatch(otherPageBlobIdsToDelete);
+    } else {
+      // If only current page files to delete, wait for them to complete
+      Promise.all(currentPagePromises)
+        .then(() => {
+          finalizeDelete();
+        })
+        .catch(error => {
+          console.error("Error during deletion:", error);
+          finalizeDelete();
+        });
+    }
+    
+    // Remove the files from state immediately for UI feedback
     setFiles(prev => prev.filter(file => 
       !file.blobId || !selectedBlobIds.includes(file.blobId)
     ));
     
-    // Update selectedBlobIds - remove the blobIds we just deleted
-    const updatedSelections = selectedBlobIds.filter(
-      id => !currentPageBlobIdsToDelete.includes(id)
-    );
-    
-    // Update the selection state
-    setSelectedBlobIds(updatedSelections);
-    setSelectedIndices([]);
-    
-    // Update localStorage
-    localStorage.setItem('paletteSelections', JSON.stringify(updatedSelections));
-    
-    // Clear delete confirmation state
-    setShowDeleteConfirm(false);
-    setFileToDeleteIndex(null);
-    setFileToDeleteBlobId(null);
-    
-    // Handle pagination after bulk delete - reduced timeout from 100ms to 50ms
-    setTimeout(() => {
-      // If we've deleted all files on current page
-      if (files.length === filesToDelete.length) {
-        if (currentPage > 1) {
-          // If not on first page, go to previous page
-          handlePageChange(currentPage - 1);
-        } else {
-          // If on first page, reload it
-          loadAssets(1);
-        }
-      } else {
-        // Just reload current page
-        loadAssets(currentPage);
-      }
-    }, 50);
-  }, [selectedBlobIds, files, setFiles, currentPage, handlePageChange, loadAssets]);
+  }, [selectedBlobIds, files, setFiles, currentPage, loadAssets, setIsLoading, setUploadStatus, setUploadProgress]);
 
   // Handle selection change from FileTable
   const handleSelectionChange = useCallback((indices: number[], blobIds: string[]) => {
@@ -677,6 +779,12 @@ export default function PalettePage() {
       return;
     }
 
+    // Show loading state immediately
+    setIsLoading(true);
+    
+    // Show notification
+    setUploadStatus(`Submitting ${validSelections.length} assets...`);
+
     // Get project assignments for all selected blobIds
     const projectAssignments: Record<string, string[]> = {};
     const filesWithoutProject: string[] = [];
@@ -690,11 +798,15 @@ export default function PalettePage() {
       id => !currentPageBlobIds.includes(id)
     );
     
+    // Get blobIds that will be submitted from the current page
+    const currentPageBlobIdsToSubmit = files
+      .filter(file => file.blobId && validSelections.includes(file.blobId))
+      .map(file => file.blobId!)
+      .filter(Boolean);
+    
     // Fetch project info for assets not on current page
     if (missingBlobIds.length > 0) {
       try {
-        setIsLoading(true);
-        
         // Fetch details for missing blobIds
         const promises = missingBlobIds.map(async (blobId) => {
           try {
@@ -721,8 +833,10 @@ export default function PalettePage() {
         });
       } catch (error) {
         console.error("Error fetching project details:", error);
-      } finally {
         setIsLoading(false);
+        setUploadStatus("");
+        alert("Error fetching project details. Please try again.");
+        return;
       }
     }
     
@@ -745,13 +859,12 @@ export default function PalettePage() {
     
     // Check if any selected files don't have a project assigned
     if (filesWithoutProject.length > 0) {
+      setIsLoading(false);
+      setUploadStatus("");
       alert(`Warning: ${filesWithoutProject.length} selected file(s) don't have a project assigned. Please select a project for all files before submitting.`);
       return;
     }
 
-    // Show loading state
-    setIsLoading(true);
-    
     try {
       let successCount = 0;
       
@@ -789,17 +902,53 @@ export default function PalettePage() {
         )
       ));
       
-      if (successCount > 0) {
-        alert(`Successfully submitted ${successCount} asset(s).`);
+      // Calculate remaining files and pages after submission
+      const remainingFiles = totalCount - successCount;
+      const newTotalPages = Math.max(1, Math.ceil(remainingFiles / pageSize));
+      
+      // Decide which page to show after submission
+      let targetPage = currentPage;
+      
+      // If we've submitted all files on current page
+      if (currentPageBlobIdsToSubmit.length === files.length) {
+        if (remainingFiles === 0) {
+          // If no files left at all, go to page 1
+          targetPage = 1;
+        } else if (currentPage > newTotalPages) {
+          // If current page is now beyond total pages, go to last available page
+          targetPage = newTotalPages;
+        } else if (currentPage > 1) {
+          // If not on first page and current page still valid, stay there
+          targetPage = currentPage;
+        }
       }
       
-      // Reload the current page to ensure consistent pagination
-      await loadAssets(currentPage);
+      // Update pagination state
+      setTotalPages(newTotalPages);
+      setTotalCount(remainingFiles);
+      
+      if (successCount > 0) {
+        setUploadStatus(`Successfully submitted ${successCount} asset(s).`);
+        
+        // Clear status after a delay
+        setTimeout(() => {
+          setUploadStatus("");
+          setUploadProgress(0);
+          setIsLoading(false);
+          
+          // Reload the appropriate page
+          loadAssets(targetPage);
+        }, 1500);
+      } else {
+        setIsLoading(false);
+        setUploadStatus("");
+        alert("No assets were submitted. Please try again.");
+      }
     } catch (error) {
       console.error("Error submitting assets:", error);
-      alert("There was an error submitting assets. Please try again.");
-    } finally {
       setIsLoading(false);
+      setUploadStatus("");
+      alert("There was an error submitting assets. Please try again.");
     }
   }, [
     files, 
@@ -807,9 +956,13 @@ export default function PalettePage() {
     setFiles, 
     autoNamingEnabled, 
     loadAssets, 
-    currentPage, 
+    currentPage,
+    pageSize,
+    totalCount,
     fetchBlobDetails, 
-    verifySelectionIntegrity
+    verifySelectionIntegrity,
+    setUploadStatus,
+    setUploadProgress
   ]);
 
   // Toggle auto naming feature

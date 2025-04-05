@@ -52,6 +52,7 @@ export default function UploadModal({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
+  const [uploadedCount, setUploadedCount] = useState(0);
   
   // Auto-populate description and location when project is selected
   useEffect(() => {
@@ -223,7 +224,7 @@ export default function UploadModal({
           
           return updated;
         });
-      }, 75); // Slower timer to reduce race conditions
+      }, 20); // Slower timer to reduce race conditions
       
       return () => clearInterval(timer);
     }
@@ -282,6 +283,7 @@ export default function UploadModal({
     
     setIsUploading(true);
     const uploadedBlobIds: string[] = [];
+    let successCount = 0;
     
     for (const file of uploadedFiles) {
       // Create file metadata
@@ -311,35 +313,10 @@ export default function UploadModal({
             // manually add the file with all metadata at once
             fileMeta.blobId = blobId;
             
-            // Process dimensions if needed
-            if (file.type.startsWith("image/")) {
-              return new Promise<void>((resolve) => {
-                const img = new Image();
-                img.onload = () => {
-                  fileMeta.width = img.width;
-                  fileMeta.height = img.height;
-                  setFiles(prev => [...prev, fileMeta]);
-                  resolve();
-                };
-                img.src = URL.createObjectURL(file);
-              });
-            } else if (file.type.startsWith("video/")) {
-              return new Promise<void>((resolve) => {
-                const video = document.createElement("video");
-                video.preload = "metadata";
-                video.onloadedmetadata = () => {
-                  fileMeta.width = video.videoWidth;
-                  fileMeta.height = video.videoHeight;
-                  fileMeta.duration = Math.floor(video.duration);
-                  setFiles(prev => [...prev, fileMeta]);
-                  resolve();
-                };
-                video.src = URL.createObjectURL(file);
-              });
-            } else {
-              // For other file types, just add to files state
-              setFiles(prev => [...prev, fileMeta]);
-            }
+            // Don't add to files state directly - we'll reload the page instead
+            // to respect pagination
+            successCount++;
+            setUploadedCount(prev => prev + 1);
             
             // Fetch and update blob details
             await fetchAndUpdateBlobDetails(blobId);
@@ -389,15 +366,43 @@ export default function UploadModal({
       }
     }
     
-    setIsUploading(false);
-    closeModal();
-    setUploadedFiles([]);
-    setCurrentStep(1);
-    setProcessingFiles([]);
-    setProcessedFiles([]);
-    setSelectedTags([]);
-    setSelectedTagIds([]);
-  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, setFiles, closeModal]);
+    // Store a flag indicating that we need to refresh and go to page 1
+    if (successCount > 0) {
+      // Set a flag in localStorage so the main page knows to reload page 1
+      localStorage.setItem('paletteRefreshPage', '1');
+      
+      // Use a small delay to avoid race conditions
+      setTimeout(() => {
+        setIsUploading(false);
+        closeModal();
+        
+        // Clear state
+        setUploadedFiles([]);
+        setCurrentStep(1);
+        setProcessingFiles([]);
+        setProcessedFiles([]);
+        setSelectedTags([]);
+        setSelectedTagIds([]);
+        setUploadedCount(0);
+        
+        // Display a temporary message to user
+        alert(`Successfully uploaded ${successCount} file(s). Refreshing to display new files.`);
+        
+        // Force a page refresh to pick up the new files with correct pagination
+        window.location.reload();
+      }, 500);
+    } else {
+      setIsUploading(false);
+      closeModal();
+      setUploadedFiles([]);
+      setCurrentStep(1);
+      setProcessingFiles([]);
+      setProcessedFiles([]);
+      setSelectedTags([]);
+      setSelectedTagIds([]);
+      setUploadedCount(0);
+    }
+  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, closeModal]);
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
