@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { loadFileContent } from "./Apis/fetchPaletteAssets";
 
 interface Project {
   projectID: number;
@@ -22,7 +23,283 @@ type FileTableProps = {
   // Row selection from parent
   selectedIndices: number[];
   setSelectedIndices: React.Dispatch<React.SetStateAction<number[]>>;
+  
+  // blobId-based selection
+  selectedBlobIds: string[];
+  onSelectionChange: (indices: number[], blobIds: string[]) => void;
+  
   projects: Project[];
+  
+  // Pagination props
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  
+  // Edit metadata
+  handleEditMetadata: (index: number) => void;
+};
+
+// LazyImage component - loads image when visible
+const LazyImage = ({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) => {
+  const [loaded, setLoaded] = useState(!!fileMeta.isLoaded);
+  const [imgUrl, setImgUrl] = useState<string | null>(fileMeta.url || null);
+  const { setFiles } = useFileContext();
+  
+  const loadImage = useCallback(async () => {
+    // Skip loading if already loaded or has URL
+    if (loaded || imgUrl) return;
+    
+    try {
+      const loadedFile = await loadFileContent(fileMeta);
+      if (loadedFile) {
+        setImgUrl(loadedFile.url || null);
+        setLoaded(true);
+        
+        // Update the file in context
+        setFiles(prevFiles => 
+          prevFiles.map(f => f.blobId === fileMeta.blobId ? loadedFile : f)
+        );
+      }
+    } catch (error) {
+      console.error("Error loading image:", error);
+    }
+  }, [fileMeta, loaded, imgUrl, setFiles]);
+  
+  // Load on first render if needed
+  useEffect(() => {
+    // If file already has a URL or is marked as loaded, use it immediately
+    if (fileMeta.url && !imgUrl) {
+      setImgUrl(fileMeta.url);
+      setLoaded(true);
+      return;
+    }
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadImage();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.05, rootMargin: "50px" } // Lower threshold and add root margin for earlier loading
+    );
+    
+    // Create a ref element
+    const div = document.getElementById(`img-${fileMeta.blobId}`);
+    if (div) {
+      observer.observe(div);
+    }
+    
+    return () => observer.disconnect();
+  }, [fileMeta.blobId, fileMeta.url, imgUrl, loadImage]);
+  
+  return (
+    <div id={`img-${fileMeta.blobId}`} className="h-20 w-20 relative">
+      {!loaded && !imgUrl && (
+        <div className="h-full w-full flex items-center justify-center bg-gray-100 animate-pulse" style={{ animationDuration: '0.7s' }}>
+          <span className="text-gray-400 text-xs">Loading</span>
+        </div>
+      )}
+      {imgUrl && (
+        <img
+          src={imgUrl}
+          alt="Preview"
+          className="object-cover rounded w-full h-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(imgUrl, fileMeta.file.type);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// LazyVideo component - loads video when visible
+const LazyVideo = ({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) => {
+  const [loaded, setLoaded] = useState(!!fileMeta.isLoaded);
+  const [videoUrl, setVideoUrl] = useState<string | null>(fileMeta.url || null);
+  const { setFiles } = useFileContext();
+  
+  const loadVideo = useCallback(async () => {
+    // Skip loading if already loaded or has URL
+    if (loaded || videoUrl) return;
+    
+    try {
+      const loadedFile = await loadFileContent(fileMeta);
+      if (loadedFile) {
+        setVideoUrl(loadedFile.url || null);
+        setLoaded(true);
+        
+        // Update the file in context
+        setFiles(prevFiles => 
+          prevFiles.map(f => f.blobId === fileMeta.blobId ? loadedFile : f)
+        );
+      }
+    } catch (error) {
+      console.error("Error loading video:", error);
+    }
+  }, [fileMeta, loaded, videoUrl, setFiles]);
+  
+  // Load on first render if needed
+  useEffect(() => {
+    // If file already has a URL or is marked as loaded, use it immediately
+    if (fileMeta.url && !videoUrl) {
+      setVideoUrl(fileMeta.url);
+      setLoaded(true);
+      return;
+    }
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadVideo();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.05, rootMargin: "50px" } // Lower threshold and add root margin for earlier loading
+    );
+    
+    // Create a ref element
+    const div = document.getElementById(`video-${fileMeta.blobId}`);
+    if (div) {
+      observer.observe(div);
+    }
+    
+    return () => observer.disconnect();
+  }, [fileMeta.blobId, fileMeta.url, videoUrl, loadVideo]);
+  
+  return (
+    <div id={`video-${fileMeta.blobId}`} className="h-20 w-20 relative">
+      {!loaded && !videoUrl && (
+        <div className="h-full w-full flex items-center justify-center bg-gray-100 animate-pulse" style={{ animationDuration: '0.7s' }}>
+          <span className="text-gray-400 text-xs">Loading</span>
+        </div>
+      )}
+      {videoUrl && (
+        <video
+          src={videoUrl}
+          className="object-cover rounded w-full h-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(videoUrl, fileMeta.file.type);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Pagination component
+const Pagination = ({ 
+  currentPage, 
+  totalPages,
+  onPageChange 
+}: { 
+  currentPage: number, 
+  totalPages: number,
+  onPageChange: (page: number) => void 
+}) => {
+  const pages = [];
+  
+  // Logic to display max 5 page numbers with current page in the middle if possible
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, startPage + 4);
+  
+  // Adjust startPage if we're near the end
+  if (endPage - startPage < 4) {
+    startPage = Math.max(1, endPage - 4);
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  
+  // Don't show pagination if there's only one page
+  if (totalPages <= 1) {
+    return null;
+  }
+  
+  return (
+    <div className="flex flex-col items-center my-6">
+      <div className="text-sm text-gray-500 mb-2">
+        Page {currentPage} of {totalPages}
+      </div>
+      <div className="flex border border-gray-300 rounded-md overflow-hidden">
+        <button 
+          className="px-3 py-1 border-r border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+        >
+          «
+        </button>
+        <button 
+          className="px-3 py-1 border-r border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        
+        {startPage > 1 && (
+          <>
+            <button 
+              className="px-3 py-1 border-r border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              onClick={() => onPageChange(1)}
+            >
+              1
+            </button>
+            {startPage > 2 && (
+              <span className="px-3 py-1 border-r border-gray-300 bg-white text-gray-500">...</span>
+            )}
+          </>
+        )}
+        
+        {pages.map(page => (
+          <button 
+            key={page} 
+            className={`px-3 py-1 border-r border-gray-300 ${
+              page === currentPage 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+            }`}
+            onClick={() => onPageChange(page)}
+          >
+            {page}
+          </button>
+        ))}
+        
+        {endPage < totalPages && (
+          <>
+            {endPage < totalPages - 1 && (
+              <span className="px-3 py-1 border-r border-gray-300 bg-white text-gray-500">...</span>
+            )}
+            <button 
+              className="px-3 py-1 border-r border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              onClick={() => onPageChange(totalPages)}
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+        
+        <button 
+          className="px-3 py-1 border-r border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+        <button 
+          className="px-3 py-1 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+        >
+          »
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default function FileTable({
@@ -30,7 +307,13 @@ export default function FileTable({
   removeFile,
   selectedIndices,
   setSelectedIndices,
+  selectedBlobIds,
+  onSelectionChange,
   projects,
+  currentPage,
+  totalPages,
+  onPageChange,
+  handleEditMetadata,
 }: FileTableProps) {
   const router = useRouter();
   const { setFiles } = useFileContext();
@@ -41,15 +324,67 @@ export default function FileTable({
 
   function handleSelectAll(e: ChangeEvent<HTMLInputElement>) {
     if (e.target.checked) {
-      setSelectedIndices(files.map((_, idx) => idx));
+      // Get all blobIds from the current page
+      const allBlobIds = files
+        .map(file => file.blobId)
+        .filter((blobId): blobId is string => !!blobId);
+      
+      // Get all indices from the current page
+      const allIndices = files.map((_, idx) => idx);
+      
+      // Combine with previously selected blobIds from other pages
+      const combinedBlobIds = new Set([...selectedBlobIds, ...allBlobIds]);
+      const newBlobIds = Array.from(combinedBlobIds);
+      
+      console.log('Selecting all items, new selection:', newBlobIds);
+      onSelectionChange(allIndices, newBlobIds);
+      
+      // Force persist to localStorage 
+      localStorage.setItem('paletteSelections', JSON.stringify(newBlobIds));
     } else {
-      setSelectedIndices([]);
+      // Get all blobIds from the current page
+      const currentPageBlobIds = files
+        .map(file => file.blobId)
+        .filter((blobId): blobId is string => !!blobId);
+      
+      // Remove current page blobIds from selection, keep selections from other pages
+      const newBlobIds = selectedBlobIds.filter(
+        blobId => !currentPageBlobIds.includes(blobId)
+      );
+      
+      console.log('Deselecting current page, new selection:', newBlobIds);
+      onSelectionChange([], newBlobIds);
+      
+      // Force persist to localStorage
+      localStorage.setItem('paletteSelections', JSON.stringify(newBlobIds));
     }
   }
+
   function handleSelectRow(index: number) {
-    setSelectedIndices((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+    const file = files[index];
+    const blobId = file.blobId;
+    
+    if (!blobId) return; // Can't select a file without a blobId
+    
+    let newIndices: number[];
+    let newBlobIds: string[];
+    
+    if (selectedBlobIds.includes(blobId)) {
+      // Deselect the file
+      newIndices = selectedIndices.filter(i => i !== index);
+      newBlobIds = selectedBlobIds.filter(id => id !== blobId);
+      console.log('Deselecting item:', blobId);
+    } else {
+      // Select the file
+      newIndices = [...selectedIndices, index];
+      newBlobIds = [...selectedBlobIds, blobId];
+      console.log('Selecting item:', blobId);
+    }
+    
+    onSelectionChange(newIndices, newBlobIds);
+    
+    // Force persist to localStorage
+    localStorage.setItem('paletteSelections', JSON.stringify(newBlobIds));
   }
 
   function handleRemoveTag(fileIndex: number, tagIndex: number) {
@@ -252,22 +587,6 @@ export default function FileTable({
     }
   }
 
-  // ----- Edit Metadata -----
-  function handleEditMetadata(index: number) {
-    const fileMeta = files[index];
-    
-    // Check if project is selected
-    if (!fileMeta.project) {
-      alert("Please select a project before editing metadata.");
-      return;
-    }
-    
-    // Navigate to /palette/editmetadata?file=<filename>
-    router.push(
-      `/palette/editmetadata?file=${encodeURIComponent(fileMeta.file.name)}`
-    );
-  }
-
   // ----- Modal Preview Logic -----
   function openPreview(url: string, fileType: string) {
     setPreviewUrl(url);
@@ -290,7 +609,10 @@ export default function FileTable({
                 <input
                   type="checkbox"
                   checked={
-                    selectedIndices.length === files.length && files.length > 0
+                    files.length > 0 && 
+                    files.every(file => 
+                      file.blobId && selectedBlobIds.includes(file.blobId)
+                    )
                   }
                   onChange={handleSelectAll}
                 />
@@ -328,30 +650,23 @@ export default function FileTable({
         <tbody className="bg-white divide-y divide-gray-200">
           {files.map((fileMeta, index) => {
             const rawFile = fileMeta.file;
-            const displayName = rawFile.name;
+            const displayName = fileMeta.fileName || rawFile.name;
+            const isSelected = fileMeta.blobId ? selectedBlobIds.includes(fileMeta.blobId) : false;
 
             // detect if image or video
             const isImage = rawFile.type.startsWith("image/");
             const isVideo = rawFile.type.startsWith("video/");
 
-            // create object URL for preview
-            let previewUrlObj: string | null = null;
-            try {
-              previewUrlObj = URL.createObjectURL(rawFile);
-            } catch (error) {
-              console.error("Failed to create object URL:", error);
-            }
-
             return (
               <tr
                 key={index}
-                className="hover:bg-gray-50 cursor-pointer"
+                className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
                 onClick={() => handleSelectRow(index)}
               >
                 <td className="px-6 py-4 text-center">
                   <input
                     type="checkbox"
-                    checked={selectedIndices.includes(index)}
+                    checked={isSelected}
                     onChange={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -361,40 +676,18 @@ export default function FileTable({
                 </td>
 
                 <td className="px-6 py-4">
-                  {isImage && previewUrlObj && (
-                    <div
-                      className="h-20 w-20 relative"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPreview(previewUrlObj!, rawFile.type);
-                      }}
-                    >
-                      <img
-                        src={previewUrlObj}
-                        alt="Preview"
-                        className="object-cover rounded w-full h-full"
-                      />
-                    </div>
+                  {isImage && (
+                    <LazyImage fileMeta={fileMeta} onClick={openPreview} />
                   )}
-                  {isVideo && previewUrlObj && (
-                    <div
-                      className="h-20 w-20 relative"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPreview(previewUrlObj!, rawFile.type);
-                      }}
-                    >
-                      <video
-                        src={previewUrlObj}
-                        className="object-cover rounded w-full h-full"
-                      />
-                    </div>
+                  {isVideo && (
+                    <LazyVideo fileMeta={fileMeta} onClick={openPreview} />
                   )}
                 </td>
 
                 <td className="px-6 py-4">{displayName}</td>
 
-                <td className="px-6 py-4">{rawFile.type}</td>
+                {/* File Type */}
+                <td className="px-6 py-4">{isImage ? "image/webp" : rawFile.type}</td>
 
                 <td className="px-6 py-4">{fileMeta.fileSize}</td>
 
@@ -469,6 +762,13 @@ export default function FileTable({
           })}
         </tbody>
       </table>
+
+      {/* Pagination */}
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+      />
 
       {/* Modal for full preview */}
       {isModalOpen && previewUrl && (

@@ -52,20 +52,24 @@ export function extractBlobId(filename: string): string | undefined {
   return blobIdStr;
 }
 
-// Main function to fetch palette assets
-export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
+// Interface for pagination results
+export interface PaginatedFiles {
+  files: FileMetadata[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// Main function to fetch palette assets with pagination
+export async function fetchPaletteAssets(page: number = 1, pageSize: number = 10): Promise<PaginatedFiles> {
   const formData = new FormData();
   formData.append("UserId", "1"); // Fixed requirement: UserId=1
-  const files: FileMetadata[] = [];
   
   try {
-    // Get the auth token
-    const token = localStorage.getItem("token");
-    
-    // First, get metadata for all files
-    const response = await fetchWithAuth(`palette/assets?decompress=true`, {
+    // First, get metadata for files with pagination parameters (even if server doesn't support them yet)
+    const response = await fetchWithAuth(`palette/assets?decompress=true&page=${page}&pageSize=${pageSize}`, {
       method: "GET"
-    })
+    });
 
     if (!response.ok) {
       throw new Error(`Fetch failed with status ${response.status}`);
@@ -73,72 +77,121 @@ export async function fetchPaletteAssets(): Promise<FileMetadata[]> {
 
     const data = await response.json();
     
+    console.log("API Response:", data);
     console.log("API Response - data.files:", data.files);
-    if (data.files.length > 0) {
+    console.log("API Response - data.blobUris:", data.blobUris);
+    
+    if (data.files && data.files.length > 0) {
       console.log("First file properties:", Object.keys(data.files[0]));
     }
 
     if (!data.files || data.files.length === 0) {
       console.log("No files in palette");
-      return [];
+      return { files: [], totalCount: 0, currentPage: 1, totalPages: 1 };
     }
 
-    const filePromises = data.files.map(async (fileInfo: any) => {
-      // Handle case-insensitive property names
-      console.log("Processing file:", fileInfo);
+    // Make sure data.blobUris exists
+    if (!data.blobUris || data.blobUris.length === 0 || data.blobUris.length !== data.files.length) {
+      console.warn("Missing or mismatched blobUris in API response");
+      return { files: [], totalCount: 0, currentPage: 1, totalPages: 1 };
+    }
+
+    // Get the total count of files
+    const totalCount = data.files.length;
+    
+    // Calculate total pages based on the pageSize
+    const totalPages = Math.ceil(totalCount / pageSize);
+    
+    // Create file metadata for all files first
+    const allFiles: FileMetadata[] = data.files.map((fileInfo: any, index: number) => {
       const blobId = fileInfo.blobId;
       const fileName = fileInfo.fileName;
+      const contentType = fileInfo.contentType || "image/webp";
       
-      if (!blobId) {
-        console.warn("Missing blobId in file metadata:", fileInfo);
-        return null;
-      }
-      
-      // Extract the original filename
-      const originalFilename = extractOriginalFilename(fileName);
-      
-      // Download each file individually with decompression done on the server
-      const fileResponse = await fetchWithAuth(`palette/assets/${blobId}?decompress=true`, {
-        method: "GET",
-      })
-      
-      if (!fileResponse.ok) {
-        console.error(`Failed to fetch file ${blobId}:`, fileResponse.status);
-        return null;
-      }
-      
-      // Get the file content
-      const blob = await fileResponse.blob();
-
-      
-      // Create a File object
-      const file = new File(
-        [blob],
-        originalFilename,
-        { type: getMimeTypeFromFileName(originalFilename) }
+      // Create a placeholder File object
+      const placeholderFile = new File(
+        [new Blob([], { type: contentType })], // Empty blob with correct content type
+        fileName,
+        { type: contentType }
       );
-
-      const fileSize = formatFileSize(file.size);
+      
+      // Create a placeholder file metadata
       const fileMeta: FileMetadata = {
-        file,
-        fileSize,
+        file: placeholderFile,
+        fileSize: fileInfo.fileSize || "Loading...",
+        fileName: fileName,
         description: "",
         location: "",
         tags: [],
         tagIds: [],
-        blobId
+        blobId,
+        blobUri: data.blobUris[index], // Store the blobUri for later loading
+        isLoaded: false // Flag to track if the actual file is loaded
       };
-
+      
       return fileMeta;
     });
-
-    // Wait for all promises to resolve
-    const fetchedFiles = await Promise.all(filePromises);
     
-    // Filter out null values and return
-    return fetchedFiles.filter(file => file !== null) as FileMetadata[];
+    // Apply pagination manually (client-side) since server may not support it
+    const startIdx = (page - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, allFiles.length);
+    const paginatedFiles = allFiles.slice(startIdx, endIdx);
+    
+    console.log(`Showing files ${startIdx+1}-${endIdx} of ${totalCount} (Page ${page} of ${totalPages})`);
+
+    return {
+      files: paginatedFiles,
+      totalCount,
+      currentPage: page,
+      totalPages
+    };
   } catch (err) {
-    console.log("The Palette is empty");
-    return [];
+    console.error("Error fetching palette assets:", err);
+    return { files: [], totalCount: 0, currentPage: 1, totalPages: 1 };
+  }
+}
+
+// Function to load a specific file when needed
+export async function loadFileContent(fileMeta: FileMetadata): Promise<FileMetadata | null> {
+  if (!fileMeta.blobUri || fileMeta.isLoaded) {
+    return fileMeta; // Already loaded or no URI available
+  }
+  
+  try {
+    // Download the file using the blob URI
+    console.log("Fetching from blobUri:", fileMeta.blobUri);
+    const fileResponse = await fetch(fileMeta.blobUri);
+    
+    if (!fileResponse.ok) {
+      console.error(`Failed to fetch file ${fileMeta.blobId}:`, fileResponse.status);
+      return null;
+    }
+    
+    // Get the file content as blob
+    const blob = await fileResponse.blob();
+    
+    // Create a direct object URL from the blob
+    const objectUrl = URL.createObjectURL(blob);
+    
+    // Create a proper File object with the correct content type
+    const file = new File(
+      [blob],
+      fileMeta.fileName || fileMeta.file.name,
+      { type: fileMeta.file.type }
+    );
+
+    const fileSize = (file.size / 1024).toFixed(2) + " KB";
+    
+    // Return updated file metadata
+    return {
+      ...fileMeta,
+      file,
+      fileSize,
+      url: objectUrl,
+      isLoaded: true
+    };
+  } catch (error) {
+    console.error("Error loading file content:", error);
+    return null;
   }
 } 

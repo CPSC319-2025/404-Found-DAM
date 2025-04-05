@@ -6,7 +6,6 @@ using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
 using Core.Entities;
 using System.IO;
-using ZstdSharp;
 
 namespace Core.Services
 {
@@ -94,24 +93,6 @@ namespace Core.Services
 
         public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             return await _paletteRepository.GetAssets(request);
-        }
-
-        public async Task<byte[]> DecompressZstdAsync(byte[] compressedData)
-        {
-            return await Task.Run(() => 
-            {
-                try 
-                {
-                    // Using ZstdSharp for decompression - simplest approach
-                    using var decompressor = new ZstdSharp.Decompressor();
-                    return decompressor.Unwrap(compressedData).ToArray();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error decompressing data: {ex.Message}");
-                    throw;
-                }
-            });
         }
 
         public async Task<List<string>> GetProjectTagsAsync(int projectId) {
@@ -275,7 +256,7 @@ namespace Core.Services
                 {
                     return new AssignProjectTagsResult
                     {
-                        Success = false,
+                        Success = true,
                         BlobId = request.BlobId,
                         Message = $"No tags found for project {request.ProjectId}"
                     };

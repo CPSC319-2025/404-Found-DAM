@@ -9,11 +9,11 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using ZstdSharp;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Core.Entities;
+using System.Text.RegularExpressions;
 
 namespace Core.Services
 {
@@ -24,18 +24,19 @@ namespace Core.Services
         private readonly string _chunksDirectory;
         private readonly string _mergedFilesDirectory;
         private readonly IPaletteRepository _paletteRepository;
+        private readonly IImageService _imageService;
 
-        public FileService(ILogger<FileService> logger, IConfiguration configuration, IPaletteRepository paletteRepository)
+        public FileService(ILogger<FileService> logger, IConfiguration configuration, IPaletteRepository paletteRepository, IImageService imageService)
         {
             _logger = logger;
             _configuration = configuration;
             _paletteRepository = paletteRepository;
+            _imageService = imageService;
             
-            // Get directory paths from configuration or use defaults
-            string baseDirectory = _configuration["FileStorage:BaseDirectory"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FileStorage");
-            Console.WriteLine($"Base directory: {baseDirectory}");
-            _chunksDirectory = Path.Combine(baseDirectory, "chunks");
-            _mergedFilesDirectory = Path.Combine(baseDirectory, "merged_files");
+            // Create paths for temporary file storage
+            string baseDirectory = _configuration["ChunkUpload:BaseDirectory"] ?? Path.Combine(Directory.GetCurrentDirectory(), "ChunkUploads");
+            _chunksDirectory = Path.Combine(baseDirectory, "Chunks");
+            _mergedFilesDirectory = Path.Combine(baseDirectory, "MergedFiles");
             
             // Ensure directories exist
             EnsureDirectoryExists(_chunksDirectory);
@@ -155,15 +156,10 @@ namespace Core.Services
                     }
                 }
                 
-                Console.WriteLine($"File Name:{sanitizedFileName}");
-                Console.WriteLine($"File path:{mergedFilePath}");
-                Console.WriteLine($"User ID:{userId}");
-                
+        
                 // Get MIME type based on file extension
                 string mimeType = GetMimeTypeFromExtension(Path.GetExtension(mergedFilePath));
-                Console.WriteLine($"File MimeType:{mimeType}");
-
-                Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId);
+                Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId, true, _imageService);
 
                 // Delete the merged file from disk
                 File.Delete(mergedFilePath);

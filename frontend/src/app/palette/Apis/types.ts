@@ -1,4 +1,5 @@
 import { User } from "@/app/types";
+import { FileMetadata } from "@/app/context/FileContext";
 /**
  * Interface for project information
  */
@@ -23,6 +24,16 @@ export interface BlobDetails {
   tagIds?: number[];
   description?: string;
   location?: string;
+}
+
+/**
+ * Interface for pagination results
+ */
+export interface PaginatedFiles {
+  files: FileMetadata[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
 }
 
 /**

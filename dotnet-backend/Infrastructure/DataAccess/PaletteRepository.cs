@@ -46,13 +46,8 @@ namespace Infrastructure.DataAccess {
             try 
             {
                 // Process file name first in case of conversion
-                string fileNameWithoutZstExtension = file.FileName;
-                string suffix = ".zst";
-                if (fileNameWithoutZstExtension.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                {
-                    fileNameWithoutZstExtension = fileNameWithoutZstExtension.Substring(0, fileNameWithoutZstExtension.Length - suffix.Length);
-                }
-
+                string fileName = file.FileName;
+                
                 // Check if Asset is an webp image and if conversion is required
                 if (request.AssetMimeType.StartsWith("image") && !request.AssetMimeType.EndsWith("webp") && convertToWebp)
                 {
@@ -63,17 +58,13 @@ namespace Infrastructure.DataAccess {
                             await file.CopyToAsync(ms);
                             compressedData = ms.ToArray();
 
-                            // Decompress for converting to lossy webp
-                            // TODO: guard to only convert images, and skip those that are already in webp
-                            byte[] decompressedBuffer = FileCompressionHelper.Decompress(compressedData);
-                            byte[] webpLossyBuffer = _imageService.toWebpNetVips(decompressedBuffer, false);
-
-                            // Compress the returned buffer
-                            compressedData = FileCompressionHelper.Compress(webpLossyBuffer);
+                            // Convert to webp directly without compression/decompression
+                            byte[] webpLossyBuffer = _imageService.toWebpNetVips(compressedData, false);
+                            compressedData = webpLossyBuffer;
 
                             // Change fileName extension and mimetype
-                            string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileNameWithoutZstExtension);
-                            fileNameWithoutZstExtension = fileNameNoExtension + ".webp";
+                            string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileName);
+                            fileName = fileNameNoExtension + ".webp";
                             string[] mimeTypeParts = request.AssetMimeType.Split('/');
                             if (mimeTypeParts.Length > 0) 
                             {
@@ -101,14 +92,11 @@ namespace Infrastructure.DataAccess {
                     }
                 }
 
-                // string finalExtension = Path.GetExtension(finalName); // example: ".png" or "mp4"
-                // string mimeType = request.Type.ToLower() + "/" + finalExtension;
-               
                 // Create an Asset instance with the file path
                 var asset = new Asset
                 {
                     BlobID = "temp",
-                    FileName = fileNameWithoutZstExtension,
+                    FileName = fileName,
                     MimeType = request.AssetMimeType,
                     ProjectID = null,
                     UserID = request.UserId,
@@ -117,15 +105,9 @@ namespace Infrastructure.DataAccess {
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
 
-                // WHY THROWING ERROR IF FILE SIZE > 2000 KB?
-                // if (compressedData.Length / 1024.0 > 2000)
-                // {
-                //     throw new Exception();
-                // }
-
                 string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
                 asset.BlobID = blobId;
-                    // Add the asset to the database context and save changes
+                // Add the asset to the database context and save changes
                 await _context.Assets.AddAsync(asset);
                 int num = await _context.SaveChangesAsync();
                 return asset;
@@ -472,109 +454,132 @@ namespace Infrastructure.DataAccess {
             return result;
         }
 
-        public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId)  {
-            using var _context = _contextFactory.CreateDbContext();
+        public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId, bool convertToWebp = true, IImageService? imageService = null)  {
             try 
             {
-                // Read file from disk
-                byte[] fileData = await File.ReadAllBytesAsync(filePath);
+                byte[] fileData = File.ReadAllBytes(filePath);
                 
-                // Compress the data
-                byte[] compressedData = FileCompressionHelper.Compress(fileData);
+                // Check if file is an image and if conversion is required
+                if (mimeType.StartsWith("image/") && !mimeType.EndsWith("webp") && convertToWebp && imageService != null)
+                {
+                    try 
+                    {
+                        // Convert to webp directly without compression
+                        byte[] webpLossyBuffer = imageService.toWebpNetVips(fileData, false);
+                        fileData = webpLossyBuffer;
+                        
+                        // Update filename and mimetype
+                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(filename);
+                        filename = fileNameNoExtension + ".webp";
+                        string[] mimeTypeParts = mimeType.Split('/');
+                        if (mimeTypeParts.Length > 0) 
+                        {
+                            mimeType = mimeTypeParts[0] + "/" + "webp";
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Failed to convert, continue with original format
+                    }
+                }
                 
-                // Create an Asset instance with the file path
+                // Create an Asset instance
                 var asset = new Asset
                 {
-                    BlobID = "temp",
+                    BlobID = "temp", // Will be updated after upload
                     FileName = filename,
                     MimeType = mimeType,
                     ProjectID = null,
                     UserID = userId,
-                    FileSizeInKB = compressedData.Length / 1024.0,
+                    FileSizeInKB = fileData.Length / 1024.0,
                     LastUpdated = DateTime.UtcNow,
                     assetState = Asset.AssetStateType.UploadedToPalette,
                 };
-                
-                // Upload to blob storage (same location as UploadAssets)
-                string blobId = await _blobStorageService.UploadAsync(compressedData, "palette-assets", asset);
+
+                // Upload the file to blob storage
+                string blobId = await _blobStorageService.UploadAsync(fileData, "palette-assets", asset);
                 asset.BlobID = blobId;
                 
-                // Add the asset to the database and save changes
-                await _context.Assets.AddAsync(asset);
-                await _context.SaveChangesAsync();
+                // Add to database
+                using var context = _contextFactory.CreateDbContext();
+                await context.Assets.AddAsync(asset);
+                await context.SaveChangesAsync();
                 
                 return asset;
             }
-            catch (Exception ex) 
+            catch (Exception)
             {
-                Console.WriteLine($"Error uploading merged chunk: {ex.Message}");
                 throw;
             }
         }
 
         public async Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService)
         {
-            using var _context = _contextFactory.CreateDbContext();
-            
             try
             {
-                // Check if asset exists
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == request.BlobId);
-                if (asset == null)
+                using var _context = _contextFactory.CreateDbContext();
+                
+                // Get existing asset
+                var existingAsset = await _context.Assets.FirstOrDefaultAsync(a => a.BlobID == request.BlobId);
+                if (existingAsset == null)
                 {
-                    throw new DataNotFoundException($"Asset with blob ID {request.BlobId} not found");
+                    throw new DataNotFoundException($"Asset with ID {request.BlobId} not found");
                 }
-
-                // Check if user has permission to update the asset
-                if (asset.UserID != request.UserId)
-                {
-                    throw new UnauthorizedAccessException("User does not have permission to update this asset");
-                }
-
-                // Process the file
+                
                 byte[] fileBytes;
+                string fileName = file.FileName;
+                
+                // Process the file
                 using (var ms = new MemoryStream())
                 {
                     await file.CopyToAsync(ms);
                     fileBytes = ms.ToArray();
                 }
                 
-                // Convert if needed (similar to UploadAssets)
-                if (convertToWebp && request.AssetMimeType.StartsWith("image/") && !request.AssetMimeType.EndsWith("webp"))
+                // Check if conversion to webp is needed
+                if (request.AssetMimeType.StartsWith("image") && !request.AssetMimeType.EndsWith("webp") && convertToWebp)
                 {
-                    try 
+                    try
                     {
-                        // Convert to WebP using the image service
-                        byte[] webpBuffer = imageService.toWebpNetVips(fileBytes, false);
-                        fileBytes = webpBuffer;
+                        // Convert to webp directly
+                        byte[] webpLossyBuffer = imageService.toWebpNetVips(fileBytes, false);
+                        fileBytes = webpLossyBuffer;
                         
-                        // Update file extension and MIME type
-                        request.AssetMimeType = "image/webp";
+                        // Update filename and mimetype
+                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(fileName);
+                        fileName = fileNameNoExtension + ".webp";
+                        string[] mimeTypeParts = request.AssetMimeType.Split('/');
+                        if (mimeTypeParts.Length > 0)
+                        {
+                            request.AssetMimeType = mimeTypeParts[0] + "/webp";
+                        }
                     }
-                    catch (VipsException)
+                    catch (Exception)
                     {
-                        // Failed to convert, continue with original format
+                        // Failed to convert, use original format
                     }
                 }
-
-                // Compress the file for storage
-                byte[] compressedBytes = FileCompressionHelper.Compress(fileBytes);
                 
+                // Update asset properties
+                existingAsset.FileName = fileName;
+                existingAsset.MimeType = request.AssetMimeType;
+                existingAsset.FileSizeInKB = fileBytes.Length / 1024.0;
+                existingAsset.LastUpdated = DateTime.UtcNow;
                 
-                // Update the blob storage with the new compressed file while preserving the blob ID
-                await _blobStorageService.UpdateAsync(compressedBytes, "palette-assets", asset);
-
-                // Update the remaining asset properties in the database
-                asset.FileSizeInKB = fileBytes.Length / 1024.0;
-                asset.LastUpdated = DateTime.UtcNow;
-
+                // Update the file in blob storage
+                await _blobStorageService.UpdateAsync(fileBytes, "palette-assets", existingAsset);
+                
+                // Save changes to database
                 await _context.SaveChangesAsync();
                 
-                return asset;
+                return existingAsset;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
             }
             catch (Exception)
             {
-                // Console.WriteLine($"Error updating asset with blob ID {request.BlobId}: {ex.Message}");
                 throw;
             }
         }

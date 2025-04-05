@@ -227,10 +227,6 @@ namespace APIs.Controllers
                     UserId = userId
                 };
 
-                // Check if client prefers decompressed files
-                bool decompressFiles = request.Query.ContainsKey("decompress") && 
-                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
-
                 // Get size limit parameter from query with default of 10MB
                 int sizeLimit = 10 * 1024 * 1024; // Default 10MB
                 if (request.Query.ContainsKey("sizeLimit") && 
@@ -247,13 +243,11 @@ namespace APIs.Controllers
                 }
                 
                 // Get the metadata for all files (including their sizes)
-                var fileMetadata = files.FileNames.Select(f => new {
+                var fileMetadata = files.FileNames.Select((f, index) => new {
                     fileName = f,
                     size = f.Length,
-                    contentType = decompressFiles ? 
-                        GetMimeTypeFromFileName(f.Replace(".zst", "")) : 
-                        "application/zstd",
-                    blobId = ExtractBlobId(f)
+                    contentType = GetMimeTypeFromFileName(f),
+                    blobId = ExtractBlobIdFromUri(files.BlobUris[index])
                 }).ToList();
 
                 // Return just the metadata for all files
@@ -273,18 +267,24 @@ namespace APIs.Controllers
             }
         }
 
-        // Helper function to extract the blobId from a filename
-        private static string ExtractBlobId(string filename)
+        private static string ExtractBlobIdFromUri(string blobUri)
         {
-            // int userId = Convert.ToInt32(context.Items["userId"]);
-            // Format: BlobID.OriginalFilename.zst
-            var parts = filename.Split('.');
-            if (parts.Length < 2)
+            // Extract the part between the last / and the ? character
+            int lastSlashIndex = blobUri.LastIndexOf('/');
+            int questionMarkIndex = blobUri.IndexOf('?');
+            
+            if (lastSlashIndex != -1 && questionMarkIndex != -1)
             {
-                return string.Empty;
+                return blobUri.Substring(lastSlashIndex + 1, questionMarkIndex - lastSlashIndex - 1);
             }
             
-            return parts[0];
+            // Fallback if format is different
+            if (lastSlashIndex != -1 && questionMarkIndex == -1)
+            {
+                return blobUri.Substring(lastSlashIndex + 1);
+            }
+            
+            return blobUri; // Return the original string if pattern doesn't match
         }
 
         // Helper function to determine mime type from filename

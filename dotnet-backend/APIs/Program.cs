@@ -88,6 +88,8 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// builder.Services.AddScoped<IBlobStorageService, LocalBlobStorageService>();
 builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 
 var app = builder.Build();

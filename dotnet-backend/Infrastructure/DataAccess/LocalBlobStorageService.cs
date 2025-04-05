@@ -19,8 +19,8 @@ namespace Infrastructure.DataAccess
             // string fileName = assetMetaData.FileName;
             string uniqueBlobName = $"{Guid.NewGuid()}";
             
-            // TODO keeping this for Dennnis to review
-            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}.zst"), file);
+            // Store raw file without zst extension
+            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{uniqueBlobName}.{assetMetaData.FileName}"), file);
 
             return uniqueBlobName;
         }
@@ -34,7 +34,7 @@ namespace Infrastructure.DataAccess
                 Directory.CreateDirectory(storageDirectory);
             }
             // Delete the corresponding file
-            string filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}.zst");
+            string filePath = Path.Combine(storageDirectory, $"{asset.BlobID}.{asset.FileName}");
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
@@ -45,40 +45,26 @@ namespace Infrastructure.DataAccess
 
         public async Task<List<string>> DownloadAsync(string containerName, List<(string, string)> assetIdNameTuples)
         {
-            // var compressedFiles = new List<IFormFile>();
+            // Create storage directory if it doesn't exist
+            string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
+            if (!Directory.Exists(storageDirectory)) {
+                Directory.CreateDirectory(storageDirectory);
+            }
             
-            // // Create storage directory if it doesn't exist
-            // string storageDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Storage");
-            // if (!Directory.Exists(storageDirectory)) {
-            //     Directory.CreateDirectory(storageDirectory);
-            // }
-                
-            // // Create tasks for parallel file reading
-            // var readTasks = assetIdNameTuples.Select(async assetIdNameTuple => {
-            //     var filePath = Path.Combine(storageDirectory, $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst");
-            //     var bytes = await File.ReadAllBytesAsync(filePath);
-                
-            //     string fileName = $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}.zst";
-                
-            //     // Convert byte array to IFormFile
-            //     var stream = new MemoryStream(bytes);
-            //     var formFile = new FormFile(
-            //         baseStream: stream,
-            //         baseStreamOffset: 0,
-            //         length: bytes.Length,
-            //         name: "file",
-            //         fileName: fileName
-            //     );
-                
-            //     return formFile;
-            // }).ToList();
+            // Create a list to store file paths
+            var filePaths = new List<string>();
             
-            // // Wait for all tasks to complete
-            // var files = await Task.WhenAll(readTasks);
+            // Process each asset tuple
+            foreach (var assetIdNameTuple in assetIdNameTuples) {
+                var filePath = Path.Combine(storageDirectory, $"{assetIdNameTuple.Item1}.{assetIdNameTuple.Item2}");
+                
+                // Check if file exists
+                if (File.Exists(filePath)) {
+                    filePaths.Add(filePath);
+                }
+            }
             
-            // compressedFiles.AddRange(files);
-            // return compressedFiles;
-            return new List<string>();
+            return filePaths;
         }
 
         public async Task<string> MoveAsync(string sourceContainer, string blobId, string targetContainer)
@@ -96,14 +82,14 @@ namespace Infrastructure.DataAccess
             }
             
             // Delete the old file if it exists
-            string oldFilePath = Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}.zst");
+            string oldFilePath = Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}");
             if (File.Exists(oldFilePath))
             {
                 File.Delete(oldFilePath);
             }
             
             // Write the new file using the same BlobID
-            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}.zst"), file);
+            await File.WriteAllBytesAsync(Path.Combine(storageDirectory, $"{assetMetaData.BlobID}.{assetMetaData.FileName}"), file);
             
             return true;
         }  
