@@ -10,7 +10,7 @@ export default function EditMetadataPage() {
   const router = useRouter();
   const { files, updateMetadata } = useFileContext();
 
-  const fileName = searchParams.get("file");
+  const fileName = searchParams?.get("file") ?? "";
 
   // Find file by comparing file.name
   const fileIndex = files.findIndex((f) => f.file.name === fileName);

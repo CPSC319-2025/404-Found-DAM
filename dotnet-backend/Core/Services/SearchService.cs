@@ -40,14 +40,16 @@ namespace Core.Services
                 var assetResults = matchingAssets.Select(a => new AssetSearchResultDto
                 {
                     blobID = a.BlobID,
-                    fileName = a.FileName,
-                    tags = a.AssetTags
-                        .Select(at => new TagCustomInfo
-                        {
-                            tagID = at.Tag.TagID,
-                            name = at.Tag.Name
-                        })
-                        .ToList(),
+                    filename = a.FileName,
+                    tags = a.AssetTags.Select(t => t.Tag.Name).ToList(),
+                    mimetype = a.MimeType,
+                    filesizeInKB = a.FileSizeInKB,
+                    uploadedBy = new AssetSearchResultUploadedBy
+                    {
+                        userID = a.User?.UserID ?? -1,
+                        name = a.User?.Name ?? "Unknown",
+                        email = a.User?.Email ?? "Unknown",
+                    },
                     projectID = a.Project != null ? a.Project.ProjectID : 0,
                     projectName = a.Project != null ? a.Project.Name : "Unknown",
                     BlobSASUrl = sasUrlMap.TryGetValue(a.BlobID, out var url) ? url : null

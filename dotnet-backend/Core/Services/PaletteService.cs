@@ -114,7 +114,7 @@ namespace Core.Services
                         var assetName = await _projectService.GetAssetNameByBlobIdAsync(blobID);
                         var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
 
-                        string description = $"{user.Email} added {assetName} into project {projectName}";
+                        string description = $"{user.Email} added '{assetName}' into project '{projectName}'";
                         if (verboseLogs)
                         {
                             description = $"{user.Name} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";

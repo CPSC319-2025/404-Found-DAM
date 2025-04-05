@@ -8,6 +8,7 @@ import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 // Import uploadFileZstd from the Apis folder
 import { uploadFileZstd as uploadFileZstdApi } from "@/app/palette/Apis/uploadFileZstd";
 import { compressFileZstd } from "@/app/palette/compressFileZstd";
+import { formatFileSize } from "@/app/utils/api/formatFileSize";
 
 export default function UploadPage() {
   const { files, setFiles } = useFileContext();
@@ -44,7 +45,7 @@ export default function UploadPage() {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       acceptedFiles.forEach((file) => {
-        const fileSize = (file.size / 1024).toFixed(2) + " KB";
+        const fileSize = formatFileSize(file.size);
         const fileMeta: FileMetadata = {
           file,
           fileSize,

@@ -301,7 +301,7 @@ export default function UploadModal({
           setUploadingProgress(progress);
         },
         onSuccess: async (blobId?: string) => {
-          setUploadingProgress(100);
+          setUploadingProgress(20);
           
           if (blobId) {
             // Add blobId to our tracking array
