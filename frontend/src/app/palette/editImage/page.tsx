@@ -225,75 +225,79 @@ export default function EditImagePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <h1 className="text-3xl font-bold">Edit Image</h1>
-
-        {imageSource ? (
-          <div
-            className="relative w-full max-w-md h-96 mt-4"
-            
-          >
-            <Cropper
-              image={imageSource}
-              crop={crop}
-              zoom={zoom * resize}
-              rotation={rotation}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onRotationChange={setRotation}
-              onCropComplete={onCropComplete}
-              objectFit="contain"
-              restrictPosition={false}
-              showGrid={false}
-            />
-          </div>
-        ) : (
-          <p className="text-gray-600">No image selected yet!</p>
-        )}
-
-
-      {/* Resize Slider (Now Works in Real-Time) */}
-      <div className="flex flex-col items-center gap-2 mt-4">
-        <label className="text-gray-700 font-medium">Resize Image:</label>
-        <input
-          type="range"
-          min="0.5"
-          max="2"
-          step="0.1"
-          value={resize}
-          onChange={(e) => setResize(parseFloat(e.target.value))}
-          className="w-48"
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+        <h1 className="text-5xl font-extrabold text-blue-400 mb-6">
+        Edit Your Image
+        </h1>
+  
+    {imageSource ? (
+      <div className="relative w-full max-w-4xl h-[600px] mt-4 shadow-lg rounded-lg border border-gray-300 overflow-hidden bg-white">
+        <Cropper
+          image={imageSource}
+          crop={crop}
+          zoom={zoom * resize}
+          rotation={rotation}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onRotationChange={setRotation}
+          onCropComplete={onCropComplete}
+          objectFit="contain"
+          restrictPosition={false}
+          showGrid={false}
         />
-        <span className="text-gray-700">{Math.round(resize * 100)}%</span>
       </div>
-
-      <div className="flex gap-4 mt-4">
-        <button
-          onClick={() => setRotation((prev) => prev + 90)}
-          className="bg-blue-500 text-white py-2 px-4 rounded"
-        >
-          Rotate 90°
-        </button>
-        
-        <button
-          onClick={ () => handleFlip("horizontal")}
-          className="bg-blue-500 text-white py-2 px-4 rounded"
-        >
-          Flip Horizontally
-        </button>
-        <button
-          onClick={ () => handleFlip("vertical")}
-          className="bg-blue-500 text-white py-2 px-4 rounded"
-        >
-          Flip Vertically
-        </button>
-        <button
-          onClick={handleSaveImage}
-          className="bg-green-500 text-white py-2 px-4 rounded"
-        >
-          Save Image
-        </button>
-      </div>
+    ) : (
+      <p className="text-gray-600">No image selected yet!</p>
+    )}
+  
+    {/* Resize Slider */}
+    <div className="flex flex-col items-center gap-2 mt-6">
+      <label className="text-gray-700 font-medium">Resize Image:</label>
+      <input
+        type="range"
+        min="0.5"
+        max="2"
+        step="0.1"
+        value={resize}
+        onChange={(e) => setResize(parseFloat(e.target.value))}
+        className="w-64 h-2 bg-gray-300 rounded-lg"
+      />
+      <span className="text-gray-700 font-semibold">{Math.round(resize * 100)}%</span>
     </div>
+
+    
+  
+    {/* Action Buttons */}
+    <div className="flex gap-4 mt-6">
+      <button
+        onClick={() => setRotation((prev) => prev + 90)}
+        className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
+      >
+        Rotate 90°
+      </button>
+  
+      <button
+        onClick={() => handleFlip("horizontal")}
+        className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
+      >
+        Flip Horizontally
+      </button>
+  
+      <button
+        onClick={() => handleFlip("vertical")}
+        className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
+      >
+        Flip Vertically
+      </button>
+  
+      <button
+        onClick={handleSaveImage}
+        className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300"
+      >
+        Save Image
+      </button>
+    </div>
+  </div>
+  
   );
 }
