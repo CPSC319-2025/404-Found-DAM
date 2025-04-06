@@ -27,19 +27,78 @@ export default function EditImagePage() {
     height: number;
   } | null>(null);
 
+  
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (imageSource) {
+      const img = new Image();
+      img.src = imageSource;
+      img.onload = () => setLoadedImage(img);
+    }
+  }, [imageSource]);
+
+  const flipImage = (image: HTMLImageElement, flipHorizontal: boolean, flipVertical: boolean): string => {
+    // Create a canvas to manipulate the image
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+  
+    // Set canvas dimensions
+    canvas.width = image.width;
+    canvas.height = image.height;
+  
+    // Flip the image
+    ctx.save();
+    ctx.translate(
+      flipHorizontal ? canvas.width : 0,
+      flipVertical ? canvas.height : 0
+    );
+    ctx.scale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);
+    ctx.drawImage(image, 0, 0);
+    ctx.restore();
+  
+    // Return the flipped image data URL
+    return canvas.toDataURL();
+  };
+  
+
+  const handleFlip = (direction: "horizontal" | "vertical") => {
+    // Toggle the flip state
+    const newFlip = {
+      horizontal: direction === "horizontal" ? true : false,
+      vertical: direction === "vertical" ? true : false,
+    };
+    
+    // checking: Hoi fixed
+    // console.log("in handleFlip, hori: " + newFlip.horizontal);
+    // console.log("in handleFlip, verti: " + newFlip.vertical);
+    setFlip(newFlip);
+  
+    // Directly update the image source using the loaded image
+    if (loadedImage) {
+      const flippedImage = flipImage(loadedImage, newFlip.horizontal, newFlip.vertical);
+      setImageSource(flippedImage); // Update the state with the flipped image
+    }
+  };
+  
+
   useEffect(() => {
     if (fileData) {
       const imageURL = URL.createObjectURL(fileData.file);
       setImageSource(imageURL);
     }
   }, [fileData]);
+  
 
+  
   const onCropComplete = (
     croppedArea: any,
     croppedPixels: { x: number; y: number; width: number; height: number }
   ) => {
     setCroppedAreaPixels(croppedPixels);
   };
+
 
   const handleSaveImage = async () => {
     if (!imageSource || !croppedAreaPixels || !fileData) return;
@@ -169,25 +228,29 @@ export default function EditImagePage() {
     <div className="min-h-screen flex flex-col items-center justify-center">
       <h1 className="text-3xl font-bold">Edit Image</h1>
 
-      {imageSource ? (
-        <div className="relative w-full max-w-md h-96 mt-4">
-          <Cropper
-            image={imageSource}
-            crop={crop}
-            zoom={zoom * resize} // Resize applied to the Cropper in real-time
-            rotation={rotation}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onRotationChange={setRotation}
-            onCropComplete={onCropComplete}
-            objectFit="contain"
-            restrictPosition={false}
-            showGrid={false}
-          />
-        </div>
-      ) : (
-        <p className="text-gray-600">No image selected yet!</p>
-      )}
+        {imageSource ? (
+          <div
+            className="relative w-full max-w-md h-96 mt-4"
+            
+          >
+            <Cropper
+              image={imageSource}
+              crop={crop}
+              zoom={zoom * resize}
+              rotation={rotation}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onRotationChange={setRotation}
+              onCropComplete={onCropComplete}
+              objectFit="contain"
+              restrictPosition={false}
+              showGrid={false}
+            />
+          </div>
+        ) : (
+          <p className="text-gray-600">No image selected yet!</p>
+        )}
+
 
       {/* Resize Slider (Now Works in Real-Time) */}
       <div className="flex flex-col items-center gap-2 mt-4">
@@ -211,14 +274,15 @@ export default function EditImagePage() {
         >
           Rotate 90°
         </button>
+        
         <button
-          onClick={() => setFlip({ ...flip, horizontal: !flip.horizontal })}
+          onClick={ () => handleFlip("horizontal")}
           className="bg-blue-500 text-white py-2 px-4 rounded"
         >
           Flip Horizontally
         </button>
         <button
-          onClick={() => setFlip({ ...flip, vertical: !flip.vertical })}
+          onClick={ () => handleFlip("vertical")}
           className="bg-blue-500 text-white py-2 px-4 rounded"
         >
           Flip Vertically

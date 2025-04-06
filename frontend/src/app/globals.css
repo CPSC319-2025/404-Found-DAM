@@ -34,4 +34,19 @@ fieldset:disabled {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Flip horizontally */
+  .flip-horizontal > img {
+    transform: scaleX(-1);
+  }
+
+  /* Flip vertically */
+  .flip-vertical > img {
+    transform: scaleY(-1);
+  }
+
+  /* Ensure the transform origin is set correctly */
+  .flip-horizontal, .flip-vertical {
+    transform-origin: center;
+  }
 }
