@@ -291,33 +291,42 @@ namespace APIs.Controllers
                     // Assumption: all tags are added to all blobs
                     if (request.TagIDs != null && request.TagIDs.Any())
                     {
+                        var tagNames = new List<string>();
                         foreach (var tagID in request.TagIDs)
                         {
                             var tagName = await projectService.GetTagNameByIdAsync(tagID);
-                            string theDescription2 = "";
-                            if (verboseLogs) {
-                                theDescription2 = $"{username} (User ID: {submitterId}) assigned tag '{tagName}' (Tag ID: {tagID}) with asset {blobName} (asset ID: {blobID})";
-                            } else {
-                                theDescription2 = $"{user.Email} assigned tag {tagName} to {blobName}";
-                            }
-
-                            if (logDebug)
-                            {
-                                theDescription2 += "[Add Log called by ProjectController.AssociateAssetsWithProject - add tag part]";
-                                Console.WriteLine(theDescription2);
-                            }
-
-                            await activityLogService.AddLogAsync(new CreateActivityLogDto
-                            {
-                                userID = submitterId,
-                                changeType = "Associated",
-                                description = theDescription2,
-                                projID = projectID,
-                                assetID = blobID,
-                                isAdminAction = !adminActionTrue
-                            });
+                            tagNames.Add(tagName);
                         }
+
+                        string tagList = string.Join(", ", tagNames);
+                        string theDescription2 = "";
+
+                        if (verboseLogs)
+                        {
+                            theDescription2 = $"{username} (User ID: {submitterId}) assigned tags ({tagList}) to {blobName} (Asset ID: {blobID}) in project {projectName} (Project ID: {projectID})";
+                        }
+                        else
+                        {
+                            theDescription2 = $"{user.Email} assigned tags ({tagList}) to {blobName}";
+                        }
+
+                        if (logDebug)
+                        {
+                            theDescription2 += "[Add Log called by ProjectController.AssociateAssetsWithProject - add tag part]";
+                            Console.WriteLine(theDescription2);
+                        }
+
+                        await activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = submitterId,
+                            changeType = "Assigned",
+                            description = theDescription2,
+                            projID = projectID,
+                            assetID = blobID,
+                            isAdminAction = !adminActionTrue
+                        });
                     }
+
                     
                     // }
                 }
