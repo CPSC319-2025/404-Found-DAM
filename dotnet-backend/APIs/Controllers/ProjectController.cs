@@ -464,9 +464,9 @@ namespace APIs.Controllers
 
                     if (verboseLogs) {
 
-                        theDescription = $"{username} (User ID: {submitterID}) deleted asset (Blob ID: {blobId}) from project {projectName} (Project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {submitterID}) deleted (Blob ID: {blobId}) from project {projectName} (Project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} deleted asset {assetName} from project {projectName}";
+                        theDescription = $"{user.Email} deleted {assetName} from project {projectName}";
                     }
 
                     if (string.IsNullOrEmpty(assetName)) {
