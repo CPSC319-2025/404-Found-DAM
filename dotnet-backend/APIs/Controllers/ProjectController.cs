@@ -271,7 +271,7 @@ namespace APIs.Controllers
                     } else {
                         theDescription = $"{user.Email} added {blobName} into project {projectName}";
                     }
-                    // if (false) { // duplicate log - same as PaletteController.SubmitAssets. update: removed the add log in SubmitAssets update
+                    // if (false) { // duplicate log - same as PaletteController.SubmitAssets. update: removed the add log in SubmitAssets update. note: no longer the same.
                     if (logDebug) {
                         theDescription += "[Add Log called by ProjectController.AssociateAssetsWithProject]";
                         Console.WriteLine(theDescription);

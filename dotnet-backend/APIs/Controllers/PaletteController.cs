@@ -621,7 +621,7 @@ namespace APIs.Controllers
 
 
                  // add log (done)
-                if (false) { // duplicate of ProjectController.AssociateAssetsWithProject
+                // if (false) { // duplicate of ProjectController.AssociateAssetsWithProject. update: no longer duplicate. here, we will log when an assset is eventually submitted to a project (the AssocaiteAssetsWithProject is called whenever the user uses the dropdown menu to switch projects for an asset on the palette page, but hasn't finalied it yet by clicking "submit")
                     try {
 
                         foreach (var blobID in req.blobIDs)
@@ -668,7 +668,7 @@ namespace APIs.Controllers
                         //     title: "Internal Server Error"
                         // );
                     }
-                }
+                // }
                 return Results.Ok(result);
              }
 
