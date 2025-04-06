@@ -17,9 +17,9 @@ namespace Core.Services
         private readonly IUserService _userService;
         private readonly IProjectService _projectService;
 
-        private const bool verboseLogs = false;
-        private const bool logDebug = false;
-        private const bool AdminActionTrue = true;
+        // private const bool verboseLogs = false;
+        // private const bool logDebug = true;
+        // private const bool AdminActionTrue = true;
 
         // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
         public PaletteService(
@@ -105,42 +105,42 @@ namespace Core.Services
             {
                 var (successfulSubmissions, failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID, autoNaming);
 
-                // Log successful submissions
-                foreach (var blobID in successfulSubmissions)
-                {
-                    try
-                    {
-                        var user = await _userService.GetUser(submitterID);
-                        var assetName = await _projectService.GetAssetNameByBlobIdAsync(blobID);
-                        var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
+                // Log successful submissions -> done in PaletteController.cs
+                // foreach (var blobID in successfulSubmissions)
+                // {
+                //     try
+                //     {
+                //         var user = await _userService.GetUser(submitterID);
+                //         var assetName = await _projectService.GetAssetNameByBlobIdAsync(blobID);
+                //         var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
 
-                        string description = $"{user.Email} added '{assetName}' into project '{projectName}'";
-                        if (verboseLogs)
-                        {
-                            description = $"{user.Name} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
-                        }
+                //         string description = $"{user.Email} added '{assetName}' into project '{projectName}'";
+                //         if (verboseLogs)
+                //         {
+                //             description = $"{user.Name} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                //         }
 
-                        if (logDebug)
-                        {
-                            description += "[Add Log called by PaletteService.SubmitAssets]";
-                            Console.WriteLine(description);
-                        }
+                //         if (logDebug)
+                //         {
+                //             description += "[Add Log called by PaletteService.SubmitAssets]";
+                //             Console.WriteLine(description);
+                //         }
 
-                        await _activityLogService.AddLogAsync(new CreateActivityLogDto
-                        {
-                            userID = submitterID,
-                            changeType = "Added",
-                            description = description,
-                            projID = projectID,
-                            assetID = blobID,
-                            isAdminAction = !AdminActionTrue
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to add log for asset {blobID}: {ex.Message}");
-                    }
-                }
+                //         await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                //         {
+                //             userID = submitterID,
+                //             changeType = "Added",
+                //             description = description,
+                //             projID = projectID,
+                //             assetID = blobID,
+                //             isAdminAction = !AdminActionTrue
+                //         });
+                //     }
+                //     catch (Exception ex)
+                //     {
+                //         Console.WriteLine($"Failed to add log for asset {blobID}: {ex.Message}");
+                //     }
+                // }
 
                 return new SubmitAssetsRes
                 {

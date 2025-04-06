@@ -18,7 +18,7 @@ namespace APIs.Controllers
 
         private const bool adminActionTrue = true;
 
-        private const bool logDebug = false;
+        private const bool logDebug = true;
         private const bool verboseLogs = false;
 
         public static void MapProjectEndpoints(this WebApplication app)
