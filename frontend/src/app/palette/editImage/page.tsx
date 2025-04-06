@@ -27,19 +27,32 @@ export default function EditImagePage() {
     height: number;
   } | null>(null);
 
+
+ 
+
+  
   useEffect(() => {
     if (fileData) {
       const imageURL = URL.createObjectURL(fileData.file);
       setImageSource(imageURL);
     }
   }, [fileData]);
+  
 
+  const handleFlip = (direction: "horizontal" | "vertical") => {
+    setFlip((prev) => ({
+      ...prev,
+      [direction]: !prev[direction],
+    }));
+  };
+  
   const onCropComplete = (
     croppedArea: any,
     croppedPixels: { x: number; y: number; width: number; height: number }
   ) => {
     setCroppedAreaPixels(croppedPixels);
   };
+
 
   const handleSaveImage = async () => {
     if (!imageSource || !croppedAreaPixels || !fileData) return;
@@ -127,7 +140,13 @@ export default function EditImagePage() {
       <h1 className="text-3xl font-bold">Edit Image</h1>
 
       {imageSource ? (
-        <div className="relative w-full max-w-md h-96 mt-4">
+          <div 
+            className="relative w-full max-w-md h-96 mt-4">
+            <div 
+            style={{
+                transform: `scale(${flip.horizontal ? -1 : 1}, ${flip.vertical ? -1 : 1})`,
+            }}
+          >
           <Cropper
             image={imageSource}
             crop={crop}
@@ -140,7 +159,9 @@ export default function EditImagePage() {
             objectFit="contain"
             restrictPosition={false}
             showGrid={false}
+            
           />
+          </div>
         </div>
       ) : (
         <p className="text-gray-600">No image selected yet!</p>
@@ -169,13 +190,13 @@ export default function EditImagePage() {
           Rotate 90°
         </button>
         <button
-          onClick={() => setFlip({ ...flip, horizontal: !flip.horizontal })}
+          onClick={() => handleFlip("horizontal")}
           className="bg-blue-500 text-white py-2 px-4 rounded"
         >
           Flip Horizontally
         </button>
         <button
-          onClick={() => setFlip({ ...flip, vertical: !flip.vertical })}
+          onClick={() => handleFlip("vertical")}
           className="bg-blue-500 text-white py-2 px-4 rounded"
         >
           Flip Vertically
