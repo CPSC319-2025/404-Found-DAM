@@ -265,23 +265,61 @@ namespace APIs.Controllers
                 foreach (var blobID in request.BlobIDs) {
                     var blobName = await projectService.GetAssetNameByBlobIdAsync(blobID);
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
-                    var theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
-                    if (false) { // duplicate log - same as PaletteController.SubmitAssets.
-                        if (logDebug) {
-                            theDescription += "[Add Log called by ProjectController.AssociateAssetsWithProject]";
-                            Console.WriteLine(theDescription);
-                        }
-                    
-                        await activityLogService.AddLogAsync(new CreateActivityLogDto
-                        {
-                            userID = submitterId,
-                            changeType = "Added",
-                            description = theDescription,
-                            projID = projectID,
-                            assetID = blobID,
-                            isAdminAction = !adminActionTrue
-                        });
+                    string theDescription = "";
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
+                    } else {
+                        theDescription = $"{user.Email} added {blobName} into project {projectName}";
                     }
+                    // if (false) { // duplicate log - same as PaletteController.SubmitAssets. update: removed the add log in SubmitAssets update
+                    if (logDebug) {
+                        theDescription += "[Add Log called by ProjectController.AssociateAssetsWithProject]";
+                        Console.WriteLine(theDescription);
+                    }
+                
+                    // await activityLogService.AddLogAsync(new CreateActivityLogDto DO NOT ADD LOG - This endpoint is called when the user is still on the palette page and has changed which project to potentially add the asset into, but hasn't submitted the asset yet. Therefore, there should not be a log saying "user added asset into project"
+                    // {
+                    //     userID = submitterId,
+                    //     changeType = "Added",
+                    //     description = theDescription,
+                    //     projID = projectID,
+                    //     assetID = blobID,
+                    //     isAdminAction = !adminActionTrue
+                    // });
+
+                
+                    // Assumption: all tags are added to all blobs
+                    if (request.TagIDs != null && request.TagIDs.Any())
+                    {
+                        foreach (var tagID in request.TagIDs)
+                        {
+                            var tagName = await projectService.GetTagNameByIdAsync(tagID);
+                            string theDescription2 = "";
+                            if (verboseLogs) {
+                                theDescription2 = $"{username} (User ID: {submitterId}) assigned tag '{tagName}' (Tag ID: {tagID}) with asset {blobName} (asset ID: {blobID})";
+                            } else {
+                                theDescription2 = $"{user.Email} assigned tag {tagName} to {blobName}";
+                            }
+
+                            if (logDebug)
+                            {
+                                theDescription2 += "[Add Log called by ProjectController.AssociateAssetsWithProject - add tag part]";
+                                Console.WriteLine(theDescription2);
+                            }
+
+                            await activityLogService.AddLogAsync(new CreateActivityLogDto
+                            {
+                                userID = submitterId,
+                                changeType = "Associated",
+                                description = theDescription2,
+                                projID = projectID,
+                                assetID = blobID,
+                                isAdminAction = !adminActionTrue
+                            });
+                        }
+                    }
+                    
+                    // }
                 }
                 return Results.Ok(new
                 {
