@@ -14,6 +14,7 @@ using System.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Core.Entities;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 
 namespace Core.Services
 {
@@ -25,6 +26,9 @@ namespace Core.Services
         private readonly string _mergedFilesDirectory;
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
+        
+        // Add chunk tracking to improve performance
+        private static readonly ConcurrentDictionary<string, HashSet<int>> _receivedChunks = new ConcurrentDictionary<string, HashSet<int>>();
 
         public FileService(ILogger<FileService> logger, IConfiguration configuration, IPaletteRepository paletteRepository, IImageService imageService)
         {
@@ -81,15 +85,36 @@ namespace Core.Services
                 
                 _logger.LogInformation($"Chunk {request.ChunkNumber + 1}/{request.TotalChunks} saved for {sanitizedFileName}");
                 
-                // Check if all chunks have been received
-                bool allChunksReceived = true;
-                for (int i = 0; i < request.TotalChunks; i++)
+                // Create a unique key for tracking chunks of this specific file upload
+                string trackingKey = $"{request.UserId}_{sanitizedFileName}";
+                
+                // Update received chunks tracking
+                var chunks = _receivedChunks.GetOrAdd(trackingKey, _ => new HashSet<int>());
+                
+                lock (chunks)
                 {
-                    string checkPath = Path.Combine(userChunksDir, $"{sanitizedFileName}.part_{i}");
-                    if (!File.Exists(checkPath))
+                    chunks.Add(request.ChunkNumber);
+                }
+                
+                // Check if all chunks have been received without filesystem checks
+                bool allChunksReceived = false;
+                
+                lock (chunks)
+                {
+                    allChunksReceived = chunks.Count == request.TotalChunks;
+                }
+                
+                // Only if this appears to be all chunks, verify on disk as a final check
+                if (allChunksReceived)
+                {
+                    for (int i = 0; i < request.TotalChunks; i++)
                     {
-                        allChunksReceived = false;
-                        break;
+                        string checkPath = Path.Combine(userChunksDir, $"{sanitizedFileName}.part_{i}");
+                        if (!File.Exists(checkPath))
+                        {
+                            allChunksReceived = false;
+                            break;
+                        }
                     }
                 }
                 
@@ -146,7 +171,7 @@ namespace Core.Services
                             };
                         }
                         
-                        using (var chunkStream = new FileStream(chunkFilePath, FileMode.Open))
+                        using (var chunkStream = new FileStream(chunkFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.SequentialScan))
                         {
                             await chunkStream.CopyToAsync(outputStream);
                         }
@@ -156,7 +181,10 @@ namespace Core.Services
                     }
                 }
                 
-        
+                // Clear the tracking for this file
+                string trackingKey = $"{userId}_{sanitizedFileName}";
+                _receivedChunks.TryRemove(trackingKey, out _);
+                
                 // Get MIME type based on file extension
                 string mimeType = GetMimeTypeFromExtension(Path.GetExtension(mergedFilePath));
                 Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId, true, _imageService);

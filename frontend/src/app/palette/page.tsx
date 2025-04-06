@@ -626,33 +626,34 @@ export default function PalettePage() {
           
           // Fetch and update blob details
           await fetchAndUpdateBlobDetails(blobId);
+          
+          // Set the flag for new files immediately
+          localStorage.setItem('paletteHasNewFiles', 'true');
         }
       } catch (error) {
         console.error("Error setting up file preview:", error);
       }
       
-      // Clear status after a delay and refresh page - reduced from 1000ms to 300ms
-      setTimeout(() => {
-        setUploadStatus("");
-        setUploadProgress(0);
-        
-        // After upload, return to first page to see the new files
-        if (currentPage !== 1) {
-          handlePageChange(1);
-        } else {
-          // Just reload the first page
-          loadAssets(1);
-        }
-      }, 300);
+      // Clear status immediately and refresh page - no delay
+      setUploadStatus("");
+      setUploadProgress(0);
+      
+      // After upload, return to first page to see the new files
+      if (currentPage !== 1) {
+        handlePageChange(1);
+      } else {
+        // Just reload the first page
+        loadAssets(1);
+      }
     },
     onError: (error: string) => {
       setUploadStatus(`Error uploading ${file.name}: ${error}`);
       
-      // Clear error after a delay - reduced from 5000ms to 2000ms
+      // Clear error after a delay - reduced from 2000ms to 1000ms
       setTimeout(() => {
         setUploadStatus("");
         setUploadProgress(0);
-      }, 2000);
+      }, 1000);
     }
   }), [fetchAndUpdateBlobDetails, setFiles, loadAssets, currentPage, handlePageChange]);
 
@@ -694,10 +695,11 @@ export default function PalettePage() {
         }
       }
       
-      // Reload the current page to ensure consistent pagination after uploads
-      await loadAssets(currentPage);
+      // No need to reload here as each file upload already triggered a reload
+      // This removes a redundant reload that could be causing additional delay
     },
-    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles, loadAssets, currentPage]
+    // Using only the dependencies that are actually needed
+    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles, setUploadStatus, setUploadProgress]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -1030,8 +1032,8 @@ export default function PalettePage() {
     // Check immediately on mount
     checkForNewFiles();
     
-    // Then check periodically (every 3 seconds)
-    const interval = setInterval(checkForNewFiles, 3000);
+    // Then check more frequently (every 500ms instead of 3000ms)
+    const interval = setInterval(checkForNewFiles, 500);
     
     return () => clearInterval(interval);
   }, []);
