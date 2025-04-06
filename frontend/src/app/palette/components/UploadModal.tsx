@@ -433,7 +433,7 @@ export default function UploadModal({
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium mb-2">Drag & drop files or <span className="text-indigo-600">Browse</span></h3>
-                  <p className="text-sm text-gray-500">Supported formats: JPEG, PNG, GIF, MP4, PDF, PSD, AI, Word, PPT</p>
+                  <p className="text-sm text-gray-500">Supported formats: JPEG, PNG, GIF, BMP, WEBP, MP4, WEBM</p>
                 </div>
               </div>
               
