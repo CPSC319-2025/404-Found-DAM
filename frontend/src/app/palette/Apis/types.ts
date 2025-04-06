@@ -27,16 +27,6 @@ export interface BlobDetails {
 }
 
 /**
- * Interface for pagination results
- */
-export interface PaginatedFiles {
-  files: FileMetadata[];
-  totalCount: number;
-  currentPage: number;
-  totalPages: number;
-}
-
-/**
  * Interface for upload progress callbacks
  */
 export interface UploadProgressCallbacks {
