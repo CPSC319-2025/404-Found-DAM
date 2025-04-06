@@ -9,6 +9,7 @@ import {
   Project
 } from "../Apis";
 import { FileMetadata, useFileContext } from "@/app/context/FileContext";
+import { toast } from "react-toastify";
 
 // Simple Progress component
 const Progress = ({ 
@@ -169,7 +170,7 @@ export default function UploadModal({
       const isDuplicate = uploadedFiles.some(existingFile => existingFile.name === newFile.name);
       
       if (isDuplicate) {
-        alert(`File "${newFile.name}" already exists in upload list. Please rename the file before uploading.`);
+        toast.error(`File "${newFile.name}" already exists in upload list. Please rename the file before uploading.`);
         return false;
       }
       return true;
@@ -254,11 +255,9 @@ export default function UploadModal({
     });
   }, [processingFiles]);
   
-  // Remove a processed file
   const removeProcessedFile = useCallback((index: number) => {
     const fileToRemove = processedFiles[index];
     
-    // Ensure we have a valid file to remove
     if (!fileToRemove) return;
     
     setProcessedFiles(prev => {
@@ -267,13 +266,11 @@ export default function UploadModal({
       return newFiles;
     });
     
-    // Also remove from uploaded files
     setUploadedFiles(prev => {
       return prev.filter(file => file.name !== fileToRemove.name);
     });
   }, [processedFiles]);
   
-  // Handle confirming upload
   const handleConfirmUpload = useCallback(async () => {
     if (!selectedProject) {
       const confirmUpload = window.confirm("No project selected. Assets will be uploaded without being associated with a project. Continue?");
@@ -286,18 +283,11 @@ export default function UploadModal({
     const filesToUpload = [...uploadedFiles];
     const blobIdsToAssociate: string[] = [];
     
-    // Set flag to indicate background upload in progress
     localStorage.setItem('bgUploadInProgress', 'true');
     
-    // Close modal early, but keep a reference to the uploaded files
     setTimeout(() => {
-      // Remove the alert notification
-      // alert("Files are uploading in the background. You can continue working.");
-      
-      // Close modal
       closeModal();
       
-      // Clear state for next time
       setUploadedFiles([]);
       setCurrentStep(1);
       setProcessingFiles([]);

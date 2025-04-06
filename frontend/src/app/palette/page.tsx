@@ -21,6 +21,7 @@ import {
 } from "./Apis";
 import { useUser } from "@/app/context/UserContext";
 import { formatFileSize } from "@/app/utils/api/formatFileSize";
+import { toast } from "react-toastify";
 
 // Simple Button component
 const Button = ({ 
@@ -719,22 +720,18 @@ export default function PalettePage() {
     try {
       console.log("Verifying selection integrity...");
       
-      // Get existing blobIds on current page
       const currentPageBlobIds = files
         .map(file => file.blobId)
         .filter((id): id is string => !!id);
       
-      // Find any selections that are on current page
       const currentPageSelections = selectedBlobIds.filter(id => 
         currentPageBlobIds.includes(id)
       );
       
-      // Find selections that aren't on current page (might be valid on other pages)
       const otherPageSelections = selectedBlobIds.filter(id => 
         !currentPageBlobIds.includes(id)
       );
       
-      // If any selected items from current page don't exist in files, they were deleted
       const invalidSelections = currentPageSelections.filter(id => 
         !currentPageBlobIds.includes(id)
       );
@@ -742,14 +739,12 @@ export default function PalettePage() {
       if (invalidSelections.length > 0) {
         console.log(`Found ${invalidSelections.length} invalid selections on current page`);
         
-        // Remove invalid selections
         const validSelections = selectedBlobIds.filter(id => 
           !invalidSelections.includes(id)
         );
         
         console.log('Updated valid selections:', validSelections);
         
-        // Update state with valid selections
         setSelectedBlobIds(validSelections);
         localStorage.setItem('paletteSelections', JSON.stringify(validSelections));
         
@@ -763,27 +758,22 @@ export default function PalettePage() {
     }
   }, [selectedBlobIds, files]);
 
-  // Check selection integrity after loading each page
   useEffect(() => {
     if (!isLoading && files.length > 0) {
       verifySelectionIntegrity();
     }
   }, [files, isLoading, verifySelectionIntegrity]);
 
-  // Submit selected assets - fix to handle all pages
   const handleSubmitAssets = useCallback(async () => {
-    // First verify selection integrity
     const validSelections = await verifySelectionIntegrity();
     
     if (validSelections.length === 0) {
-      alert("No files selected!");
+      toast.warn("No files selected!");
       return;
     }
 
-    // Show loading state immediately
     setIsLoading(true);
     
-    // Show notification
     setUploadStatus(`Submitting ${validSelections.length} assets...`);
 
     // Get project assignments for all selected blobIds
@@ -808,7 +798,6 @@ export default function PalettePage() {
     // Fetch project info for assets not on current page
     if (missingBlobIds.length > 0) {
       try {
-        // Fetch details for missing blobIds
         const promises = missingBlobIds.map(async (blobId) => {
           try {
             const details = await fetchBlobDetails(blobId);
@@ -836,12 +825,11 @@ export default function PalettePage() {
         console.error("Error fetching project details:", error);
         setIsLoading(false);
         setUploadStatus("");
-        alert("Error fetching project details. Please try again.");
+        toast.error("Error fetching project details. Please try again.");
         return;
       }
     }
     
-    // Process current page files
     files.forEach(file => {
       if (file.blobId && validSelections.includes(file.blobId)) {
         if (file.project) {
@@ -858,98 +846,83 @@ export default function PalettePage() {
     console.log('Project assignments:', projectAssignments);
     console.log('Files without project:', filesWithoutProject);
     
-    // Check if any selected files don't have a project assigned
     if (filesWithoutProject.length > 0) {
       setIsLoading(false);
       setUploadStatus("");
-      alert(`Warning: ${filesWithoutProject.length} selected file(s) don't have a project assigned. Please select a project for all files before submitting.`);
+      toast.warn(`Warning: ${filesWithoutProject.length} selected file(s) don't have a project assigned. Please select a project for all files before submitting.`);
       return;
     }
 
     try {
       let successCount = 0;
       
-      // Submit assets for each project
       for (const projectId in projectAssignments) {
         const blobIDs = projectAssignments[projectId];
         
-        // Add autoNaming parameter if enabled
         const success = await submitAssets(projectId, blobIDs, autoNamingEnabled ? "?Auto" : "");
         
         if (success) {
           successCount += blobIDs.length;
           
-          // Remove these files from our palette state
           setFiles((prev) =>
             prev.filter(
               (file) =>
-                file.project !== projectId || // keep files from other projects
+                file.project !== projectId ||
                 !file.blobId ||
-                !blobIDs.includes(file.blobId) // keep files not in this batch
+                !blobIDs.includes(file.blobId)
             )
           );
 
-          // Also remove them from the selectedBlobIds array
           setSelectedBlobIds(prev => 
             prev.filter(blobId => !blobIDs.includes(blobId))
           );
         }
       }
       
-      // Update localStorage with new selection state
       localStorage.setItem('paletteSelections', JSON.stringify(
         selectedBlobIds.filter(id => 
           !Object.values(projectAssignments).flat().includes(id)
         )
       ));
       
-      // Calculate remaining files and pages after submission
       const remainingFiles = totalCount - successCount;
       const newTotalPages = Math.max(1, Math.ceil(remainingFiles / pageSize));
       
-      // Decide which page to show after submission
       let targetPage = currentPage;
       
-      // If we've submitted all files on current page
       if (currentPageBlobIdsToSubmit.length === files.length) {
         if (remainingFiles === 0) {
-          // If no files left at all, go to page 1
           targetPage = 1;
         } else if (currentPage > newTotalPages) {
-          // If current page is now beyond total pages, go to last available page
           targetPage = newTotalPages;
         } else if (currentPage > 1) {
-          // If not on first page and current page still valid, stay there
           targetPage = currentPage;
         }
       }
       
-      // Update pagination state
       setTotalPages(newTotalPages);
       setTotalCount(remainingFiles);
       
       if (successCount > 0) {
         setUploadStatus(`Successfully submitted ${successCount} asset(s).`);
         
-        // Clear status after a delay
         setTimeout(() => {
           setUploadStatus("");
           setUploadProgress(0);
           setIsLoading(false);
           
-          // Reload the appropriate page
           loadAssets(targetPage);
         }, 1500);
       } else {
         setIsLoading(false);
         setUploadStatus("");
-        alert("No assets were submitted. Please try again.");
+        toast.error("No assets were submitted. Please try again.");
       }
     } catch (error) {
       console.error("Error submitting assets:", error);
       setIsLoading(false);
       setUploadStatus("");
-      alert("There was an error submitting assets. Please try again.");
+      toast.error("There was an error submitting assets. Please try again.");
     }
   }, [
     files, 
@@ -966,7 +939,6 @@ export default function PalettePage() {
     setUploadProgress
   ]);
 
-  // Toggle auto naming feature
   const toggleAutoNaming = useCallback(() => {
     setAutoNamingEnabled(prev => !prev);
   }, []);
@@ -975,13 +947,11 @@ export default function PalettePage() {
   const handleEditMetadata = useCallback((index: number) => {
     const fileMeta = files[index];
     
-    // Check if project is selected
     if (!fileMeta.project) {
-      alert("Please select a project before editing metadata.");
+      toast.warn("Please select a project before editing metadata.");
       return;
     }
     
-    // Store current page before navigating
     localStorage.setItem('palettePage', currentPage.toString());
     
     // Ensure selections are saved before navigating

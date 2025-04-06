@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -12,18 +13,15 @@ export default function EditMetadataPage() {
 
   const fileName = searchParams?.get("file") ?? "";
 
-  // Find file by comparing file.name
   const fileIndex = files.findIndex((f) => f.file.name === fileName);
   const fileData = files[fileIndex];
 
-  // Always call hooks at the top level, even if fileData is undefined.
   const [description, setDescription] = useState(
     fileData ? fileData.description || "" : ""
   );
   const [location, setLocation] = useState(
     fileData ? fileData.location || "" : ""
   );
-  // Change to array of tags instead of comma-separated string
   const [selectedTags, setSelectedTags] = useState<string[]>(
     fileData ? fileData.tags : []
   );
@@ -38,14 +36,12 @@ export default function EditMetadataPage() {
   }>>([]);
   const [metadataValues, setMetadataValues] = useState<Record<number, any>>({});
 
-  // Fetch project tags and blob details when component mounts
   useEffect(() => {
     if (fileData) {
       if (fileData.project) {
         fetchProjectTags(fileData.project);
       }
       
-      // If we have a blobId, fetch its details directly
       if (fileData.blobId) {
         fetchBlobDetails(fileData.blobId);
         fetchBlobFields(fileData.blobId);
@@ -69,23 +65,18 @@ export default function EditMetadataPage() {
       
       const data = await response.json();
       
-      // Update local state with the fetched data
       if (data.tags && Array.isArray(data.tags)) {
         setSelectedTags(data.tags);
       }
       
-      // If we have project data but no project was selected yet, select it
       if (data.project && !fileData.project) {
-        // Update in context
         updateMetadata(fileIndex, {
           project: data.project.projectId.toString()
         });
         
-        // Also fetch tags for this project
         fetchProjectTags(data.project.projectId.toString());
       }
 
-      // Store metadata values if they exist
       if (data.metadata && typeof data.metadata === 'object') {
         setMetadataValues(data.metadata);
       }
@@ -111,9 +102,7 @@ export default function EditMetadataPage() {
       }
       const data = await response.json();
       
-      // Extract tags from project data
       if (data.suggestedTags && Array.isArray(data.suggestedTags)) {
-        // Create a map of tag names to tag IDs for quick lookup
         const tagMap: Record<string, number> = {};
         const tagNames: string[] = [];
         
@@ -126,7 +115,6 @@ export default function EditMetadataPage() {
         setProjectTagMap(tagMap);
       }
 
-      // Extract metadata fields
       if (data.metadataFields && Array.isArray(data.metadataFields)) {
         setMetadataFields(data.metadataFields);
       }
@@ -154,12 +142,10 @@ export default function EditMetadataPage() {
       
       const data = await response.json();
       
-      // Convert array of fields to a record object by field ID
       if (data.fields && Array.isArray(data.fields)) {
         const fieldValues: Record<number, any> = {};
         
         data.fields.forEach((field: { fieldId: number; fieldValue: string; fieldType: string }) => {
-          // Convert field value based on its type
           let typedValue: any = field.fieldValue;
           
           if (field.fieldType === "Number") {
@@ -181,12 +167,10 @@ export default function EditMetadataPage() {
   }
 
   async function handleTagSelection(tagName: string) {
-    // Add the tag if it's not already included
     if (!selectedTags.includes(tagName) && fileData && fileData.blobId) {
       setIsLoading(true);
       
       try {
-        // First, find the tag ID from the project tags
         const tagId = findTagIdByName(tagName);
         
         if (!tagId) {
@@ -195,7 +179,6 @@ export default function EditMetadataPage() {
           return;
         }
         
-        // Call API to assign the tag to the asset
         const token = localStorage.getItem("token");
         
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/palette/asset/tag`, {
@@ -217,10 +200,8 @@ export default function EditMetadataPage() {
         const data = await response.json();
         console.log("Tag assigned successfully:", data);
         
-        // Update local state with the new tag
         setSelectedTags([...selectedTags, tagName]);
         
-        // Also update the file metadata in context
         const updatedTags = [...fileData.tags, tagName];
         const updatedTagIds = [...fileData.tagIds, tagId];
         
@@ -236,15 +217,12 @@ export default function EditMetadataPage() {
     }
   }
   
-  // Helper function to find a tag ID by name
   function findTagIdByName(tagName: string): number | null {
-    // First check if we already have this tag in our file's tag list
     const existingTagIndex = fileData.tags.findIndex(tag => tag === tagName);
     if (existingTagIndex !== -1) {
       return fileData.tagIds[existingTagIndex];
     }
     
-    // Check in our project tag map
     return projectTagMap[tagName] || null;
   }
 
@@ -254,7 +232,6 @@ export default function EditMetadataPage() {
       return;
     }
     
-    // Find the tag ID corresponding to the tag name
     const tagIndex = fileData.tags.indexOf(tagToRemove);
     if (tagIndex === -1) {
       console.warn(`Tag "${tagToRemove}" not found in file metadata`);
@@ -263,7 +240,6 @@ export default function EditMetadataPage() {
     
     const tagIdToRemove = fileData.tagIds[tagIndex];
     
-    // Call API to delete the tag
     async function deleteTag() {
       setIsLoading(true);
       try {
@@ -293,10 +269,8 @@ export default function EditMetadataPage() {
         
         console.log(`Tag "${tagToRemove}" removed successfully`);
         
-        // Update local state to remove the tag
         setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
         
-        // Also update the file metadata in the context
         const updatedTags = [...fileData.tags];
         const updatedTagIds = [...fileData.tagIds];
         updatedTags.splice(tagIndex, 1);
@@ -325,7 +299,6 @@ export default function EditMetadataPage() {
   }
 
   function handleSave() {
-    // First update context with new metadata
     updateMetadata(fileIndex, {
       description,
       location,
@@ -333,11 +306,9 @@ export default function EditMetadataPage() {
       metadata: metadataValues,
     });
 
-    // Only proceed with API call if we have a project and blobId
     if (fileData.project && fileData.blobId) {
       saveMetadataToAPI();
     } else {
-      // If we don't have a project or blobId, just navigate back
       router.push("/palette");
     }
   }
@@ -347,7 +318,6 @@ export default function EditMetadataPage() {
     try {
       const token = localStorage.getItem("token");
       
-      // Convert metadata object to array format expected by API
       const metadataEntries = Object.entries(metadataValues).map(([fieldIdStr, value]) => {
         const fieldId = parseInt(fieldIdStr);
         return {
@@ -356,14 +326,12 @@ export default function EditMetadataPage() {
         };
       });
       
-      // Filter out empty entries
       const filteredMetadataEntries = metadataEntries.filter(entry => 
         entry.FieldValue !== undefined && 
         entry.FieldValue !== null && 
         entry.FieldValue !== ""
       );
       
-      // Ensure projectID is properly parsed as integer
       const projectIdInt = parseInt(fileData.project!);
       
       const response = await fetch(
@@ -391,18 +359,16 @@ export default function EditMetadataPage() {
       
       console.log("Metadata saved successfully");
       
-      // Navigate back to palette page
       router.push("/palette");
     } catch (error) {
       console.error("Error saving metadata:", error);
-      alert("Failed to save metadata. Please try again.");
+      toast.error("Failed to save metadata. Please try again.");
     } finally {
       setIsLoading(false);
     }
   }
 
   function handleEditImage() {
-    // Navigate to a new page under /palette/ for image editing
     if (!fileName) {
       console.error("File name is missing!");
       return;
@@ -410,17 +376,14 @@ export default function EditMetadataPage() {
     router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
   }
 
-  // Function to check if file is a video based on extension
   function isVideoFile(filename: string): boolean {
     const videoExtensions = ['.mp4', '.mov', '.avi', '.wmv', '.mkv', '.webm', '.flv', '.mpeg', '.mpg', '.m4v'];
     const extension = filename.substring(filename.lastIndexOf('.')).toLowerCase();
     return videoExtensions.includes(extension);
   }
 
-  // Check if current file is a video
   const isVideo = fileData.file.name ? isVideoFile(fileData.file.name) : false;
 
-  // Get file type icon and label
   const getFileTypeInfo = () => {
     if (isVideo) {
       return {
@@ -439,7 +402,6 @@ export default function EditMetadataPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b  py-10 px-4">
       <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-xl overflow-hidden">
-        {/* Header section with better styling */}
         <div className="bg-gradient-to-r from-blue-600 to-teal-500 px-6 py-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white">
             {isVideo ? "Video" : "Image"} Metadata Editor
@@ -450,9 +412,7 @@ export default function EditMetadataPage() {
           </div>
         </div>
         
-        {/* Main content */}
         <div className="p-6">
-          {/* File name card */}
           <div className="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
             <p className="text-sm font-medium text-gray-500 mb-1">
               FILE NAME
@@ -465,7 +425,6 @@ export default function EditMetadataPage() {
             </div>
           </div>
 
-          {/* Form fields */}
           <div className="space-y-6">
             <div className="bg-white border border-gray-200 rounded-lg p-4 transition-all hover:shadow-md">
               <label className="block text-sm font-medium text-gray-500 mb-2">Description</label>
@@ -547,7 +506,6 @@ export default function EditMetadataPage() {
               </div>
             )}
 
-            {/* Metadata Fields Section */}
             {fileData.project && metadataFields.length > 0 && (
               <div className="bg-white border border-gray-200 rounded-lg p-4 transition-all hover:shadow-md">
                 <h2 className="text-lg font-medium text-gray-700 mb-4">Project Metadata Fields</h2>
@@ -598,7 +556,6 @@ export default function EditMetadataPage() {
               </div>
             )}
 
-            {/* Action buttons with improved styling */}
             <div className="flex justify-center space-x-4 mt-8">
               <button
                 onClick={handleSave}

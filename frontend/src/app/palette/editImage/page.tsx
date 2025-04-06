@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
+import { toast } from "react-toastify";
 
 export default function EditImagePage() {
   const searchParams = useSearchParams();
@@ -170,7 +171,7 @@ export default function EditImagePage() {
           const blobId = fileData.blobId;
           
           if (!blobId) {
-            alert("Failed to identify blob ID - no blobId in file metadata");
+            toast.error("Failed to identify blob ID - no blobId in file metadata");
             return;
           }
 
@@ -201,15 +202,15 @@ export default function EditImagePage() {
             const result = await response.json();
             
             if (result.error) {
-              alert(`Error updating image: ${result.error}`);
+              toast.error(`Error updating image: ${result.error}`);
               return;
             }
 
-            alert("Image updated successfully! Returning to palette...");
+            toast.success("Image updated successfully! Returning to palette...");
             router.push("/palette"); // Return to palette
           } catch (error) {
             console.error("Error updating image:", error);
-            alert(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
         }
       }, fileData.file.type);
