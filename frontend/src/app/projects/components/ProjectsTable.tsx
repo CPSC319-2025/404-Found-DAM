@@ -380,6 +380,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           (admin: any) => admin.userID === user?.userID
         );
         setIsAdmin(adminFound);
+        const isSuperAdmin = user?.superadmin || false;
+        setIsAdmin(adminFound || isSuperAdmin);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
