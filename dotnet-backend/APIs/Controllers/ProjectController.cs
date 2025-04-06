@@ -18,7 +18,7 @@ namespace APIs.Controllers
 
         private const bool adminActionTrue = true;
 
-        private const bool logDebug = false;
+        private const bool logDebug = true;
         private const bool verboseLogs = false;
 
         public static void MapProjectEndpoints(this WebApplication app)
@@ -447,6 +447,49 @@ namespace APIs.Controllers
             try
             {
                 await projectService.DeleteAssetFromProject(projectID, blobId);
+                try { // add log
+                    var serviceProvider = GetServiceProvider(context);
+                    var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                    var userService = serviceProvider.GetRequiredService<IUserService>();
+
+                    int submitterID = Convert.ToInt32(context.Items["userId"]);
+                    var user = await userService.GetUser(submitterID);
+                    string username = user.Name;
+                    var projectName = await projectService.GetProjectNameByIdAsync(projectID);
+                    string theDescription = "";
+
+
+                    var assetName = await projectService.GetAssetNameByBlobIdAsync(blobId); // for activity log
+
+                    if (verboseLogs) {
+
+                        theDescription = $"{username} (User ID: {submitterID}) deleted asset (Blob ID: {blobId}) from project {projectName} (Project ID: {projectID})";
+                    } else {
+                        theDescription = $"{user.Email} deleted asset {assetName} from project {projectName}";
+                    }
+
+                    if (string.IsNullOrEmpty(assetName)) {
+                        Console.WriteLine("debug - error: asset name not found for blobId: {blobId}");
+                    }
+
+                    if (logDebug) {
+                        theDescription += "[Add Log called by ProjectController.DeleteAsset]";
+                        Console.WriteLine(theDescription);
+                    }
+
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = submitterID,
+                        changeType = "Deleted",
+                        description = theDescription,
+                        projID = projectID,
+                        assetID = blobId,
+                        isAdminAction = adminActionTrue
+                    });
+                } catch (Exception ex) { // error in add log
+                    Console.WriteLine("Failed to add log - ProjectController.DeleteAsset");
+
+                }
                 return Results.Ok(new { message = "Asset deleted successfully."});
             }
             catch (DataNotFoundException ex) {
