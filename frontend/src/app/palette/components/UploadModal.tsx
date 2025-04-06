@@ -609,6 +609,33 @@ export default function UploadModal({
                   }
                 } else {
                   handleConfirmUpload();
+                  // call add log endpoint to add the tags that have been added to this asset
+                  const addLogEndpoint = async () => {
+                    try {
+                      const token = localStorage.getItem("token");
+                      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/logs`, {
+                        method: "POST",
+                        headers: {
+                          Authorization: token ? `Bearer ${token}` : "",
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          action: "add_tags",
+                          tags: selectedTags,
+                          projectId: selectedProject,
+                          timestamp: new Date().toISOString(),
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        throw new Error(`Failed to log tags: ${response.status}`);
+                      }
+                    } catch (error) {
+                      console.error("Error logging tags:", error);
+                    }
+                  };
+
+                  addLogEndpoint();
                 }
               }}
               disabled={isUploading || 

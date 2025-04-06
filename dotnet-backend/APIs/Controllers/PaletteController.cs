@@ -185,14 +185,71 @@ namespace APIs.Controllers
         .WithOpenApi();
 
         // Assign all project tags to an asset
-        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService) =>
+        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService, HttpContext context) =>
         {
             try
             {
+                int userId = Convert.ToInt32(context.Items["userId"]);
+
+                if (string.IsNullOrEmpty(userId.ToString()))
+                {
+                    return Results.BadRequest("UserId is required");
+                }
                 var result = await paletteService.AssignProjectTagsToAssetAsync(request);
                 
                 if (result.Success)
                 {
+                    var serviceProvider = GetServiceProvider(context);
+                    var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                    var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                    var userService = serviceProvider.GetRequiredService<IUserService>();
+
+                    try
+                    {
+                        var tagNames = new List<string>();
+                        foreach (var tagId in result.AssignedTagIds)
+                        {
+                            var tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                            tagNames.Add(tagName);
+                        }
+
+                        var assetName = await paletteService.GetAssetNameByBlobIdAsync(request.BlobId);
+
+                        var user = await userService.GetUser(userId);
+                        string username = user.Name;
+
+                        string theDescription = "";
+                        if (verboseLogs)
+                        {
+                            theDescription = $"{username} (User ID: {userId}) assigned project tags [{string.Join(", ", tagNames)}] to Asset {assetName} (Asset ID: {request.BlobId})";
+                        }
+                        else
+                        {
+                            theDescription = $"{user.Email} assigned project tags ({string.Join(", ", tagNames)}) to {assetName}";
+                        }
+
+                        if (logDebug)
+                        {
+                            theDescription += "[Add Log called by PaletteController /palette/asset/project-tags]";
+                            Console.WriteLine(theDescription);
+                        }
+
+                        var logDto = new CreateActivityLogDto
+                        {
+                            userID = userId,
+                            changeType = "Assigned",
+                            description = theDescription,
+                            projID = request.ProjectId,
+                            assetID = request.BlobId,
+                            isAdminAction = AdminActionTrue
+                        };
+
+                        await activityLogService.AddLogAsync(logDto);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to add log - PaletteController /palette/asset/project-tags");
+                    }
                     return Results.Ok(result);
                 }
                 else
