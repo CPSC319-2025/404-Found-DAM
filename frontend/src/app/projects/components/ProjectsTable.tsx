@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import {
@@ -29,7 +29,7 @@ interface ProjectWithTags extends Project {
 
 interface PaginatedAssets {
   assets: Asset[];
-  assetIdNameList: { blobID: string, filename: string };
+  assetIdNameList: { blobID: string; filename: string };
   assetBlobSASUrlList: string[];
   pagination: PaginationType;
 }
@@ -37,14 +37,22 @@ interface PaginatedAssets {
 interface ItemsProps {
   currentItems?: any;
   openPreview: any;
-  downloadAssetConfirm: any,
+  downloadAssetConfirm: any;
+  deleteAsset: (asset: AssetWithSrc) => void;
+  isAdmin: boolean;
 }
 
 interface AssetWithSrc extends Asset {
   src?: string;
 }
 
-function Items({ currentItems, openPreview, downloadAssetConfirm }: ItemsProps) {
+function Items({
+  currentItems,
+  openPreview,
+  downloadAssetConfirm,
+  deleteAsset,
+  isAdmin,
+}: ItemsProps) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
       <div className="overflow-x-auto">
@@ -76,10 +84,7 @@ function Items({ currentItems, openPreview, downloadAssetConfirm }: ItemsProps) 
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {currentItems.map((asset: AssetWithSrc) => (
-              <tr
-                key={asset.blobID}
-                className="hover:bg-gray-50"
-              >
+              <tr key={asset.blobID} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {asset.filename}
@@ -132,6 +137,16 @@ function Items({ currentItems, openPreview, downloadAssetConfirm }: ItemsProps) 
                         <ArrowDownTrayIcon className="h-5 w-5" />
                       </span>
                     </button>
+                    {isAdmin && (
+                      <button
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => deleteAsset(asset)}
+                      >
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                          <TrashIcon className="h-5 w-5" />
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -143,20 +158,26 @@ function Items({ currentItems, openPreview, downloadAssetConfirm }: ItemsProps) 
   );
 }
 
-const downloadAssetWrapper = async (asset: AssetWithSrc, project: any, user: any) => {
+const downloadAssetWrapper = async (
+  asset: AssetWithSrc,
+  project: any,
+  user: any
+) => {
   try {
     toast.success("Starting download...");
     await downloadAsset(asset, project, user);
   } catch (e) {
     toast.error((e as Error).message);
   }
-}
+};
 
 const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const { user } = useUser();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<AssetWithSrc[]>([]);
+
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedTag, setSelectedTag] = useState<string>("");
@@ -175,11 +196,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [projectDescription, setProjectDescription] = useState<string>("");
 
   const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
-  const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
+  const [requestedDownloadAsset, setRequestedDownloadAsset] =
+    useState<any>(null);
 
   const downloadAssetConfirm = async (asset: any) => {
     setRequestedDownloadAsset(asset);
-    if (asset.mimetype.includes('image')) {
+    if (asset.mimetype.includes("image")) {
       setConfirmDownloadPopup(true);
     } else {
       downloadAssetWrapper(false);
@@ -283,12 +305,18 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
 
     return tags as string[];
-  }
+  };
 
-  const setAssetSrcs = (assets: AssetWithSrc[], assetBlobSASUrlList: string[]) => {
+  const setAssetSrcs = (
+    assets: AssetWithSrc[],
+    assetBlobSASUrlList: string[]
+  ) => {
     assets.forEach(async (asset: AssetWithSrc, index: number) => {
       try {
-        const src = (await getAssetFile(assetBlobSASUrlList[index], asset.mimetype || "")) as string;
+        const src = (await getAssetFile(
+          assetBlobSASUrlList[index],
+          asset.mimetype || ""
+        )) as string;
         setCurrentItems((prevItems: AssetWithSrc[]) =>
           prevItems.map((item: AssetWithSrc) =>
             item.blobID === asset.blobID ? { ...item, src } : item
@@ -298,7 +326,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         console.error(`Error loading asset ${asset.blobID}:`, error);
       }
     });
-  }
+  };
 
   const handlePageChange = (e: any, page: number) => {
     setCurrentPage(page);
@@ -307,6 +335,29 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       setTotalPages(totalPages);
       setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
     });
+  };
+
+  const handleDeleteAsset = async (asset: AssetWithSrc) => {
+    if (!window.confirm("Are you sure you want to delete this asset?")) {
+      return;
+    }
+    try {
+      const response = await fetchWithAuth(
+        `projects/${projectID}/assets/${asset.blobID}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete asset");
+      }
+      setCurrentItems((prev) =>
+        prev.filter((item: AssetWithSrc) => item.blobID !== asset.blobID)
+      );
+      toast.success("Asset deleted successfully");
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
   };
 
   useEffect(() => {
@@ -325,27 +376,30 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         setUsers(project.admins.concat(project.regularUsers));
         setProjectName(project.name!);
         setProjectDescription(project.description);
+        const adminFound = project.admins.some(
+          (admin: any) => admin.userID === user?.userID
+        );
+        setIsAdmin(adminFound);
+        const isSuperAdmin = user?.superadmin || false;
+        setIsAdmin(adminFound || isSuperAdmin);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
       });
-    getTags()
-      .then((tags: any) => {
-        setTags(tags);
-      })
+    getTags().then((tags: any) => {
+      setTags(tags);
+    });
   }, []);
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-4">
-        {"Project: " + projectName}
-      </h1>
-      <h6 className="mb-4">
-        {"Description: " + projectDescription}
-      </h6>
+      <h1 className="text-2xl font-bold mb-4">{"Project: " + projectName}</h1>
+      <h6 className="mb-4">{"Description: " + projectDescription}</h6>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <label className="text-gray-700 text-sm font-medium">Filter by User</label>
+          <label className="text-gray-700 text-sm font-medium">
+            Filter by User
+          </label>
           <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -362,7 +416,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           </div>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <label className="text-gray-700 text-sm font-medium">Filter by Tag</label>
+          <label className="text-gray-700 text-sm font-medium">
+            Filter by Tag
+          </label>
           <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -379,7 +435,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           </div>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <label className="text-gray-700 text-sm font-medium">Filter by Asset Type</label>
+          <label className="text-gray-700 text-sm font-medium">
+            Filter by Asset Type
+          </label>
           <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
             <select
               className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -393,7 +451,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           </div>
         </div>
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
-          <label className="text-gray-700 text-sm font-medium">Start Date</label>
+          <label className="text-gray-700 text-sm font-medium">
+            Start Date
+          </label>
           <input
             type="date"
             className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -412,7 +472,13 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           />
         </div>
       </div>
-      <Items currentItems={currentItems} openPreview={openPreview} downloadAssetConfirm={downloadAssetConfirm} />
+      <Items
+        currentItems={currentItems}
+        openPreview={openPreview}
+        downloadAssetConfirm={downloadAssetConfirm}
+        deleteAsset={handleDeleteAsset}
+        isAdmin={isAdmin}
+      />
       <Pagination
         count={totalPages}
         page={currentPage}

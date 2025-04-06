@@ -40,6 +40,10 @@ namespace APIs.Controllers
                .WithName("GetMyProjects")
                .WithOpenApi();
 
+            app.MapDelete("/projects/{projectID}/assets/{blobId}", DeleteAsset)
+               .WithName("DeleteAsset")
+               .WithOpenApi();
+
 
         }
 
@@ -483,6 +487,26 @@ namespace APIs.Controllers
             int userId = Convert.ToInt32(context.Items["userId"]);
             List<GetProjectRes> result = await projectService.GetMyProjects(userId);
             return Results.Ok(result);
+        }
+        
+        private static async Task<IResult> DeleteAsset(int projectID, string blobId, IProjectService projectService, HttpContext context)
+        {
+            try
+            {
+                await projectService.DeleteAssetFromProject(projectID, blobId);
+                return Results.Ok(new { message = "Asset deleted successfully."});
+            }
+            catch (DataNotFoundException ex) {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex) 
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
         }
         
     }
