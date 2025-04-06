@@ -84,6 +84,7 @@ export default function PalettePage() {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [pageSize] = useState<number>(6);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [bgUploadInProgress, setBgUploadInProgress] = useState<boolean>(false);
 
   // Update selectedIndices when files or selectedBlobIds change
   useEffect(() => {
@@ -995,6 +996,84 @@ export default function PalettePage() {
     );
   }, [files, currentPage, router, selectedBlobIds]);
 
+  // Check for background uploads
+  useEffect(() => {
+    const checkBackgroundUploads = () => {
+      const inProgress = localStorage.getItem('bgUploadInProgress');
+      setBgUploadInProgress(inProgress === 'true');
+    };
+    
+    // Check immediately on mount
+    checkBackgroundUploads();
+    
+    // Then check periodically
+    const interval = setInterval(checkBackgroundUploads, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Check for newly uploaded files periodically
+  useEffect(() => {
+    const checkForNewFiles = () => {
+      const hasNewFiles = localStorage.getItem('paletteHasNewFiles');
+      if (hasNewFiles === 'true') {
+        console.log('New files detected, available for refresh');
+        // Don't clear the flag until user decides to refresh
+        // localStorage.removeItem('paletteHasNewFiles');
+        
+        // Instead of auto-refreshing, show a refresh button
+        setBgUploadInProgress(false);
+        setUploadStatus('New files have been uploaded. Refresh to view them.');
+      }
+    };
+    
+    // Check immediately on mount
+    checkForNewFiles();
+    
+    // Then check periodically (every 3 seconds)
+    const interval = setInterval(checkForNewFiles, 3000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Handle manual refresh after upload
+  const handleRefreshAfterUpload = useCallback(() => {
+    // Clear the flags
+    localStorage.removeItem('paletteHasNewFiles');
+    localStorage.removeItem('uploadStatus');
+    
+    // Set loading state
+    setIsLoading(true);
+    
+    // Load the first page to show new files
+    setCurrentPage(1);
+    loadAssets(1);
+    
+    // Clear status
+    setUploadStatus('');
+  }, [loadAssets]);
+  
+  // Listen for upload status updates from localStorage
+  useEffect(() => {
+    const checkUploadStatus = () => {
+      const status = localStorage.getItem('uploadStatus');
+      const progress = localStorage.getItem('uploadProgress');
+      
+      if (status) {
+        setUploadStatus(status);
+      }
+      
+      if (progress) {
+        setUploadProgress(parseInt(progress, 10));
+      }
+    };
+    
+    // Check frequently for smoother progress updates
+    const interval = setInterval(checkUploadStatus, 300);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b p-6">
       <div className="max-w-8xl mx-auto"> 
@@ -1137,6 +1216,30 @@ export default function PalettePage() {
                   Yes, Delete All Selected
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {uploadStatus === 'New files have been uploaded. Refresh to view them.' && (
+          <div className="fixed bottom-4 right-4 bg-white text-gray-800 p-4 rounded-lg shadow-lg z-50 flex items-center">
+            <span className="mr-3">{uploadStatus}</span>
+            <button 
+              onClick={handleRefreshAfterUpload}
+              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
+
+        {uploadStatus && uploadStatus.includes('Uploading') && (
+          <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50 w-80">
+            <p className="text-sm font-medium mb-2">{uploadStatus}</p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-teal-500 h-2.5 rounded-full transition-all duration-300" 
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
           </div>
         )}
