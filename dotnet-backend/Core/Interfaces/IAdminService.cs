@@ -14,6 +14,6 @@ namespace Core.Interfaces
         Task<AddUsersToProjectRes> AddUsersToProject(int reqeusterID, int projectID, AddUsersToProjectReq req);
         Task<DeleteUsersFromProjectRes> DeleteUsersFromProject(int reqeusterID, int projectID, DeleteUsersFromProjectReq req);
         Task<(string, string, byte[])> ExportProject(int projectID, int requesterID);
-        Task<ImportProjectRes> ImportProject(Stream stream);
+        Task<ImportProjectRes> ImportProject(Stream stream, int requesterID);
     }
 }

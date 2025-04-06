@@ -158,7 +158,7 @@ namespace APIs.Controllers
                     using var memoryStream = new MemoryStream();   
                     await file.CopyToAsync(memoryStream);
                     memoryStream.Seek(0, SeekOrigin.Begin); // Reset the memory stream's position.
-                    ImportProjectRes result = await adminService.ImportProject(memoryStream);
+                    ImportProjectRes result = await adminService.ImportProject(memoryStream, requesterID);
 
                     GetProjectRes project = result.importedProjectInfo;
 
