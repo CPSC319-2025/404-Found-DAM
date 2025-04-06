@@ -18,7 +18,7 @@ namespace APIs.Controllers
 
         private const bool adminActionTrue = true;
 
-        private const bool logDebug = true;
+        private const bool logDebug = false;
         private const bool verboseLogs = false;
 
         public static void MapProjectEndpoints(this WebApplication app)
@@ -446,6 +446,7 @@ namespace APIs.Controllers
         {
             try
             {
+                var assetName = await projectService.GetAssetNameByBlobIdAsync(blobId); // for activity log. Fix Bug: must call this before calling DeleteAssetFromProject in order to save the assetName before deleting it
                 await projectService.DeleteAssetFromProject(projectID, blobId);
                 try { // add log
                     var serviceProvider = GetServiceProvider(context);
@@ -459,7 +460,7 @@ namespace APIs.Controllers
                     string theDescription = "";
 
 
-                    var assetName = await projectService.GetAssetNameByBlobIdAsync(blobId); // for activity log
+                    
 
                     if (verboseLogs) {
 
