@@ -9,7 +9,7 @@ namespace APIs.Controllers
     {
         private const bool AdminActionTrue = true;
 
-        private const bool logDebug = true;
+        private const bool logDebug = false;
 
         private const bool verboseLogs = false;
 
@@ -147,9 +147,9 @@ namespace APIs.Controllers
                         string theDescription = "";
 
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {userID}) assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
+                            theDescription = $"{username} (User ID: {userID}) assigned tags ({tagName}) (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
                         } else {
-                            theDescription = $"{user.Email} assigned tag {tagName} to {assetName}";
+                            theDescription = $"{user.Email} assigned tags ({tagName}) to {assetName}";
                         }
 
                         if (logDebug) {
