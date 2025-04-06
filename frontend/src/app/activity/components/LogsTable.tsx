@@ -1,15 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-// import Image from "next/image";
-// import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
   PencilIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   PlusIcon,
-  // DownloadIcon,
-  // UploadIcon,
+  ArrowDownTrayIcon,
   ArrowUpOnSquareIcon,
   TrashIcon,
   ArchiveBoxArrowDownIcon,
@@ -18,6 +15,7 @@ import Pagination from "@mui/material/Pagination";
 import { User, Project, Asset, Log, Pagination as PaginationType } from "@/app/types";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { convertUtcToLocal } from "@/app/utils/api/getLocalTime";
+import { getEndOfDayUtc, getStartOfDayUtc } from "@/app/utils/api/localToUtc";
 
 interface PaginatedLogs extends PaginationType {
   data: Log[];
@@ -26,6 +24,19 @@ interface PaginatedLogs extends PaginationType {
 interface ItemsProps {
   currentItems?: Log[];
 }
+
+const changeTypes = [
+  { value: "Create", icon: <PlusIcon className="w-4 h-4 text-blue-400"/> },
+  { value: "Updated", icon: <PencilIcon className="w-4 h-4 text-blue-400"/> },
+  { value: "Uploaded", icon: <ArrowUpOnSquareIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Added", icon: <PlusIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Import", icon: <ArrowDownIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Export", icon: <ArrowUpIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Archived", icon: <ArchiveBoxArrowDownIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Deleted", icon: <TrashIcon className="w-4 h-4 text-blue-400"/>},
+  { value: "Downloaded", icon: <ArrowDownTrayIcon className="w-4 h-4 text-blue-400"/>}
+  // { value: "Other", icon: <ArrowDownIcon className="w-4 h-4 text-blue-400"/>},
+]
 
 function getIconForChangeType(changeType: string) {
   switch (changeType) {
@@ -38,13 +49,15 @@ function getIconForChangeType(changeType: string) {
     case 'Added':
       return <PlusIcon className="w-8 h-8 text-blue-400" />;
     case 'Import':
-      return <PlusIcon className="w-8 h-8 text-blue-400" />;
+      return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
     case 'Export':
       return <ArrowUpIcon className="w-8 h-8 text-blue-400" />;
     case 'Archived':
       return <ArchiveBoxArrowDownIcon className="w-8 h-8 text-blue-400" />;
     case 'Deleted':
       return <TrashIcon className="w-8 h-8 text-blue-400" />;
+    case 'Downloaded':
+      return <ArrowDownTrayIcon className="w-8 h-8 text-blue-400" />;
     default:
       return <ArrowDownIcon className="w-8 h-8 text-blue-400" />;
   }
@@ -84,6 +97,7 @@ const LogsTable = () => {
 
   const [selectedUser, setSelectedUser] = useState<number>(0);
   const [selectedProject, setSelectedProject] = useState<number>(0);
+  const [selectedChangeType, setSelectedChangeType] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -94,11 +108,14 @@ const LogsTable = () => {
     const queryParams = new URLSearchParams({
       pageSize: String(10),
       pageNumber: String(page)
-    })
+    });
 
-    if (startDate && endDate) {
-      queryParams.append("start", startDate);
-      queryParams.append("end", endDate);
+    if (startDate) {
+      queryParams.append("start", getStartOfDayUtc(startDate));
+    }
+
+    if (endDate) {
+      queryParams.append("end", getEndOfDayUtc(endDate));
     }
 
     if (selectedUser !== 0) {
@@ -106,6 +123,10 @@ const LogsTable = () => {
     }
     if (selectedProject !== 0) {
       queryParams.append("projectID", String(selectedProject));
+    }
+
+    if (selectedChangeType !== "") {
+      queryParams.append("changeType", String(selectedChangeType));
     }
 
     const response = await fetchWithAuth(
@@ -159,7 +180,7 @@ const LogsTable = () => {
   useEffect(() => {
     setCurrentPage(1);
     getAllData(1);
-  }, [selectedUser, selectedProject, startDate, endDate]);
+  }, [selectedUser, selectedProject, selectedChangeType, startDate, endDate]);
 
   const getAllData = async (page: number) => {
     const projects = await getProjects();
@@ -191,7 +212,7 @@ const LogsTable = () => {
             <option value="">Select User</option>
             {users.map((user: User) => (
               <option key={user.userID} value={user.userID}>
-                {user.name} ({user.email})
+                {user.name}
               </option>
             ))}
           </select>
@@ -206,7 +227,22 @@ const LogsTable = () => {
             <option value="">Select Project</option>
             {projects.map((project: Project) => (
               <option key={project.projectID} value={project.projectID}>
-                {project.projectName} (ID: {project.projectID})
+                {project.projectName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
+          <label className="text-gray-700 text-sm font-medium">Filter by Log Type</label>
+          <select
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedChangeType}
+            onChange={(e) => setSelectedChangeType(e.target.value)}
+          >
+            <option value="">Select Log Type</option>
+            {changeTypes.map((changeType: any) => (
+              <option key={changeType.value} value={changeType.value}>
+                {changeType.value}
               </option>
             ))}
           </select>

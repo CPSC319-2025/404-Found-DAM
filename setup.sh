@@ -62,12 +62,12 @@ fi
 # Start/Restart MySQL Docker Container
 #############################################
 
-echo "Starting MySQL container"
-# Check if container is already running
-CONTAINER_NAME="mssql-server"
-docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d --name $CONTAINER_NAME mcr.microsoft.com/mssql/server:2019-latest
-echo "Waiting for MySQL to initialize (this may take a few seconds)..."
-sleep 30
+# echo "Starting MySQL container"
+# # Check if container is already running
+# CONTAINER_NAME="mssql-server"
+# docker run --platform linux/amd64 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d --name $CONTAINER_NAME mcr.microsoft.com/mssql/server:2019-latest
+# echo "Waiting for MySQL to initialize (this may take a few seconds)..."
+# sleep 30
 
 #############################################
 # Verify Node and npm Versions for React Frontend
@@ -96,18 +96,6 @@ else
     echo "npm version v$installed_npm is as expected."
 fi
 
-
-
-echo "Setup ef core tool and update database using the commented out commands commands in setup.sh "
-# dotnet tool install --global dotnet-ef
-# copy paste the exporting path to bash_profile at the buttom of dotnet tool install --global dotnet-ef
-dotnet ef database update --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
-
-
-#############################################
-# Final Message
-#############################################
-echo "--------------------------------------------------"
-echo "Setup complete!"
-echo "Remember to update your backend code to connect to MySQL using the connection string in appsettings.json."
-echo "--------------------------------------------------"
+echo "Installing dotnet-ef..."
+dotnet tool install --global dotnet-ef
+echo "Copy paste the exporting path to bash_profile or zsh_profile at the buttom of dotnet tool install --global dotnet-ef"

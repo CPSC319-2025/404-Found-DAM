@@ -1,4 +1,5 @@
 import { User } from "@/app/types";
+import { FileMetadata } from "@/app/context/FileContext";
 /**
  * Interface for project information
  */

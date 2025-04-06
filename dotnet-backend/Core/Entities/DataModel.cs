@@ -120,22 +120,29 @@ namespace Core.Entities
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // Auto-increment identity
-
+        [Column("ChangeID")]
         public int ChangeID { get; set; } // formerly: LogID
         
+        [Column("ChangeType")]
         public required string ChangeType { get; set; } // formerly: Action
 
+        [Column("Description")]
         public required string Description { get; set; }
 
+        [Column("ProjectID")]
         public int ProjectID { get; set; }
 
+        [Column("AssetID")]
         public string AssetID { get; set; }
         
+        [Column("Timestamp")]
         public DateTime Timestamp { get; set; }
         
         // Foreign key
+        [Column("UserID")]
         public int UserID { get; set; }
 
+        [Column("IsAdminAction")]
         public bool IsAdminAction { get; set; }
         
         // Navigation property

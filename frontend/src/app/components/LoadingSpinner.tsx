@@ -5,6 +5,7 @@ import React from "react";
 interface LoadingSpinnerProps {
   message?: string;
   size?: number;
+  className?: string;
 }
 
 export default function LoadingSpinner({
