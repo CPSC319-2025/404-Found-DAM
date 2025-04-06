@@ -147,9 +147,9 @@ namespace APIs.Controllers
                         string theDescription = "";
 
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {userID}) assigned tag {tagName} (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
+                            theDescription = $"{username} (User ID: {userID}) assigned tags ({tagName}) (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
                         } else {
-                            theDescription = $"{user.Email} assigned tag {tagName} to {assetName}";
+                            theDescription = $"{user.Email} assigned tags ({tagName}) to {assetName}";
                         }
 
                         if (logDebug) {
@@ -185,14 +185,71 @@ namespace APIs.Controllers
         .WithOpenApi();
 
         // Assign all project tags to an asset
-        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService) =>
+        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService, HttpContext context) =>
         {
             try
             {
+                int userId = Convert.ToInt32(context.Items["userId"]);
+
+                if (string.IsNullOrEmpty(userId.ToString()))
+                {
+                    return Results.BadRequest("UserId is required");
+                }
                 var result = await paletteService.AssignProjectTagsToAssetAsync(request);
                 
                 if (result.Success)
                 {
+                    var serviceProvider = GetServiceProvider(context);
+                    var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                    var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                    var userService = serviceProvider.GetRequiredService<IUserService>();
+
+                    try
+                    {
+                        var tagNames = new List<string>();
+                        foreach (var tagId in result.AssignedTagIds)
+                        {
+                            var tagName = await paletteService.GetTagNameByIdAsync(tagId);
+                            tagNames.Add(tagName);
+                        }
+
+                        var assetName = await paletteService.GetAssetNameByBlobIdAsync(request.BlobId);
+
+                        var user = await userService.GetUser(userId);
+                        string username = user.Name;
+
+                        string theDescription = "";
+                        if (verboseLogs)
+                        {
+                            theDescription = $"{username} (User ID: {userId}) assigned project tags [{string.Join(", ", tagNames)}] to Asset {assetName} (Asset ID: {request.BlobId})";
+                        }
+                        else
+                        {
+                            theDescription = $"{user.Email} assigned project tags ({string.Join(", ", tagNames)}) to {assetName}";
+                        }
+
+                        if (logDebug)
+                        {
+                            theDescription += "[Add Log called by PaletteController /palette/asset/project-tags]";
+                            Console.WriteLine(theDescription);
+                        }
+
+                        var logDto = new CreateActivityLogDto
+                        {
+                            userID = userId,
+                            changeType = "Assigned",
+                            description = theDescription,
+                            projID = request.ProjectId,
+                            assetID = request.BlobId,
+                            isAdminAction = AdminActionTrue
+                        };
+
+                        await activityLogService.AddLogAsync(logDto);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to add log - PaletteController /palette/asset/project-tags");
+                    }
                     return Results.Ok(result);
                 }
                 else
@@ -564,53 +621,55 @@ namespace APIs.Controllers
 
 
                  // add log (done)
-                try {
+                // if (false) { // duplicate of ProjectController.AssociateAssetsWithProject. update: no longer duplicate. here, we will log when an assset is eventually submitted to a project (the AssocaiteAssetsWithProject is called whenever the user uses the dropdown menu to switch projects for an asset on the palette page, but hasn't finalied it yet by clicking "submit")
+                    try {
 
-                    foreach (var blobID in req.blobIDs)
-                    {
-                        string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
-
-                        
-                        string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
-
-                        var user = await userService.GetUser(submitterID);
-                        string username = user.Name;
-                        string theDescription = "";
-
-                        if (verboseLogs) {
-
-                            theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
-                        } else {
-                            theDescription = $"{user.Email} added {assetName} into project {projectName}";
-                        }
-
-                        if (logDebug) {
-                            theDescription += "[Add Log called by PaletteController.SubmitAssets]";
-                            Console.WriteLine(theDescription);
-                        }
-
-                        var logDto = new CreateActivityLogDto
+                        foreach (var blobID in req.blobIDs)
                         {
-                            userID = submitterID,
-                            changeType = "Added",
-                            description = theDescription,
-                            projID = projectID,
-                            assetID = blobID,
-                            isAdminAction = !AdminActionTrue
-                        };
+                            string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobID);
 
-                        await activityLogService.AddLogAsync(logDto);
+                            
+                            string projectName = await paletteService.GetProjectNameByIdAsync(projectID);
+
+                            var user = await userService.GetUser(submitterID);
+                            string username = user.Name;
+                            string theDescription = "";
+
+                            if (verboseLogs) {
+
+                                theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                            } else {
+                                theDescription = $"{user.Email} added {assetName} into project {projectName}";
+                            }
+
+                            if (logDebug) {
+                                theDescription += "[Add Log called by PaletteController.SubmitAssets]";
+                                Console.WriteLine(theDescription);
+                            }
+
+                            var logDto = new CreateActivityLogDto
+                            {
+                                userID = submitterID,
+                                changeType = "Added",
+                                description = theDescription,
+                                projID = projectID,
+                                assetID = blobID,
+                                isAdminAction = !AdminActionTrue
+                            };
+
+                            await activityLogService.AddLogAsync(logDto);
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine($"Failed to add log - Add Log called by PaletteController.SubmitAssets: {ex.Message}");
+                        // return Results.Problem
+                        // (
+                        //     detail: ex.Message,
+                        //     statusCode: 500,
+                        //     title: "Internal Server Error"
+                        // );
                     }
-                } catch (Exception ex) {
-                    Console.WriteLine($"An error occurred: {ex.Message}");
-                    return Results.Problem
-                    (
-                        detail: ex.Message,
-                        statusCode: 500,
-                        title: "Internal Server Error"
-                    );
-                }
-                 return Results.Ok(result);
+                // }
+                return Results.Ok(result);
              }
 
              catch (DataNotFoundException ex)
