@@ -627,7 +627,6 @@ export default function UploadModal({
                   //       }),
                   //     });
 
-                  };
                   //     if (!response.ok) {
                   //       throw new Error(`Failed to log tags: ${response.status}`);
                   //     }
