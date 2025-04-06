@@ -589,5 +589,17 @@ namespace Infrastructure.DataAccess
             }
             await context.SaveChangesAsync();
         }
+
+        public async Task DeleteAssetFromProjectInDb(int projectID, string blobId)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.ProjectID == projectID && a.BlobID == blobId) 
+                ?? throw new DataNotFoundException($"Asset with BlobID '{blobId}' in project {projectID} not found.");
+            _context.Assets.Remove(asset);
+            
+            await _context.SaveChangesAsync();
+        }
     }
 }
