@@ -22,6 +22,10 @@ export type FileMetadata = {
   duration?: number; // For videos
   project?: string; // Each file can store its own project name
   blobId?: string;
+  metadata?: Record<number, any>; // For custom metadata fields
+  url?: string; // Direct object URL for image display
+  blobUri?: string; // URI to fetch the blob from the server
+  isLoaded?: boolean; // Flag to indicate if file content has been loaded
 };
 
 type FileContextType = {

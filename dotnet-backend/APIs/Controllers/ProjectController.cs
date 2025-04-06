@@ -15,7 +15,6 @@ namespace APIs.Controllers
         private const string DefaultAssetType = "image";
         private const int DefaultPageNumber = 1;
         private  const int DefaultPageSize = 10;
-        private const int MOCKEDUSERID = 1;
 
         private const bool adminActionTrue = true;
 
@@ -30,7 +29,6 @@ namespace APIs.Controllers
             app.MapGet("/projects/{projectID}/assets/pagination", GetPaginatedProjectAssets).WithName("GetPaginatedProjectAssets").WithOpenApi();
             app.MapGet("/projects/", GetAllProjects).WithName("GetAllProjects").WithOpenApi();
             app.MapPatch("/projects/{projectID}/associate-assets", AssociateAssetsWithProject).WithName("AssociateAssetsWithProject").WithOpenApi();
-            app.MapGet("/project/{projectID}/asset-files/storage/{blobID}/{filename}", GetAssetFileFromStorage).WithName("GetAssetFileFromStorageReq").WithOpenApi();
 
             // TODO: Return mocked data currently
             // app.MapGet("/projects/logs", GetArchivedProjectLogs).WithName("GetArchivedProjectLogs").WithOpenApi();
@@ -54,8 +52,11 @@ namespace APIs.Controllers
         private static async Task<IResult> GetPaginatedProjectAssets
         (
             int projectID, 
+            HttpContext context,
             int? postedBy,
-            int? tagID,
+            string? tagName,
+            DateTime? fromDate,
+            DateTime? toDate,
 
             IProjectService projectService,
             string assetType = DefaultAssetType,
@@ -64,7 +65,7 @@ namespace APIs.Controllers
         )
         {
             // TODO: Get requester's ID and replace
-            int requesterID = MOCKEDUSERID; 
+            int requesterID = Convert.ToInt32(context.Items["userId"]); 
             // Validate user input
             if (pageNumber <= 0 || assetsPerPage <= 0)
             {
@@ -81,7 +82,9 @@ namespace APIs.Controllers
                     pageNumber = pageNumber,
                     assetsPerPage = assetsPerPage,
                     postedBy = postedBy,
-                    tagID = tagID
+                    tagName = tagName,
+                    fromDate = fromDate,
+                    toDate = toDate
                 };
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
@@ -97,11 +100,20 @@ namespace APIs.Controllers
             }  
         }
 
-        private static async Task<IResult> GetProject(int projectID, IProjectService projectService)
+        private static async Task<IResult> GetProject(int projectID, IProjectService projectService, ITagRepository tagRepository)
         {
             try 
             {
                 GetProjectRes result = await projectService.GetProject(projectID);
+                
+                // Get all tags to include as suggested tags
+                var allTags = await tagRepository.GetTagsAsync();
+                result.suggestedTags = allTags.Select(t => new TagCustomInfo
+                {
+                    tagID = t.TagID,
+                    name = t.Name
+                }).ToList();
+                
                 return Results.Ok(result);
             }
             catch (DataNotFoundException ex) 
@@ -186,9 +198,9 @@ namespace APIs.Controllers
                         var projectName = project.name;
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {submitterID}) archived project {projectName} (Project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {submitterID}) archived project '{projectName}' (Project ID: {projectID})";
                         } else {
-                            theDescription = $"{user.Email} archived project {projectName}";
+                            theDescription = $"{user.Email} archived project '{projectName}'";
                         }
 
                         if (logDebug) {
@@ -245,11 +257,7 @@ namespace APIs.Controllers
                     return Results.BadRequest("Project ID mismatch between route and request body.");
                 }
 
-                int submitterId = MOCKEDUSERID; // Replace with the authenticated user ID in production.
-
-                
-
-
+                int submitterId = Convert.ToInt32(context.Items["userId"]);
 
                 AssociateAssetsWithProjectRes result = await projectService.AssociateAssetsWithProject(request, submitterId);
                 var user = await userService.GetUser(submitterId);
@@ -307,7 +315,7 @@ namespace APIs.Controllers
             {
                 var result = await projectService.UpdateProject(projectID, req);
 
-                int submitterID = MOCKEDUSERID;
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
 
                 if (activityLogService == null) {
                     return Results.StatusCode(500);
@@ -423,32 +431,6 @@ namespace APIs.Controllers
             }
         }
 
-
-        private static async Task<IResult> GetAssetFileFromStorage(int projectID, string blobID, string filename, IProjectService projectService)
-        {
-            int requesterID = MOCKEDUSERID;
-            try 
-            {
-                (byte[] fileContent, string fileDownloadName) = await projectService.GetAssetFileFromStorage(projectID, blobID, filename, requesterID);
-                return Results.File(
-                    fileContents: fileContent,
-                    contentType: "application/zstd", 
-                    fileDownloadName: fileDownloadName
-                );
-            }
-            catch (DataNotFoundException ex)
-            {
-                return Results.NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(
-                detail: ex.Message,
-                statusCode: 500,
-                title: "Internal Server Error"
-                );
-            }
-        }        
         private static async Task<IResult> GetMyProjects(IProjectService projectService, HttpContext context)
         {
             int userId = Convert.ToInt32(context.Items["userId"]);

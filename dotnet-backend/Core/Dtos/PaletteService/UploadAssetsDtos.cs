@@ -21,5 +21,6 @@ namespace Core.Dtos
         public required string FileName { get; set; }
         public required double SizeInKB { get; set; }
         public required bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

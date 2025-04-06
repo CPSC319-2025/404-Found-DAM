@@ -7,25 +7,11 @@ namespace APIs.Controllers
 {
     public static class PaletteController
     {
-        private const int MOCKEDUSERID = 1;
-
         private const bool AdminActionTrue = true;
 
         private const bool logDebug = false;
 
         private const bool verboseLogs = false;
-
-        // PUT /palette/assets/{assetId} edit asset in the pallete
-        // DELETE /projects/assign-assets  delete an asset from palette
-
-        // private static IActivityLogService _activityLogService;
-        // private static IUserService _userService;
-        // public static void Initialize(IActivityLogService activityLogService, IUserService userService)
-        // {
-        //     _activityLogService = activityLogService;
-        //     _userService = userService;
-
-        // }
 
         private static IServiceProvider GetServiceProvider(HttpContext context)
         {
@@ -36,20 +22,22 @@ namespace APIs.Controllers
         public static void MapPaletteEndpoints(this WebApplication app)
         {
             // assets already in the pallete
-        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService) =>
+        app.MapGet("/palette/assets", async (HttpRequest request, IPaletteService paletteService, HttpContext context) =>
         {
-            return await GetPaletteAssets(request, paletteService);
+            return await GetPaletteAssets(request, paletteService, context);
         })
         .WithName("GetPaletteAssets")
         .WithOpenApi();
 
-        // Get a specific asset by blobId
-        app.MapGet("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
+        // Update an existing asset by blobId
+        app.MapPut("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
         {
-            return await GetSingleAsset(blobId, request, paletteService);
+            return await UpdateAsset(blobId, request, paletteService);
         })
-        .WithName("GetSingleAsset")
+        .WithName("UpdateAsset")
         .WithOpenApi();
+
+        
 
         app.MapPost("/palette/upload", async (HttpRequest request, IPaletteService paletteService, HttpContext context) =>
         {
@@ -65,30 +53,13 @@ namespace APIs.Controllers
         })
         .WithName("DeletePaletteAsset")
         .WithOpenApi();
-        // update the images in the palette with the selected project tags
-        // app.MapPatch("/palette/images/tags", async (AssignTagsToPaletteReq request, IPaletteService paletteService, ILogger<Program> logger) => 
-        // {
-        //     var result = await paletteService.AddTagsToPaletteImagesAsync(request.ImageIds, request.ProjectId);
-        //     if (result) {
-        //         return Results.Ok(new {
-        //             status = "success",
-        //             projectId = request.ProjectId,
-        //             updatedImages = request.ImageIds,
-        //             message = "Tags successfully added to selected images in the palette."
-        //         });
-        //     } else {
-        //         Console.WriteLine($"Failed to assign project tags to images for ProjectId {result}.");
-        //         return Results.NotFound("Failed to assign project tags to images");
-        //     }
-        // })
-        // .WithName("ModifyTags")
-        // .WithOpenApi();
 
         // Get project and tags by blob id
         app.MapGet("/palette/blob/{blobId}/details", async (string blobId, IPaletteService paletteService) =>
         {
             try
             {
+                // int userID = Convert.ToInt32(context.Items["userId"]);
                 var result = await paletteService.GetBlobProjectAndTagsAsync(blobId); //also returns tag id in the same order a s tag
                 return Results.Ok(result);
             }
@@ -105,17 +76,43 @@ namespace APIs.Controllers
         .WithName("GetBlobProjectAndTags")
         .WithOpenApi();
 
+        // Get all fields (field IDs and values) for a specific blob ID
+        app.MapGet("/palette/blob/{blobId}/fields", async (string blobId, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.GetBlobFieldsAsync(blobId);
+                return Results.Ok(result);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving blob fields: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("GetBlobFields")
+        .WithOpenApi();
+
         //     // assign assets in the palette
         //     app.MapPost("/projects/assign-assets", AssignAssetsToProjects).WithName("AssignAssetsToProjects").WithOpenApi();
  
         //    // upload assets permanently
         //     app.MapPost("/projects/upload-assets", UploadAssets).WithName("UploadAssets").WithOpenApi();
 
-        app.MapPatch("/palette/{projectID}/submit-assets", SubmitAssets).WithName("SubmitAssets").WithOpenApi();
+        app.MapPatch("/palette/{projectID}/submit-assets", async (int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context, HttpRequest request) => 
+        {
+            // Read the autoNaming query parameter
+            bool autoNaming = request.Query.ContainsKey("Auto");
+            return await SubmitAssets(projectID, req, paletteService, context, autoNaming);
+        }).WithName("SubmitAssets").WithOpenApi();
 
-         app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
-               .WithName("RemoveTagsFromAssets")
-               .WithOpenApi();
+        app.MapPatch("/palette/assets/tags", RemoveTagsFromAssets)
+            .WithName("RemoveTagsFromAssets")
+            .WithOpenApi();
 
         // Add single tag to asset
         app.MapPost("/palette/asset/tag", async (AssignTagToAssetReq request, IPaletteService paletteService, HttpContext context) =>
@@ -137,7 +134,7 @@ namespace APIs.Controllers
                 if (result.Success)
                 {
                     // add log (DONE)
-                    int userID = MOCKEDUSERID;
+                    int userID = Convert.ToInt32(context.Items["userId"]);
 
                     // await _activityLogService.AddLogAsync(userID, "Assigned", "", request.TagId, BlobId)
 
@@ -187,12 +184,37 @@ namespace APIs.Controllers
         .WithName("AssignTagToAsset")
         .WithOpenApi();
 
+        // Assign all project tags to an asset
+        app.MapPost("/palette/asset/project-tags", async (AssignProjectTagsToAssetReq request, IPaletteService paletteService) =>
+        {
+            try
+            {
+                var result = await paletteService.AssignProjectTagsToAssetAsync(request);
+                
+                if (result.Success)
+                {
+                    return Results.Ok(result);
+                }
+                else
+                {
+                    return Results.BadRequest(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in AssignProjectTagsToAsset: {ex.Message}");
+                return Results.StatusCode(500);
+            }
+        })
+        .WithName("AssignProjectTagsToAsset")
+        .WithOpenApi();
+
         }
 
-        private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService)
+        private static async Task<IResult> GetPaletteAssets(HttpRequest request, IPaletteService paletteService, HttpContext context)
         {
             try {
-                int userId = MOCKEDUSERID;
+                int userId = Convert.ToInt32(context.Items["userId"]);
 
                 if (string.IsNullOrEmpty(userId.ToString()))
                 {
@@ -205,10 +227,6 @@ namespace APIs.Controllers
                     UserId = userId
                 };
 
-                // Check if client prefers decompressed files
-                bool decompressFiles = request.Query.ContainsKey("decompress") && 
-                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
-
                 // Get size limit parameter from query with default of 10MB
                 int sizeLimit = 10 * 1024 * 1024; // Default 10MB
                 if (request.Query.ContainsKey("sizeLimit") && 
@@ -219,23 +237,22 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var files = await paletteService.GetAssets(uploadRequest);
                 // If no files were found
-                if (files == null || !files.Any())
+                if (files == null || !files.BlobUris.Any())
                 {
                     return Results.Ok(new { assets = Array.Empty<object>() }); 
                 }
                 
                 // Get the metadata for all files (including their sizes)
-                var fileMetadata = files.Select(f => new {
-                    fileName = f.FileName,
+                var fileMetadata = files.FileNames.Select((f, index) => new {
+                    fileName = f,
                     size = f.Length,
-                    contentType = decompressFiles ? 
-                        GetMimeTypeFromFileName(f.FileName.Replace(".zst", "")) : 
-                        "application/zstd",
-                    blobId = ExtractBlobId(f.FileName)
+                    contentType = GetMimeTypeFromFileName(f),
+                    blobId = ExtractBlobIdFromUri(files.BlobUris[index])
                 }).ToList();
 
                 // Return just the metadata for all files
-                return Results.Ok(new { 
+                return Results.Ok(new {
+                    blobUris = files.BlobUris, 
                     files = fileMetadata,
                     message = "Get file metadata only. Use /palette/assets/{blobId} endpoint to download individual files."
                 });
@@ -250,17 +267,24 @@ namespace APIs.Controllers
             }
         }
 
-        // Helper function to extract the blobId from a filename
-        private static string ExtractBlobId(string filename)
+        private static string ExtractBlobIdFromUri(string blobUri)
         {
-            // Format: BlobID.OriginalFilename.zst
-            var parts = filename.Split('.');
-            if (parts.Length < 2)
+            // Extract the part between the last / and the ? character
+            int lastSlashIndex = blobUri.LastIndexOf('/');
+            int questionMarkIndex = blobUri.IndexOf('?');
+            
+            if (lastSlashIndex != -1 && questionMarkIndex != -1)
             {
-                return string.Empty;
+                return blobUri.Substring(lastSlashIndex + 1, questionMarkIndex - lastSlashIndex - 1);
             }
             
-            return parts[0];
+            // Fallback if format is different
+            if (lastSlashIndex != -1 && questionMarkIndex == -1)
+            {
+                return blobUri.Substring(lastSlashIndex + 1);
+            }
+            
+            return blobUri; // Return the original string if pattern doesn't match
         }
 
         // Helper function to determine mime type from filename
@@ -289,7 +313,7 @@ namespace APIs.Controllers
         */
         private static async Task<IResult> UploadAssets(HttpRequest request, IPaletteService paletteService, HttpContext context)
         {
-            Console.WriteLine("in UploadAssets");
+            // Console.WriteLine("in UploadAssets");
             try {
 
                 // Get services from IServiceProvider
@@ -306,7 +330,8 @@ namespace APIs.Controllers
             // Get the form fields that match your DTO
             string uploadTaskName = request.Form["name"].ToString();
             string asasetMimeType = request.Form["mimeType"].ToString().ToLower();
-            int userId = int.Parse(request.Form["userId"].ToString());
+            // int userId = int.Parse(request.Form["userId"].ToString());
+            int userId = Convert.ToInt32(context.Items["userId"]);
             string? toWebpParam = request.Query["toWebp"];
 
             bool convertToWebp = true; // set webp conversion default to true 
@@ -351,7 +376,7 @@ namespace APIs.Controllers
                 ProcessedAsset[] results = await paletteService.ProcessUploadsAsync(request.Form.Files.ToList(), uploadRequest, convertToWebp);
 
 
-                var user = await userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(userId);
                 string username = user.Name;
                 
 
@@ -397,7 +422,7 @@ namespace APIs.Controllers
                         {
                             string theDescription = "";
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
+                                theDescription = $"{username} (User ID: {userId}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
                             } else {
                                 theDescription = $"{user.Email} uploaded {file.FileName} to their palette";
                             }
@@ -408,7 +433,7 @@ namespace APIs.Controllers
                             }
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = userId,
                                 changeType = "Uploaded",
                                 description = theDescription,
                                 projID = 0, // Assuming no specific project is associated here
@@ -449,7 +474,8 @@ namespace APIs.Controllers
                 var userService = serviceProvider.GetRequiredService<IUserService>();
                 // Get the form fields that match your DTO
                 string name = request.Form["Name"].ToString();
-                int userId = int.Parse(request.Form["UserId"].ToString());
+                // int userId = int.Parse(request.Form["UserId"].ToString());
+                int userId = Convert.ToInt32(context.Items["userId"]);
 
                 
 
@@ -469,7 +495,7 @@ namespace APIs.Controllers
                 // Create a task for each file
                 var result = await paletteService.DeleteAssetAsync(deleteRequest);
 
-                var user = await userService.GetUser(MOCKEDUSERID);
+                var user = await userService.GetUser(userId);
                 string username = user.Name;
 
                 // add log (asked on Discord, unclear if Name == BlobID or not). I am assuming that Name == BlobID
@@ -478,7 +504,7 @@ namespace APIs.Controllers
                 string theDescription = "";
                 try {
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {MOCKEDUSERID}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
+                        theDescription = $"{username} (User ID: {userId}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
                     } else {
                         theDescription = $"{user.Email} deleted asset {assetName} from their palette";
                     }
@@ -488,7 +514,7 @@ namespace APIs.Controllers
                     }
                     var logDto = new CreateActivityLogDto
                     {
-                        userID = MOCKEDUSERID,
+                        userID = userId,
                         changeType = "Deleted",
                         description = theDescription,
                         projID = 0, // Assuming no specific project is associated here
@@ -515,23 +541,26 @@ namespace APIs.Controllers
             
         }
 
-        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context)
+        private static async Task<IResult> SubmitAssets(int projectID, SubmitAssetsReq req, IPaletteService paletteService, HttpContext context, bool autoNaming = false)
          {
              // May need to add varification to check if client data is bad.
              if (logDebug) {
                 Console.WriteLine("PaletteController.SubmitAssets - START");
+                if (autoNaming) {
+                    Console.WriteLine("Auto-naming is enabled for this submission");
+                }
              }
              try 
              {
-                 // TODO: verify submitter is in the system and retrieve the userID; replace the following MOCKEDUSERID
+                 // TODO: verify submitter is in the system and retrieve the userID
                  // Get services from IServiceProvider
                 var serviceProvider = GetServiceProvider(context);
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
-                 int submitterID = MOCKEDUSERID; 
+                 int submitterID = Convert.ToInt32(context.Items["userId"]); 
                  Console.WriteLine(req.blobIDs);
-                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID);
+                 SubmitAssetsRes result = await paletteService.SubmitAssets(projectID, req.blobIDs, submitterID, autoNaming);
 
 
                  // add log (done)
@@ -573,10 +602,14 @@ namespace APIs.Controllers
                         await activityLogService.AddLogAsync(logDto);
                     }
                 } catch (Exception ex) {
-                    Console.WriteLine("Failed to add log - PaletteController.SubmitAssets");
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                    return Results.Problem
+                    (
+                        detail: ex.Message,
+                        statusCode: 500,
+                        title: "Internal Server Error"
+                    );
                 }
-
-                 
                  return Results.Ok(result);
              }
 
@@ -606,6 +639,7 @@ namespace APIs.Controllers
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
+                int submitterID = Convert.ToInt32(context.Items["userId"]);
                 
                 RemoveTagsResult result = await paletteService.RemoveTagsFromAssetsAsync(request.BlobIds, request.TagIds);
                 
@@ -638,13 +672,13 @@ namespace APIs.Controllers
                         
                             var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                            var user = await userService.GetUser(MOCKEDUSERID);
+                            var user = await userService.GetUser(submitterID);
                             string username = user.Name;
 
                             string theDescription = "";
                             if (verboseLogs) {
 
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
                             } else {
                                 theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
                             }
@@ -655,7 +689,7 @@ namespace APIs.Controllers
 
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = submitterID,
                                 changeType = "Removed",
                                 description = theDescription,
                                 projID = 0, // no project
@@ -698,12 +732,12 @@ namespace APIs.Controllers
                             string tagDescription = string.Join(", ", tagNames);
                             string assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
 
-                            var user = await userService.GetUser(MOCKEDUSERID);
+                            var user = await userService.GetUser(submitterID);
                             string username = user.Name;
                             string theDescription = "";
 
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {MOCKEDUSERID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
                             } else {
                                 theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
                             }
@@ -714,7 +748,7 @@ namespace APIs.Controllers
 
                             var logDto = new CreateActivityLogDto
                             {
-                                userID = MOCKEDUSERID,
+                                userID = submitterID,
                                 changeType = "Removed",
                                 description = theDescription,
                                 projID = 0, // no project
@@ -745,143 +779,87 @@ namespace APIs.Controllers
                 return Results.StatusCode(500);
             }
         }
-        
-        private static async Task<IResult> GetSingleAsset(string blobId, HttpRequest request, IPaletteService paletteService)
+
+        private static async Task<IResult> UpdateAsset(string blobId, HttpRequest request, IPaletteService paletteService)
         {
-            try 
+            try
             {
-                int userId = MOCKEDUSERID;
-
-                // Check if we should decompress the file
-                bool decompress = request.Query.ContainsKey("decompress") && 
-                    bool.TryParse(request.Query["decompress"], out bool decompressValue) && decompressValue;
-
-                // Get range headers for chunked download
-                var rangeHeader = request.Headers.Range.FirstOrDefault();
-                long? startByte = null;
-                long? endByte = null;
-
-                if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
+                // Check if the request has form data
+                if (!request.HasFormContentType || request.Form.Files.Count == 0)
                 {
-                    var rangeValue = rangeHeader.Substring("bytes=".Length);
-                    var rangeParts = rangeValue.Split('-');
-                    
-                    if (rangeParts.Length == 2)
-                    {
-                        if (!string.IsNullOrEmpty(rangeParts[0]))
-                            startByte = Convert.ToInt64(rangeParts[0]);
-                        
-                        if (!string.IsNullOrEmpty(rangeParts[1]))
-                            endByte = Convert.ToInt64(rangeParts[1]);
-                    }
+                    return Results.BadRequest("No files uploaded");
                 }
 
-                // Get the specific file by blobId
-                var file = await paletteService.GetAssetByBlobIdAsync(blobId, userId);
+                // Get the form fields
+                string assetMimeType = request.Form["mimeType"].ToString().ToLower();
+                int userId = int.Parse(request.Form["userId"].ToString());
+                string? toWebpParam = request.Query["toWebp"];
+
+                bool convertToWebp = true; // set webp conversion default to true 
+
+                if (string.IsNullOrEmpty(assetMimeType))
+                {
+                    return Results.BadRequest("mimeType is required");
+                }
+                else if (!assetMimeType.Contains("/")) 
+                {
+                    return Results.BadRequest("incorrect mimeType format");
+                }
                 
-                if (file == null)
+                // Get convertToWebp's actual value if supplied by user
+                if (!string.IsNullOrEmpty(toWebpParam))
                 {
-                    return Results.NotFound($"File with blobId {blobId} not found");
-                }
-
-                // Get file information
-                var fileSize = file.Length;
-                var fileName = file.FileName;
-                
-                // Extract original filename from BlobId.OriginalFilename.zst format
-                string originalFileName = fileName;
-                if (fileName.EndsWith(".zst"))
-                {
-                    originalFileName = fileName.Substring(0, fileName.Length - 4); // Remove .zst
-                    
-                    var parts = originalFileName.Split('.');
-                    if (parts.Length > 1)
+                    if (bool.TryParse(toWebpParam, out bool parsedToWebp))
                     {
-                        // Remove blobId prefix
-                        originalFileName = string.Join('.', parts.Skip(1));
+                        convertToWebp = parsedToWebp;
+                    }
+                    else 
+                    {
+                        return Results.BadRequest("Invalid value for toWebp query param");
                     }
                 }
 
-                // Determine content type based on original filename and decompress option
-                var contentType = decompress
-                    ? GetMimeTypeFromFileName(originalFileName)
-                    : "application/zstd";
-
-                // If range is specified, return just that chunk
-                if (startByte.HasValue)
+                // Check if blob exists
+                try
                 {
-                    // Set default end byte if not specified
-                    if (!endByte.HasValue || endByte.Value >= fileSize)
-                        endByte = fileSize - 1;
-                    
-                    var length = endByte.Value - startByte.Value + 1;
-                    
-                    using (var fileStream = file.OpenReadStream())
+
+
+                    // Create update request
+                    var updateRequest = new UpdateAssetReq
                     {
-                        fileStream.Seek(startByte.Value, SeekOrigin.Begin);
-                        
-                        byte[] buffer = new byte[length];
-                        await fileStream.ReadAsync(buffer, 0, (int)length);
-                        
-                        // If decompress is requested and this is a .zst file
-                        if (decompress && fileName.EndsWith(".zst"))
-                        {
-                            // Note: This approach only works for complete files, not for partial chunks
-                            // For partial chunks, you'd need a more sophisticated approach
-                            // This is why we're only decompressing if it's the full file
-                            if (startByte == 0 && endByte == fileSize - 1)
-                            {
-                                buffer = await paletteService.DecompressZstdAsync(buffer);
-                            }
-                            else
-                            {
-                                // We can't decompress partial chunks, so return an error
-                                return Results.BadRequest("Cannot decompress partial file chunks. Request the whole file or set decompress=false.");
-                            }
-                        }
-                        
-                        return Results.Bytes(
-                            contents: buffer,
-                            contentType: contentType,
-                            fileDownloadName: decompress ? originalFileName : fileName,
-                            enableRangeProcessing: true,
-                            lastModified: DateTimeOffset.UtcNow,
-                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
-                        );
+                        BlobId = blobId,
+                        AssetMimeType = assetMimeType,
+                        UserId = userId
+                    };
+
+                    // Process the updated file
+                    var updatedFile = request.Form.Files[0];
+                    var result = await paletteService.UpdateAssetAsync(updatedFile, updateRequest, convertToWebp);
+                    
+                    if (result.Success)
+                    {
+                        return Results.Ok(new { 
+                            message = $"Asset with blobId {blobId} updated successfully",
+                            asset = result 
+                        });
+                    }
+                    else
+                    {
+                        return Results.BadRequest(new { 
+                            error = result.ErrorMessage ?? "Failed to update asset" 
+                        });
                     }
                 }
-                else
+                catch (DataNotFoundException ex)
                 {
-                    // Return the whole file
-                    using (var fileStream = file.OpenReadStream())
-                    {
-                        var memoryStream = new MemoryStream();
-                        await fileStream.CopyToAsync(memoryStream);
-                        memoryStream.Position = 0;
-                        
-                        byte[] fileContents = memoryStream.ToArray();
-                        
-                        // If decompress is requested and this is a .zst file
-                        if (decompress && fileName.EndsWith(".zst"))
-                        {
-                            fileContents = await paletteService.DecompressZstdAsync(fileContents);
-                        }
-                        
-                        return Results.File(
-                            fileContents: fileContents,
-                            contentType: contentType,
-                            fileDownloadName: decompress ? originalFileName : fileName,
-                            enableRangeProcessing: true,
-                            lastModified: DateTimeOffset.UtcNow,
-                            entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{blobId}\"")
-                        );
-                    }
+                    return Results.NotFound(ex.Message);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred getting asset: {ex.Message}");
-                return Results.Problem(
+                Console.WriteLine($"An error occurred updating asset: {ex.Message}");
+                return Results.Problem
+                (
                     detail: ex.Message,
                     statusCode: 500,
                     title: "Internal Server Error"

@@ -348,7 +348,8 @@ namespace Core.Services
             {
                 (
                     List<Asset> retrievedAssets, 
-                    int totalFilteredAssetCount
+                    int totalFilteredAssetCount,
+                    List<string> assetBlobSASUrlList
                 ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
@@ -368,10 +369,12 @@ namespace Core.Services
                     uploadedBy = new PaginatedProjectAssetUploadedBy
                     {
                         userID = a.User?.UserID ?? -1,
-                        name = a.User?.Name ?? "Unknown"
+                        name = a.User?.Name ?? "Unknown",
+                        email = a.User?.Email ?? "Unknown",
                     },
                     date = a.LastUpdated,
                     filesizeInKB = a.FileSizeInKB,
+                    mimetype = a.MimeType,
                     tags = a.AssetTags.Select(t => t.Tag.Name).ToList()
                 }).ToList();
 
@@ -384,6 +387,7 @@ namespace Core.Services
                 {  
                     projectID = req.projectID, 
                     assets = paginatedProjectAssets, 
+                    assetBlobSASUrlList = assetBlobSASUrlList,
                     pagination = pagination,
                     assetIdNameList = assetIdNameList
                 };
@@ -465,55 +469,6 @@ namespace Core.Services
 
         public async Task<string?> GetTagNameByIdAsync(int tagID) {
             return await _repository.GetTagNameByIdAsync(tagID);
-        }
-        public async Task<(byte[], string)> GetAssetFileFromStorage(int projectID, string blobID, string filename, int requesterID)
-        {
-            List<(string, string)> assetIdNameTuples = new List<(string, string)>();
-            assetIdNameTuples.Add((blobID, filename));
-            string containerName = "project-" + projectID.ToString() + "-assets";
-
-            try
-            {
-                // Check if the requester has access to the project
-                bool areFound = await _repository.CheckProjectAssetExistence(projectID, blobID, requesterID);
-
-                if (areFound)
-                {
-                    // Get the asset file(s) from storage
-                    List<IFormFile> assetFiles = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
-                    if (assetFiles.Count == 0) 
-                    {
-                        throw new DataNotFoundException("No asset file found");
-                    }
-                    else 
-                    {
-                        IFormFile assetFile = assetFiles[0];
-                        if (assetFile == null || assetFile.Length == 0)
-                        {
-                            throw new DataNotFoundException("No asset file retrieved");
-                        }
-
-                        // Have valid .zst asset file data; process it and save as byte[] 
-                        using (var memoryStream = new MemoryStream())
-                        {
-                            await assetFile.CopyToAsync(memoryStream);
-                            return (memoryStream.ToArray(), assetFile.FileName);
-                        }
-                    }
-                }
-                else 
-                {
-                    throw new DataNotFoundException("Project not found");
-                }
-            }
-            catch (DataNotFoundException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
         }
     }
 }

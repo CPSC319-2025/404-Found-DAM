@@ -162,7 +162,7 @@ namespace Infrastructure.DataAccess
 
             var projects = await _context.Projects
                 .Include(p => p.ProjectMemberships)
-                .Include(p => p.Assets)
+                .Include(p => p.Assets.Where(a => a.assetState == Asset.AssetStateType.SubmittedToProject))
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -209,7 +209,7 @@ namespace Infrastructure.DataAccess
             }
         }
 
-        public async Task<(List<Asset>, int)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
+        public async Task<(List<Asset>, int, List<string>)> GetPaginatedProjectAssetsInDb(GetPaginatedProjectAssetsReq req, int offset, int requesterID)
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
@@ -244,11 +244,22 @@ namespace Infrastructure.DataAccess
                         query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
                     }
 
-                    if (req.tagID.HasValue && req.tagID.Value > 0) 
+                    if (!string.IsNullOrEmpty(req.tagName))
                     {
-                        query = query.Where(a => a.AssetTags.Any(at => at.TagID == req.tagID.Value));
+                        query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
                     }
 
+                    if (req.fromDate.HasValue)
+                    {
+                        DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
+                        query = query.Where(a => a.LastUpdated >= utcFromDate);
+                    }
+
+                    if (req.toDate.HasValue)
+                    {
+                        DateTime utcToDate = req.toDate.Value.ToUniversalTime();
+                        query = query.Where(a => a.LastUpdated <= utcToDate);
+                    }
 
                     // number of total assets
                     int totalAssetCount = await query.CountAsync();
@@ -263,8 +274,14 @@ namespace Infrastructure.DataAccess
                     .Take(req.assetsPerPage)
                     .Include(a => a.User)
                     .ToListAsync();
+
+                    // Get asset blobSASUrl
+                    List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+                    string containerName = "project-" + req.projectID.ToString() + "-assets";
+                    List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+
                     
-                    return (assets, totalFilteredAssetCount);
+                    return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
                 }
             }
             else 

@@ -6,7 +6,6 @@ using Microsoft.IdentityModel.Tokens;
 using Infrastructure.Exceptions;
 using Core.Entities;
 using System.IO;
-using ZstdSharp;
 
 namespace Core.Services
 {
@@ -14,12 +13,27 @@ namespace Core.Services
     {
         private readonly IPaletteRepository _paletteRepository;
         private readonly IImageService _imageService;
-   
+        private readonly IActivityLogService _activityLogService;
+        private readonly IUserService _userService;
+        private readonly IProjectService _projectService;
+
+        private const bool verboseLogs = false;
+        private const bool logDebug = false;
+        private const bool AdminActionTrue = true;
+
         // Create imageService here in case later we need to move business logic from paletteRepository's UploadAssets to here.  
-        public PaletteService(IPaletteRepository paletteRepository, IImageService imageService)
+        public PaletteService(
+            IPaletteRepository paletteRepository,
+            IImageService imageService,
+            IActivityLogService activityLogService,
+            IUserService userService,
+            IProjectService projectService)
         {
             _paletteRepository = paletteRepository;
             _imageService = imageService;
+            _activityLogService = activityLogService;
+            _userService = userService;
+            _projectService = projectService;
         }
 
         public async Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp)
@@ -77,64 +91,72 @@ namespace Core.Services
             return await _paletteRepository.DeleteAsset(request);
         }
 
-        public async Task<List<IFormFile>> GetAssets(GetPaletteAssetsReq request) {
+        public async Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request) {
             return await _paletteRepository.GetAssets(request);
-        }
-
-        public async Task<IFormFile?> GetAssetByBlobIdAsync(string blobId, int userId)
-        {
-            try
-            {
-                return await _paletteRepository.GetAssetByBlobIdAsync(blobId, userId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting asset by blobId: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<byte[]> DecompressZstdAsync(byte[] compressedData)
-        {
-            return await Task.Run(() => 
-            {
-                try 
-                {
-                    // Using ZstdSharp for decompression - simplest approach
-                    using var decompressor = new ZstdSharp.Decompressor();
-                    return decompressor.Unwrap(compressedData).ToArray();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error decompressing data: {ex.Message}");
-                    throw;
-                }
-            });
         }
 
         public async Task<List<string>> GetProjectTagsAsync(int projectId) {
             return await _paletteRepository.GetProjectTagsAsync(projectId);
         }
 
-        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID)        {
-            try 
+        public async Task<SubmitAssetsRes> SubmitAssets(int projectID, List<string> blobIDs, int submitterID, bool autoNaming = false)
+        {
+            try
             {
-                (List<string> successfulSubmissions, List<string> failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID);   
-                SubmitAssetsRes result = new SubmitAssetsRes      
+                var (successfulSubmissions, failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID, autoNaming);
+
+                // Log successful submissions
+                foreach (var blobID in successfulSubmissions)
+                {
+                    try
+                    {
+                        var user = await _userService.GetUser(submitterID);
+                        var assetName = await _projectService.GetAssetNameByBlobIdAsync(blobID);
+                        var projectName = await _projectService.GetProjectNameByIdAsync(projectID);
+
+                        string description = $"{user.Email} added '{assetName}' into project '{projectName}'";
+                        if (verboseLogs)
+                        {
+                            description = $"{user.Name} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                        }
+
+                        if (logDebug)
+                        {
+                            description += "[Add Log called by PaletteService.SubmitAssets]";
+                            Console.WriteLine(description);
+                        }
+
+                        await _activityLogService.AddLogAsync(new CreateActivityLogDto
+                        {
+                            userID = submitterID,
+                            changeType = "Added",
+                            description = description,
+                            projID = projectID,
+                            assetID = blobID,
+                            isAdminAction = !AdminActionTrue
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to add log for asset {blobID}: {ex.Message}");
+                    }
+                }
+
+                return new SubmitAssetsRes
                 {
                     projectID = projectID,
                     successfulSubmissions = successfulSubmissions,
                     failedSubmissions = failedSubmissions,
                     submittedAt = DateTime.UtcNow
                 };
-                 return result; 
             }
-            catch (DataNotFoundException)
+            catch (DataNotFoundException ex)
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error in SubmitAssets: {ex.Message}");
                 throw;
             }
         }
@@ -221,6 +243,92 @@ namespace Core.Services
 
         public async Task<string?> GetTagNameByIdAsync(int tagID) {
             return await _paletteRepository.GetTagNameByIdAsync(tagID);
+        }
+
+        public async Task<AssignProjectTagsResult> AssignProjectTagsToAssetAsync(AssignProjectTagsToAssetReq request)
+        {
+            try
+            {
+                // Get all tag IDs for the project
+                var tagIds = await _paletteRepository.GetProjectTagIdsAsync(request.ProjectId);
+                
+                if (tagIds == null || !tagIds.Any())
+                {
+                    return new AssignProjectTagsResult
+                    {
+                        Success = true,
+                        BlobId = request.BlobId,
+                        Message = $"No tags found for project {request.ProjectId}"
+                    };
+                }
+
+                // Assign all project tags to the asset
+                var result = await _paletteRepository.AssignProjectTagsToAssetAsync(request.BlobId, tagIds);
+                return result;
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error assigning project tags to asset: {ex.Message}");
+                throw;
+            }
+        }
+        
+        public async Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp)
+        {
+            try
+            {
+                // For now, call ProcessUploadAsync with the existing blob ID
+                // We'll need to update IPaletteRepository later to add UpdateAssetAsync
+                var asset = await _paletteRepository.UpdateAssetAsync(file, request, convertToWebp, _imageService);
+                
+                if (asset != null)
+                {
+                    return new ProcessedAsset
+                    {
+                        BlobID = asset.BlobID,
+                        FileName = asset.FileName,
+                        SizeInKB = asset.FileSizeInKB,
+                        Success = true
+                    };
+                }
+                else
+                {
+                    return new ProcessedAsset
+                    {
+                        FileName = file.FileName,
+                        SizeInKB = file.Length / 1024.0,
+                        Success = false,
+                        ErrorMessage = "Failed to update asset"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating asset: {ex.Message}");
+                return new ProcessedAsset
+                {
+                    FileName = file.FileName,
+                    SizeInKB = file.Length / 1024.0,
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        public async Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId)
+        {
+            try
+            {
+                return await _paletteRepository.GetBlobFieldsAsync(blobId);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }
