@@ -3,10 +3,14 @@ import { ReactNode, useState } from "react";
 import { ArrowUpTrayIcon } from "@heroicons/react/24/solid";
 import {
   RectangleGroupIcon,
+  ArrowRightCircleIcon,
   ChartBarIcon,
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { useUser } from "../context/UserContext";
+import { logout } from "../utils/api/auth";
+import { useRouter } from "next/navigation";
 
 interface Page {
   path: string;
@@ -33,11 +37,19 @@ const pages: Page[] = [
     title: "Upload Palette",
     mobileTitle: "Upload",
     icon: <ArrowUpTrayIcon className="w-8 h-8 sm:w-8 sm:h-8" />,
-  }
+  },
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { setUser } = useUser();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    router.push("/projects");
+  };
 
   return (
     <>
@@ -87,10 +99,22 @@ export default function Navbar() {
                     className="flex items-center p-2 rounded hover:bg-gray-200"
                   >
                     <span className="mr-2">{page.icon}</span>
-                    <span>{page.title}</span>
+                    <span>{page.mobileTitle}</span>
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center p-2 rounded text-red-500 hover:text-red-800 w-full"
+                >
+                  <ArrowRightCircleIcon className="w-8 h-8 mr-2" />
+                  <span>Logout</span>
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -122,6 +146,15 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
+            <li className="hidden group-hover:block">
+              <button
+                onClick={handleLogout}
+                className="flex items-center p-2 rounded text-red-500 hover:text-red-800 px-3 w-full"
+              >
+                <ArrowRightCircleIcon className="w-8 h-8 mr-2" />
+                <span className="text-lg whitespace-nowrap pl-2">Logout</span>
+              </button>
+            </li>
           </ul>
         </div>
       </nav>
