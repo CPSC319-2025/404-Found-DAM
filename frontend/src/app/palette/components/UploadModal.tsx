@@ -30,13 +30,15 @@ interface UploadModalProps {
   closeModal: () => void;
   createFileMetadata: (file: File) => FileMetadata;
   fetchAndUpdateBlobDetails: (blobId: string) => Promise<void>;
+  onFilesUploaded?: (files: FileMetadata[]) => void;
 }
 
 export default function UploadModal({
   projects,
   closeModal,
   createFileMetadata,
-  fetchAndUpdateBlobDetails
+  fetchAndUpdateBlobDetails,
+  onFilesUploaded
 }: UploadModalProps) {
   const { setFiles } = useFileContext();
   const [currentStep, setCurrentStep] = useState(1);
@@ -282,6 +284,7 @@ export default function UploadModal({
     setIsUploading(true);
     const filesToUpload = [...uploadedFiles];
     const blobIdsToAssociate: string[] = [];
+    const uploadedFileMetadata: FileMetadata[] = [];
     
     localStorage.setItem('bgUploadInProgress', 'true');
     
@@ -336,6 +339,14 @@ export default function UploadModal({
             if (blobId) {
               // Add blobId to our tracking array for project association
               blobIdsToAssociate.push(blobId);
+              
+              // Update fileMeta with the blobId
+              fileMeta.blobId = blobId;
+              fileMeta.url = URL.createObjectURL(file);
+              fileMeta.isLoaded = true;
+              
+              // Add to our local tracking array for direct state update
+              uploadedFileMetadata.push(fileMeta);
               
               // Don't add to files state directly - will be picked up on next loadAssets
               successCount++;
@@ -405,6 +416,11 @@ export default function UploadModal({
         }
       }
       
+      // Add all uploaded files directly to parent component's state
+      if (uploadedFileMetadata.length > 0 && onFilesUploaded) {
+        onFilesUploaded(uploadedFileMetadata);
+      }
+      
       // Set a flag in localStorage to indicate new files available
       if (successCount > 0) {
         localStorage.setItem('paletteHasNewFiles', 'true');
@@ -413,22 +429,12 @@ export default function UploadModal({
         localStorage.setItem('uploadStatus', `Upload complete. ${successCount} files uploaded successfully.`);
         localStorage.setItem('uploadProgress', '100');
         
-        // Show refresh notification after a short delay
+        // No need for refresh notification anymore, clear after short delay
         setTimeout(() => {
           localStorage.removeItem('uploadProgress');
-          
-          // Only show refresh notification, no intermediate messages
-          localStorage.setItem('uploadStatus', 'New files have been uploaded. Refresh to view them.');
-          
-          // Auto-clear refresh notification after 30 seconds if user doesn't interact with it
-          setTimeout(() => {
-            // Only clear if it's still the refresh notification
-            if (localStorage.getItem('uploadStatus') === 'New files have been uploaded. Refresh to view them.') {
-              localStorage.removeItem('uploadStatus');
-              localStorage.removeItem('paletteHasNewFiles');
-            }
-          }, 30000); // 30 seconds
-        }, 2000);
+          localStorage.removeItem('uploadStatus');
+          localStorage.removeItem('paletteHasNewFiles');
+        }, 3000);
       } else {
         // Clear any leftover status if no files were successfully uploaded
         localStorage.removeItem('uploadStatus');
@@ -439,7 +445,7 @@ export default function UploadModal({
       localStorage.removeItem('bgUploadInProgress');
     })();
     
-  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, closeModal]);
+  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, closeModal, onFilesUploaded]);
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

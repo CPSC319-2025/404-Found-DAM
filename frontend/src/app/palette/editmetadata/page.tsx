@@ -5,6 +5,7 @@ import { useFileContext } from "@/app/context/FileContext";
 import { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { toast } from "react-toastify";
+import { loadFileContent } from "../Apis";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -38,18 +39,28 @@ export default function EditMetadataPage() {
 
   useEffect(() => {
     if (fileData) {
-      if (fileData.project) {
+      // Only fetch project tags if we don't already have them
+      if (fileData.project && projectTags.length === 0) {
         fetchProjectTags(fileData.project);
       }
       
-      if (fileData.blobId) {
+      // If we have a blobId and no metadata values, fetch its details directly
+      if (fileData.blobId && Object.keys(metadataValues).length === 0) {
         fetchBlobDetails(fileData.blobId);
-        fetchBlobFields(fileData.blobId);
+        // Only fetch fields once on component mount
+        if (!isLoading) {
+          fetchBlobFields(fileData.blobId);
+        }
       }
     }
-  }, [fileData]);
+  }, [fileData, projectTags.length]); // Remove metadataValues from dependencies
 
   async function fetchBlobDetails(blobId: string) {
+    // Only fetch if we don't already have the data
+    if (selectedTags.length > 0) {
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -197,8 +208,8 @@ export default function EditMetadataPage() {
           throw new Error(`Failed to assign tag: ${response.status}`);
         }
         
-        const data = await response.json();
-        console.log("Tag assigned successfully:", data);
+        // No need to wait for data response, just log success
+        console.log("Tag assigned successfully");
         
         setSelectedTags([...selectedTags, tagName]);
         
@@ -293,7 +304,7 @@ export default function EditMetadataPage() {
   if (!fileData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500 text-lg">File not found in context.</p>
+        <p className="text-red-500 text-lg">Please go back to palette after refresh.</p>
       </div>
     );
   }
@@ -368,12 +379,45 @@ export default function EditMetadataPage() {
     }
   }
 
-  function handleEditImage() {
+  async function handleEditImage() {
+    // Navigate to a new page under /palette/ for image editing
     if (!fileName) {
       console.error("File name is missing!");
       return;
     }
-    router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
+
+    setIsLoading(true);
+    try {
+      // Check if we have the raw file content
+      if (!fileData.isLoaded && fileData.blobId) {
+        // Need to load the file content first
+        const blob = await loadFileContent(fileData.blobId);
+        if (!blob) {
+          throw new Error("Failed to load file content");
+        }
+        
+        // Create a new File object from the blob
+        const file = new File([blob], fileData.file.name, { type: blob.type });
+        
+        // Create an object URL for preview
+        const objectUrl = URL.createObjectURL(blob);
+        
+        // Update the file metadata in context with the loaded content
+        updateMetadata(fileIndex, {
+          file: file,
+          url: objectUrl,
+          isLoaded: true
+        });
+      }
+
+      // Now navigate to the edit image page
+      router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
+    } catch (error) {
+      console.error("Error preparing file for editing:", error);
+      alert("Failed to prepare file for editing. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function isVideoFile(filename: string): boolean {
@@ -518,21 +562,37 @@ export default function EditMetadataPage() {
                         {field.fieldName} <span className="text-xs text-gray-400">({field.fieldType})</span>
                       </label>
                       {field.fieldType === "Boolean" ? (
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            checked={metadataValues[field.fieldID] || false}
-                            onChange={(e) => {
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className={`px-4 py-2 rounded-md cursor-pointer border transition-colors ${
+                              metadataValues[field.fieldID] === true 
+                                ? "bg-blue-100 border-blue-500 text-blue-700 font-medium" 
+                                : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => {
                               setMetadataValues({
                                 ...metadataValues,
-                                [field.fieldID]: e.target.checked
+                                [field.fieldID]: true
                               });
                             }}
-                          />
-                          <span className="ml-2 text-gray-700">
-                            {metadataValues[field.fieldID] ? "Yes" : "No"}
-                          </span>
+                          >
+                            Yes
+                          </div>
+                          <div 
+                            className={`px-4 py-2 rounded-md cursor-pointer border transition-colors ${
+                              metadataValues[field.fieldID] === false 
+                                ? "bg-blue-100 border-blue-500 text-blue-700 font-medium" 
+                                : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => {
+                              setMetadataValues({
+                                ...metadataValues,
+                                [field.fieldID]: false
+                              });
+                            }}
+                          >
+                            No
+                          </div>
                         </div>
                       ) : (
                         <input
@@ -582,7 +642,15 @@ export default function EditMetadataPage() {
                 } text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 shadow-md hover:shadow-lg flex items-center`}
                 title={isVideo ? "Video files cannot be edited" : "Edit Image"}
               >
-                {isVideo ? (
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Preparing Image...
+                  </>
+                ) : isVideo ? (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

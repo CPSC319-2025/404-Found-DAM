@@ -86,10 +86,28 @@ export default function EditImagePage() {
 
   useEffect(() => {
     if (fileData) {
-      const imageURL = URL.createObjectURL(fileData.file);
-      setImageSource(imageURL);
+      // If the file already has a URL (from previous loading), use that
+      if (fileData.url) {
+        setImageSource(fileData.url);
+      } 
+      // Otherwise, if we have a raw file with size, create a new URL
+      else if (fileData.file instanceof File && fileData.file.size > 0) {
+        const imageURL = URL.createObjectURL(fileData.file);
+        setImageSource(imageURL);
+      } 
+      // If we get here, we don't have usable file content
+      else {
+        console.error("File data is missing or incomplete");
+        alert("Unable to load image for editing. Please try again from the palette view.");
+        router.push("/palette");
+      }
+    } else {
+      // No file data found, redirect back to palette
+      console.error("File not found in context");
+      alert("File not found. Returning to palette.");
+      router.push("/palette");
     }
-  }, [fileData]);
+  }, [fileData, router]);
   
 
   
@@ -220,7 +238,7 @@ export default function EditImagePage() {
   if (!fileData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500 text-lg">File not found in context.</p>
+        <p className="text-red-500 text-lg">Please go back to palette after refresh.</p>
       </div>
     );
   }

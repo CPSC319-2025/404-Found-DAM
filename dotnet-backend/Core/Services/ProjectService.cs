@@ -475,5 +475,10 @@ namespace Core.Services
         {
             await _repository.DeleteAssetFromProjectInDb(projectId, blobId);
         }
+        
+        public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) 
+        {
+            return await _repository.GetCustomMetadataNameByIdAsync(fieldID);
+        }
     }
 }

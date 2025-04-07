@@ -1,4 +1,5 @@
 import { FileMetadata } from '@/app/context/FileContext';
+import { fetchWithAuth } from '@/app/utils/api/api';
 
 interface BlobMetadata {
   blobId: string;
@@ -18,9 +19,9 @@ export const loadFileContent = async (fileMeta: FileMetadata): Promise<FileMetad
       return null;
     }
     
-    const url = `/api/palette/asset?blobId=${fileMeta.blobId}&t=${Date.now()}`;
+    const endpoint = `/palette/asset?blobId=${fileMeta.blobId}&t=${Date.now()}`;
     
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(endpoint, {
       method: 'GET',
       cache: 'no-store',
       priority: 'high' as RequestPriority,
@@ -48,9 +49,9 @@ export const loadFileContent = async (fileMeta: FileMetadata): Promise<FileMetad
 // function to fetch and update blob details with parallel processing
 export const fetchBlobDetails = async (blobId: string): Promise<BlobMetadata | null> => {
   try {
-    const url = `/api/palette/metadata?blobId=${blobId}&t=${Date.now()}`;
+    const endpoint = `/palette/metadata?blobId=${blobId}&t=${Date.now()}`;
     
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(endpoint, {
       method: 'GET',
       cache: 'no-store',
     });

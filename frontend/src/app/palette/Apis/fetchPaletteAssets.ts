@@ -63,8 +63,6 @@ export interface PaginatedFiles {
 // Main function to fetch palette assets with pagination
 export async function fetchPaletteAssets(page: number = 1, pageSize: number = 10): Promise<PaginatedFiles> {
   const formData = new FormData();
-  formData.append("UserId", "1"); // Fixed requirement: UserId=1
-  
   try {
     // First, get metadata for files with pagination parameters (even if server doesn't support them yet)
     const response = await fetchWithAuth(`palette/assets?decompress=true&page=${page}&pageSize=${pageSize}`, {

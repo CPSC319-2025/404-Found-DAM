@@ -271,9 +271,9 @@ namespace APIs.Controllers
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
                     string theDescription = "";
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {submitterId}) added '{blobName}' (Asset ID: {blobID}) into project '{projectName}' (project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} added {blobName} into project {projectName}";
+                        theDescription = $"{user.Email} added '{blobName}' into project '{projectName}'";
                     }
                     // if (false) { // duplicate log - same as PaletteController.SubmitAssets. update: removed the add log in SubmitAssets update. note: no longer the same.
                     if (logDebug) {
@@ -307,11 +307,11 @@ namespace APIs.Controllers
 
                         if (verboseLogs)
                         {
-                            theDescription2 = $"{username} (User ID: {submitterId}) assigned tags ({tagList}) to {blobName} (Asset ID: {blobID}) in project {projectName} (Project ID: {projectID})";
+                            theDescription2 = $"{username} (User ID: {submitterId}) assigned tags ({tagList}) to '{blobName}' (Asset ID: {blobID})";
                         }
                         else
                         {
-                            theDescription2 = $"{user.Email} assigned tags ({tagList}) to {blobName}";
+                            theDescription2 = $"{user.Email} assigned tags ({tagList}) to '{blobName}'";
                         }
 
                         if (logDebug)
