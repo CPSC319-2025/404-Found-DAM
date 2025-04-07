@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="NetVips.Native.linux-x64" />
     <PackageReference Include="NetVips.Native.osx-arm64" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />

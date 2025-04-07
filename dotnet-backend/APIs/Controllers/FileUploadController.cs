@@ -70,6 +70,7 @@ namespace APIs.Controllers
                 var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
                 var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
+                var queue = context.RequestServices.GetRequiredService<IBackgroundTaskQueue>();
 
 
                 // Check if request has form data
@@ -121,42 +122,48 @@ namespace APIs.Controllers
                     {
                         Console.WriteLine("fileuploadcontroller.upload chunk mergeResult.Sucess");
                         
-                        // Fire and forget activity logging to not block the response
-                        _ = Task.Run(async () => 
+                        // Fire and forget activity logging to not block the response // add log in background
+                        queue.QueueBackgroundWorkItem(async token =>
                         {
+                            using var scope = context.RequestServices
+                                                    .GetRequiredService<IServiceScopeFactory>()
+                                                    .CreateScope();
+
+                            var activityLogService = scope.ServiceProvider.GetRequiredService<IActivityLogService>();
+                            var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+                            var projectService = scope.ServiceProvider.GetRequiredService<IProjectService>();
+
                             try
                             {
-                                string theDescription = "";
-
                                 var user = await userService.GetUser(userId);
                                 var assetName = await projectService.GetAssetNameByBlobIdAsync(mergeResult.BlobId);
-
+                                string theDescription = "";
                                 if (verboseLogs) {
-                                    theDescription = $"{userId} uploaded \"{assetName}\" to their palette"; 
+                                    theDescription = $"User ID: {userId} uploaded '{assetName}' to their palette";
+                                
                                 } else {
-                                    theDescription = $"{user.Email} uploaded \"{assetName}\" to their palette";
+                                    theDescription = $"{user.Email} uploaded '{assetName}' to their palette";
                                 }
 
-                                if (logDebug) {
-                                    theDescription += "[Add Log called by FileUploadController.UploadChunk - (result.IsLastChunk && result.AllChunksReceived)]";
+                                if (logDebug)
+                                {
+                                    theDescription += "[Logged by Background Queue - Add Log called by FileUploadController.UploadChunk]";
                                     Console.WriteLine(theDescription);
                                 }
 
-                                var log = new CreateActivityLogDto
+                                await activityLogService.AddLogAsync(new CreateActivityLogDto
                                 {
                                     userID = userId,
                                     changeType = "Uploaded",
                                     description = theDescription,
-                                    projID = 0, // no project
+                                    projID = -1,
                                     assetID = mergeResult.BlobId,
                                     isAdminAction = false
-                                };
-
-                                await activityLogService.AddLogAsync(log);
-                            } 
-                            catch (Exception ex) 
+                                });
+                            }
+                            catch (Exception ex)
                             {
-                                Console.WriteLine($"Failed to write log - FileUploadController.UploadChunk: {ex.Message}");
+                                Console.WriteLine($"Failed to add log in background: {ex.Message}");
                             }
                         });
 
