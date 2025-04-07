@@ -139,14 +139,31 @@ function Items({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="h-20 w-20 relative">
-                    <Image
-                      src={asset.src ?? ""}
-                      alt={`${asset.filename}`}
-                      width={120}
-                      height={120}
-                      className="object-cover rounded w-full h-full cursor-pointer"
-                      onClick={() => openPreview(asset)}
-                    />
+                    {!asset.src && (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-100 animate-pulse" style={{ animationDuration: '0.7s' }}>
+                        <span className="text-gray-400 text-xs">Loading</span>
+                      </div>
+                    )}
+                    {asset.src && asset.mimetype.includes("image") && (
+                      <Image
+                        src={asset.src}
+                        alt={`${asset.filename}`}
+                        width={120}
+                        height={120}
+                        className="object-cover rounded w-full h-full cursor-pointer"
+                        onClick={() => openPreview(asset)}
+                      />
+                    )}
+                    {asset.src && !asset.mimetype.includes("image") && (
+                      <video
+                        src={asset.src ?? ""}
+                        alt={`${asset.filename}`}
+                        width={120}
+                        height={120}
+                        className="object-cover rounded w-full h-full cursor-pointer"
+                        onClick={() => openPreview(asset)}
+                      />
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -238,21 +255,21 @@ export default function ProjectsPage() {
   const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
 
   const downloadAssetConfirm = async (asset: any) => {
-    setRequestedDownloadAsset(asset);
     if (asset.mimetype.includes('image')) {
+      setRequestedDownloadAsset(asset);
       setConfirmDownloadPopup(true);
     } else {
-      downloadAssetWrapper(false);
+      downloadAssetWrapper(false, asset);
     }
   };
 
-  const downloadAssetWrapper = async (addWatermark: boolean) => {
+  const downloadAssetWrapper = async (addWatermark: boolean, asset: any) => {
     setConfirmDownloadPopup(false);
     try {
       toast.success("Starting download...");
       await downloadAsset(
-        requestedDownloadAsset,
-        { projectID: requestedDownloadAsset.projectID, projectName: requestedDownloadAsset.projectName },
+        asset,
+        { projectID: asset.projectID, projectName: asset.projectName },
         user,
         addWatermark
       );
@@ -1026,7 +1043,7 @@ export default function ProjectsPage() {
             title="Would you like to add a watermark to the image?"
             isOpen={true}
             onClose={() => downloadAssetWrapper(false)}
-            onConfirm={() => downloadAssetWrapper(true)}
+            onConfirm={() => downloadAssetWrapper(true, requestedDownloadAsset)}
             messages={[]}
           />
         </div>

@@ -180,7 +180,7 @@ export async function loadFileContent(fileMeta: FileMetadata): Promise<FileMetad
       { type: fileMeta.file.type }
     );
 
-    const fileSize = (file.size / 1024).toFixed(2) + " KB";
+    const fileSize = formatFileSize(file.size / 1024);
     
     // Return updated file metadata
     return {

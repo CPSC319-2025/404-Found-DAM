@@ -56,6 +56,7 @@ interface GenericFormProps {
   ) => void | Promise<void>;
   showExtraHelperText?: boolean;
   noRequired?: boolean;
+  isEdit?: boolean;
 }
 
 export default function GenericForm({
@@ -73,6 +74,7 @@ export default function GenericForm({
   extraButtonCallback,
   showExtraHelperText = false,
   noRequired = false,
+  isEdit = true,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +101,6 @@ export default function GenericForm({
   const buttonCount = (hasExtraButton ? 1 : 0) + (hasCancelButton ? 1 : 0) + 1; // submit is always rendered
   const buttonAlignment = buttonCount === 3 ? "justify-center" : "justify-end";
 
-  // Helper to update a specific field value
   const updateField = (field: string, value: any) => {
     setFormData((prevData) => ({ ...prevData, [field]: value }));
   };
@@ -618,7 +619,6 @@ export default function GenericForm({
           </div>
 
           {extraButtonText && extraButtonCallback ? (
-            // Three-button layout (full width rows)
             <div className="flex flex-col space-y-2">
               <button
                 type="submit"
@@ -646,7 +646,6 @@ export default function GenericForm({
               </button>
             </div>
           ) : (
-            // Two-button layout (right aligned)
             <div className="flex justify-end space-x-2">
               {(isModal || hasEdited) && (
                 <button
@@ -654,16 +653,18 @@ export default function GenericForm({
                   onClick={onCancel}
                   className="bg-gray-300 text-black p-2 rounded"
                 >
-                  Cancel
+                  {isEdit ? "Cancel" : "Close"}
                 </button>
               )}
-              <button
-                type="submit"
-                className="bg-blue-500 text-white p-2 rounded disabledButton"
-                disabled={disabled || !hasEdited}
-              >
-                {submitButtonText}
-              </button>
+              {isEdit && (
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white p-2 rounded disabledButton"
+                  disabled={disabled || !hasEdited}
+                >
+                  {submitButtonText}
+                </button>
+              )}
             </div>
           )}
 
