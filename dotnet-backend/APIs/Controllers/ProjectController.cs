@@ -40,6 +40,10 @@ namespace APIs.Controllers
                .WithName("GetMyProjects")
                .WithOpenApi();
 
+            app.MapDelete("/projects/{projectID}/assets/{blobId}", DeleteAsset)
+               .WithName("DeleteAsset")
+               .WithOpenApi();
+
 
         }
 
@@ -267,9 +271,9 @@ namespace APIs.Controllers
                     var projectName = await projectService.GetProjectNameByIdAsync(projectID);
                     string theDescription = "";
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {submitterId}) added {blobName} (Asset ID: {blobID}) into project {projectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {submitterId}) added '{blobName}' (Asset ID: {blobID}) into project '{projectName}' (project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} added {blobName} into project {projectName}";
+                        theDescription = $"{user.Email} added '{blobName}' into project '{projectName}'";
                     }
                     // if (false) { // duplicate log - same as PaletteController.SubmitAssets. update: removed the add log in SubmitAssets update. note: no longer the same.
                     if (logDebug) {
@@ -303,11 +307,11 @@ namespace APIs.Controllers
 
                         if (verboseLogs)
                         {
-                            theDescription2 = $"{username} (User ID: {submitterId}) assigned tags ({tagList}) to {blobName} (Asset ID: {blobID}) in project {projectName} (Project ID: {projectID})";
+                            theDescription2 = $"{username} (User ID: {submitterId}) assigned tags ({tagList}) to '{blobName}' (Asset ID: {blobID})";
                         }
                         else
                         {
-                            theDescription2 = $"{user.Email} assigned tags ({tagList}) to {blobName}";
+                            theDescription2 = $"{user.Email} assigned tags ({tagList}) to '{blobName}'";
                         }
 
                         if (logDebug)
@@ -483,6 +487,70 @@ namespace APIs.Controllers
             int userId = Convert.ToInt32(context.Items["userId"]);
             List<GetProjectRes> result = await projectService.GetMyProjects(userId);
             return Results.Ok(result);
+        }
+        
+        private static async Task<IResult> DeleteAsset(int projectID, string blobId, IProjectService projectService, HttpContext context)
+        {
+            try
+            {
+                var assetName = await projectService.GetAssetNameByBlobIdAsync(blobId); // for activity log. Fix Bug: must call this before calling DeleteAssetFromProject in order to save the assetName before deleting it
+                await projectService.DeleteAssetFromProject(projectID, blobId);
+                try { // add log
+                    var serviceProvider = GetServiceProvider(context);
+                    var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                    var userService = serviceProvider.GetRequiredService<IUserService>();
+
+                    int submitterID = Convert.ToInt32(context.Items["userId"]);
+                    var user = await userService.GetUser(submitterID);
+                    string username = user.Name;
+                    var projectName = await projectService.GetProjectNameByIdAsync(projectID);
+                    string theDescription = "";
+
+
+                    
+
+                    if (verboseLogs) {
+
+                        theDescription = $"{username} (User ID: {submitterID}) deleted (Blob ID: {blobId}) from project {projectName} (Project ID: {projectID})";
+                    } else {
+                        theDescription = $"{user.Email} deleted '{assetName}' from project '{projectName}'";
+                    }
+
+                    if (string.IsNullOrEmpty(assetName)) {
+                        Console.WriteLine("debug - error: asset name not found for blobId: {blobId}");
+                    }
+
+                    if (logDebug) {
+                        theDescription += "[Add Log called by ProjectController.DeleteAsset]";
+                        Console.WriteLine(theDescription);
+                    }
+
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = submitterID,
+                        changeType = "Deleted",
+                        description = theDescription,
+                        projID = projectID,
+                        assetID = blobId,
+                        isAdminAction = adminActionTrue
+                    });
+                } catch (Exception ex) { // error in add log
+                    Console.WriteLine("Failed to add log - ProjectController.DeleteAsset");
+
+                }
+                return Results.Ok(new { message = "Asset deleted successfully."});
+            }
+            catch (DataNotFoundException ex) {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex) 
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
         }
         
     }

@@ -470,5 +470,11 @@ namespace Core.Services
         public async Task<string?> GetTagNameByIdAsync(int tagID) {
             return await _repository.GetTagNameByIdAsync(tagID);
         }
+        public async Task DeleteAssetFromProject(int projectId, string blobId)
+        {
+            await _repository.DeleteAssetFromProjectInDb(projectId, blobId);
+        public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) {
+            return await _repository.GetCustomMetadataNameByIdAsync(fieldID);
+        }
     }
 }

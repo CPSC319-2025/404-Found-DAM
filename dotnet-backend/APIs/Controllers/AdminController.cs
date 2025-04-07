@@ -158,7 +158,7 @@ namespace APIs.Controllers
                     using var memoryStream = new MemoryStream();   
                     await file.CopyToAsync(memoryStream);
                     memoryStream.Seek(0, SeekOrigin.Begin); // Reset the memory stream's position.
-                    ImportProjectRes result = await adminService.ImportProject(memoryStream);
+                    ImportProjectRes result = await adminService.ImportProject(memoryStream, requesterID);
 
                     GetProjectRes project = result.importedProjectInfo;
 
@@ -173,9 +173,9 @@ namespace APIs.Controllers
                         string userEmail = user.Email;
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {requesterID}) imported project {projectName} (project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {requesterID}) imported project '{projectName}' (project ID: {projectID})";
                         } else {
-                            theDescription = $"{userEmail} imported project {projectName}";
+                            theDescription = $"{userEmail} imported project '{projectName}'";
                         }
                         if (logDebug) {
                             theDescription += "[Add Log called by AdminController.ImportProject]";
@@ -246,9 +246,9 @@ namespace APIs.Controllers
                             .Select(task => task.Result));
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project {projectName} (project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {reqeusterID}) removed users ({removedUsers}) from project '{projectName}' (project ID: {projectID})";
                         } else {
-                            theDescription = $"{userEmail} removed users {removedUsers} from project: {projectName}";
+                            theDescription = $"{userEmail} removed users ({removedUsers}) from project: '{projectName}'";
                         }
                         // string description = $"Removed users: {removedUsers}";
                         if (logDebug) {
@@ -326,9 +326,9 @@ namespace APIs.Controllers
                     string theDescription = "";
 
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {reqeusterID}) added admins ({addedAdmins}) and users ({addedUsers}) into project {theProjectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {reqeusterID}) added admins ({addedAdmins}) and users ({addedUsers}) into project '{theProjectName}' (project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} added admins ({addedAdmins} and users ({addedUsers}) into {theProjectName}";
+                        theDescription = $"{user.Email} added admins ({addedAdmins}) and users ({addedUsers}) into '{theProjectName}'";
 
                     }
                     // string description = $"Added users: {addedUsers}";
@@ -440,13 +440,13 @@ namespace APIs.Controllers
                             string username = user.Name;
 
 
-                            string theDescription = $"{username} (User ID: {theUserID}) created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
+                            string theDescription = $"{username} (User ID: {theUserID}) created project '{theProjectName}' (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
                             // string addedUsers = string.Join(", ", userIDs);
 
                             // string theDescription = $"User {theUserID} created project {theProjectName} (Project ID: {theProjectID}) and added admins ({addedAdmins}) and users ({addedUsers}).";
 
                             if (logDebug) {
-                                theDescription += "[Add Log called by AdminController.CreateProjects]";
+                                theDescription += "[Add Log called by AdminController.CreateProjects] - verbose logs ON";
                                 Console.WriteLine(theDescription);
                             }
 
@@ -462,7 +462,7 @@ namespace APIs.Controllers
                                 isAdminAction = AdminActionTrue
                             });
                         }
-                    } else {
+                    } else { // if verboseLogs == false
                         foreach (var createProjectResEntry in result)
                         {
 
@@ -507,10 +507,10 @@ namespace APIs.Controllers
                             string username = user.Name;
                             string userEmail = user.Email;
 
-                            string theDescription = $"{userEmail} created project {theProjectName} and added admins ({addedAdmins}) and users ({addedUsers}).";
+                            string theDescription = $"{userEmail} created project '{theProjectName}' with location '{getProjectDto.location}' and description '{getProjectDto.description}' and added admins ({addedAdmins}) and users ({addedUsers}).";
 
                             if (logDebug) {
-                                theDescription += "[Add Log called by AdminController.CreateProjects VERBOSE LOGS ON";
+                                theDescription += "[Add Log called by AdminController.CreateProjects VERBOSE LOGS OFF";
                                 Console.WriteLine(theDescription);
                             }
 
@@ -578,7 +578,7 @@ namespace APIs.Controllers
                     if (verboseLogs) {
                         theDescription = $"{username} (User ID: {requestorID}) added metadata ({metadataDescriptions}) to project {theProjectName} (project ID: {projectID})";
                     } else {
-                        theDescription = $"{userEmail} added metadata ({metadataDescriptions}) to project: {theProjectName}";
+                        theDescription = $"{userEmail} added metadata ({metadataDescriptions}) to project '{theProjectName}'";
                     }
                     if (logDebug) {
                         theDescription += "[Add Log called by AdminController.AddMetaDataFieldsToProject]";
@@ -647,9 +647,9 @@ namespace APIs.Controllers
 
                         string theDescription = "";
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {requestorID}) changed role of user {theUserWhoseRoleWasChanged.Name} (User ID: {theIDOfTheUserWhoseRoleWasChanged}) to {normalizedRoleString} in {projectName} (Project ID: {projectID})";
+                            theDescription = $"{username} (User ID: {requestorID}) changed role of user '{theUserWhoseRoleWasChanged.Name}' (User ID: {theIDOfTheUserWhoseRoleWasChanged}) to '{normalizedRoleString}' in '{projectName}' (Project ID: {projectID})";
                         } else {
-                            theDescription = $"{user.Email} changed role of {theEmailOfTheUserWhoseRoleWasChanged} to {normalizedRoleString} in {projectName}";
+                            theDescription = $"{user.Email} changed role of '{theEmailOfTheUserWhoseRoleWasChanged}' to '{normalizedRoleString}' in '{projectName}'";
                         }
 
                         if (logDebug) {
@@ -704,12 +704,13 @@ namespace APIs.Controllers
                 var user = await userService.GetUser(requestorID);
                 var username = user.Name;
                 string theDescription = "";
+                var fieldName = await projectService.GetCustomMetadataNameByIdAsync(fieldID);
 
                 try {
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {requestorID}) toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName} (project ID: {projectID})";
+                        theDescription = $"{username} (User ID: {requestorID}) toggled metadata field '{fieldID}' to {(req.enabled ? "enabled" : "disabled")} for project '{projectName}' (project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} toggled metadata field {fieldID} to {(req.enabled ? "enabled" : "disabled")} for project {projectName}";
+                        theDescription = $"{user.Email} toggled metadata field '{fieldName}' to {(req.enabled ? "enabled" : "disabled")} for project '{projectName}'";
                     }
                     if (logDebug) {
                         theDescription += "[Add Log called by AdminController.ToggleMetadataCategoryActivation]";

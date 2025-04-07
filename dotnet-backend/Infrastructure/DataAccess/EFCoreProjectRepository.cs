@@ -80,16 +80,23 @@ namespace Infrastructure.DataAccess
             List<int> unfoundProjectIDs = new List<int>();
             Dictionary<int, DateTime> NewArchivedProjects = new Dictionary<int, DateTime>();
             Dictionary<int, DateTime> ProjectsArchivedAlready = new Dictionary<int, DateTime>();
+            List<AssetMetadata> assetMetadataToRemove = new List<AssetMetadata>();
+            List<AssetTag> assetTagsToRemove = new List<AssetTag>();
+
             try 
             {            
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-                Console.WriteLine("Fetch all projects in a single query");
+                // Console.WriteLine("Fetch all projects in a single query");
                 // Fetch all projects in a single query
                 var projects = await _context.Projects
                     .Include(p => p.ProjectMemberships)
-                    .ThenInclude(pm => pm.User)
+                        .ThenInclude(pm => pm.User)
+                    .Include(p => p.Assets)
+                        .ThenInclude(a => a.AssetMetadata)
+                    .Include(p => p.Assets)
+                        .ThenInclude(a => a.AssetTags)
                     .Where(p => projectIDs.Contains(p.ProjectID))
                     .ToListAsync();
 
@@ -113,11 +120,29 @@ namespace Infrastructure.DataAccess
                         project.Active = false;
                         project.ArchivedAt = DateTime.UtcNow;
                         NewArchivedProjects[project.ProjectID] = project.ArchivedAt.Value;
+
+                        // Process all its assets; for those that are still in palette, remove the projectID, and delete associated assetmetadata and tags
+                        List<Asset> assets = project.Assets.ToList();
+                        foreach (Asset a in assets) 
+                        {
+                            if (a.assetState == Asset.AssetStateType.UploadedToPalette)
+                            {
+                                a.ProjectID = null;
+                                List<AssetMetadata> metadataToRemove = a.AssetMetadata.ToList();
+                                List<AssetTag> tagsToRemove = a.AssetTags.ToList();
+                    
+                                // null-coalescing operator to handle cases where the lists-to-be-removed are null
+                                assetMetadataToRemove.AddRange(metadataToRemove ?? new List<AssetMetadata>());
+                                assetTagsToRemove.AddRange(tagsToRemove ?? new List<AssetTag>());
+                            }
+                        }
                     }
                 }
                 
                 // Console.WriteLine("Save the change");
                 // Save the change
+                _context.AssetMetadata.RemoveRange(assetMetadataToRemove ?? Enumerable.Empty<AssetMetadata>());
+                _context.AssetTags.RemoveRange(assetTagsToRemove ?? Enumerable.Empty<AssetTag>());
                 await _context.SaveChangesAsync();
                 return (unfoundProjectIDs, NewArchivedProjects, ProjectsArchivedAlready);
             }
@@ -213,80 +238,69 @@ namespace Infrastructure.DataAccess
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            // Check if the requestor is a member of the project
-            bool isMember = await _context.ProjectMemberships
-                .AnyAsync(pm => pm.ProjectID == req.projectID && pm.UserID == requesterID);
-            
-            if (isMember) 
-            {
-                // Retrieve matched Assets and their tags
-                IQueryable<Asset> query = _context.Assets
-                    .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
-                    .Include(a => a.AssetTags)
-                        .ThenInclude(at => at.Tag);
-                                     
-                bool isQueryEmpty = !await query.AnyAsync(); 
+            // Retrieve matched Assets and their tags
+            IQueryable<Asset> query = _context.Assets
+                .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
+                .Include(a => a.AssetTags)
+                    .ThenInclude(at => at.Tag);
+                                    
+            bool isQueryEmpty = !await query.AnyAsync(); 
 
-                if (isQueryEmpty) 
-                {   
-                    throw new DataNotFoundException("No results were found");
-                }
-                else 
-                {
-                    // Apply filters
-                    if (req.assetType.ToLower() != "all")
-                    {
-                        query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
-                    }
-
-                    if (req.postedBy.HasValue && req.postedBy.Value > 0)
-                    {
-                        query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
-                    }
-
-                    if (!string.IsNullOrEmpty(req.tagName))
-                    {
-                        query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
-                    }
-
-                    if (req.fromDate.HasValue)
-                    {
-                        DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
-                        query = query.Where(a => a.LastUpdated >= utcFromDate);
-                    }
-
-                    if (req.toDate.HasValue)
-                    {
-                        DateTime utcToDate = req.toDate.Value.ToUniversalTime();
-                        query = query.Where(a => a.LastUpdated <= utcToDate);
-                    }
-
-                    // number of total assets
-                    int totalAssetCount = await query.CountAsync();
-
-                    // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
-                   
-                    int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
-                    
-                    List<Asset> assets = await query
-                    .OrderBy(a => a.FileName)
-                    .Skip((req.pageNumber - 1) * req.assetsPerPage)
-                    .Take(req.assetsPerPage)
-                    .Include(a => a.User)
-                    .ToListAsync();
-
-                    // Get asset blobSASUrl
-                    List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
-                    string containerName = "project-" + req.projectID.ToString() + "-assets";
-                    List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
-
-                    
-                    return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
-                }
+            if (isQueryEmpty) 
+            {   
+                throw new DataNotFoundException("No results were found");
             }
             else 
             {
-                throw new DataNotFoundException("Requester not a member of the project.");
+                // Apply filters
+                if (req.assetType.ToLower() != "all")
+                {
+                    query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
+                }
+
+                if (req.postedBy.HasValue && req.postedBy.Value > 0)
+                {
+                    query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
+                }
+
+                if (!string.IsNullOrEmpty(req.tagName))
+                {
+                    query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
+                }
+
+                if (req.fromDate.HasValue)
+                {
+                    DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
+                    query = query.Where(a => a.LastUpdated >= utcFromDate);
+                }
+
+                if (req.toDate.HasValue)
+                {
+                    DateTime utcToDate = req.toDate.Value.ToUniversalTime();
+                    query = query.Where(a => a.LastUpdated <= utcToDate);
+                }
+
+                // number of total assets
+                int totalAssetCount = await query.CountAsync();
+
+                // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                
+                int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
+                
+                List<Asset> assets = await query
+                .OrderBy(a => a.FileName)
+                .Skip((req.pageNumber - 1) * req.assetsPerPage)
+                .Take(req.assetsPerPage)
+                .Include(a => a.User)
+                .ToListAsync();
+
+                // Get asset blobSASUrl
+                List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+                string containerName = "project-" + req.projectID.ToString() + "-assets";
+                List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+
+                
+                return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
             }
         }
 
@@ -511,6 +525,15 @@ namespace Infrastructure.DataAccess
                 .Select(p => p.Name)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) {
+            using var context = _contextFactory.CreateDbContext();
+
+            return await context.ProjectMetadataFields
+                .Where(f => f.FieldID == fieldID)
+                .Select(f => f.FieldName)
+                .FirstOrDefaultAsync();
+        }
         
         public async Task AddAssetTagAssociationAsync(string imageId, int tagId)
         {
@@ -588,6 +611,23 @@ namespace Infrastructure.DataAccess
                 await context.AssetMetadata.AddAsync(assetMetadata);
             }
             await context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAssetFromProjectInDb(int projectID, string blobId)
+        {
+            using DAMDbContext _context = _contextFactory.CreateDbContext();
+            
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.ProjectID == projectID && a.BlobID == blobId) 
+                ?? throw new DataNotFoundException($"Asset with BlobID '{blobId}' in project {projectID} not found.");
+            _context.Assets.Remove(asset);
+            bool blobDeleted = await _blobStorageService.DeleteAsync(asset, $"project-{projectID}-assets");
+            if (!blobDeleted)
+            {
+                throw new Exception("Failed to delete asset from blob storage.");
+            }
+            
+            await _context.SaveChangesAsync();
         }
     }
 }
