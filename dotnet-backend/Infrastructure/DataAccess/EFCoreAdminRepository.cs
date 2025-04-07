@@ -23,7 +23,8 @@ namespace Infrastructure.DataAccess
             List<Project> projectList, 
             List<ProjectTag> projectTagList, 
             List<Tag> tagList, 
-            List<ImportUserProfile> importUserProfileList
+            List<ImportUserProfile> importUserProfileList,
+            int requesterID
         )
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
@@ -52,7 +53,7 @@ namespace Infrastructure.DataAccess
             var updatedProjectTagList = new List<ProjectTag>();
             foreach (var projectTag in projectTagList)
             {
-                Tag tag = existingTags.FirstOrDefault(t => t.Name == projectTag.Tag.Name);
+                var tag = existingTags.FirstOrDefault(t => t.Name == projectTag.Tag.Name);
 
                 if (tag == null)
                 {
@@ -100,6 +101,17 @@ namespace Infrastructure.DataAccess
                         userID = profile.userID
                     };
                     nonExistentUsers.Add(nonExistentUser);
+                }
+            }
+
+            // Check if the the person importing the project is a member included in the excel file. If not, add to existentUserAndRoleList as admin
+            bool isRequesterInExcelFile = existentUserAndRoleList.Any(tuple => tuple.Item1.UserID == requesterID);
+            if (!isRequesterInExcelFile)
+            {
+                var requesterUser = await _context.Users.FirstOrDefaultAsync(u => u.UserID == requesterID);
+                if (requesterUser != null) 
+                {
+                    existentUserAndRoleList.Add((requesterUser, ProjectMembership.UserRoleType.Admin));
                 }
             }
 

@@ -36,7 +36,7 @@ namespace Core.Services
         /*
             ImportProject Assumes: see Note of ImportProject in AdminController
         */
-        public async Task<ImportProjectRes> ImportProject(Stream stream)
+        public async Task<ImportProjectRes> ImportProject(Stream stream, int requesterID)
         {
             using ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Read);
             
@@ -60,7 +60,7 @@ namespace Core.Services
                 ) = AdminServiceHelpers.CreateProjectForImport(xlsxEntry);
 
                 (int importedProjectID, List<UserCustomInfo> nonExistentUsers) 
-                    = await _adminRepository.ImportProjectInDB(projectList, projectTagList, tagList, importUserProfileList);
+                    = await _adminRepository.ImportProjectInDB(projectList, projectTagList, tagList, importUserProfileList, requesterID);
 
                
                 GetProjectRes importedProjectInfo = await _projectService.GetProject(importedProjectID);

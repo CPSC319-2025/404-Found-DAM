@@ -273,6 +273,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     setIsPreviewAssetMetadata(true);
   }
 
+  const [confirmDeletePopup, setConfirmDeletePopup] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<AssetWithSrc | null>(null);
+
   const downloadAssetConfirm = async (asset: any) => {
     if (asset.mimetype.includes("image")) {
       setRequestedDownloadAsset(asset);
@@ -411,26 +414,32 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     });
   };
 
-  const handleDeleteAsset = async (asset: AssetWithSrc) => {
-    if (!window.confirm("Are you sure you want to delete this asset?")) {
-      return;
-    }
+  const handleDeleteAsset = (asset: AssetWithSrc) => {
+    setAssetToDelete(asset);
+    setConfirmDeletePopup(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!assetToDelete) return;
     try {
       const response = await fetchWithAuth(
-        `projects/${projectID}/assets/${asset.blobID}`,
-        {
-          method: "DELETE",
-        }
+        `projects/${projectID}/assets/${assetToDelete.blobID}`,
+        { method: "DELETE" }
       );
       if (!response.ok) {
         throw new Error("Failed to delete asset");
       }
       setCurrentItems((prev) =>
-        prev.filter((item: AssetWithSrc) => item.blobID !== asset.blobID)
+        prev.filter(
+          (item: AssetWithSrc) => item.blobID !== assetToDelete.blobID
+        )
       );
       toast.success("Asset deleted successfully");
     } catch (error) {
       toast.error((error as Error).message);
+    } finally {
+      setConfirmDeletePopup(false);
+      setAssetToDelete(null);
     }
   };
 
@@ -576,6 +585,19 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             canCancel={false}
           />
         </div>
+      )}
+
+      {confirmDeletePopup && assetToDelete && (
+        <PopupModal
+          isOpen={true}
+          onClose={() => {
+            setConfirmDeletePopup(false);
+            setAssetToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          title="Delete Asset"
+          messages={["Are you sure you want to delete this asset?"]}
+        />
       )}
 
       {isPreviewAsset && previewUrl && (
