@@ -1005,6 +1005,7 @@ export default function ProjectsPage() {
             }
           }}
           showExtraHelperText={true}
+          disableOutsideClose={true}
         />
       )}
 
@@ -1069,7 +1070,7 @@ export default function ProjectsPage() {
               isMulti: true,
               required: false,
               value: configuredTags,
-              placeholder: "type and press <enter> to add new tag>",
+              placeholder: "type and press <enter> to add new tag>"
             },
           ]}
           onSubmit={onSubmitConfigureTags}
@@ -1077,7 +1078,7 @@ export default function ProjectsPage() {
           confirmRemoval={true}
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
           submitButtonText="Update Tags"
-          disableOutsideClose={confirmConfigurePopup}
+          disableOutsideClose={true}
           noRequired={true}
         />
       )}
