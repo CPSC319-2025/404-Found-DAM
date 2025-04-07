@@ -50,10 +50,13 @@ export default function EditMetadataPage() {
       // If we have a blobId and no metadata values, fetch its details directly
       if (fileData.blobId && Object.keys(metadataValues).length === 0) {
         fetchBlobDetails(fileData.blobId);
-        fetchBlobFields(fileData.blobId);
+        // Only fetch fields once on component mount
+        if (!isLoading) {
+          fetchBlobFields(fileData.blobId);
+        }
       }
     }
-  }, [fileData, projectTags.length, metadataValues]);
+  }, [fileData, projectTags.length]); // Remove metadataValues from dependencies
 
   async function fetchBlobDetails(blobId: string) {
     // Only fetch if we don't already have the data
