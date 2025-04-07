@@ -521,6 +521,7 @@ namespace Infrastructure.DataAccess {
                 };
 
                 // Upload the file to blob storage
+                Console.WriteLine($"Uploading file to blob storage: {filename}");
                 string blobId = await _blobStorageService.UploadAsync(fileData, "palette-assets", asset);
                 asset.BlobID = blobId;
                 
