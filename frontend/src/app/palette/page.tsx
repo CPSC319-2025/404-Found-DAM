@@ -583,7 +583,9 @@ export default function PalettePage() {
 
   // Prepare a file metadata object
   const createFileMetadata = useCallback((file: File): FileMetadata => {
-    const fileSize = formatFileSize(file.size);
+    // Convert bytes to KB before formatting
+    const fileSizeInKB = file.size / 1024;
+    const fileSize = formatFileSize(fileSizeInKB);
     return {
       file,
       fileSize,
@@ -626,33 +628,34 @@ export default function PalettePage() {
           
           // Fetch and update blob details
           await fetchAndUpdateBlobDetails(blobId);
+          
+          // Set the flag for new files immediately
+          localStorage.setItem('paletteHasNewFiles', 'true');
         }
       } catch (error) {
         console.error("Error setting up file preview:", error);
       }
       
-      // Clear status after a delay and refresh page - reduced from 1000ms to 300ms
-      setTimeout(() => {
-        setUploadStatus("");
-        setUploadProgress(0);
-        
-        // After upload, return to first page to see the new files
-        if (currentPage !== 1) {
-          handlePageChange(1);
-        } else {
-          // Just reload the first page
-          loadAssets(1);
-        }
-      }, 300);
+      // Clear status immediately and refresh page - no delay
+      setUploadStatus("");
+      setUploadProgress(0);
+      
+      // After upload, return to first page to see the new files
+      if (currentPage !== 1) {
+        handlePageChange(1);
+      } else {
+        // Just reload the first page
+        loadAssets(1);
+      }
     },
     onError: (error: string) => {
       setUploadStatus(`Error uploading ${file.name}: ${error}`);
       
-      // Clear error after a delay - reduced from 5000ms to 2000ms
+      // Clear error after a delay - reduced from 2000ms to 1000ms
       setTimeout(() => {
         setUploadStatus("");
         setUploadProgress(0);
-      }, 2000);
+      }, 1000);
     }
   }), [fetchAndUpdateBlobDetails, setFiles, loadAssets, currentPage, handlePageChange]);
 
@@ -694,10 +697,11 @@ export default function PalettePage() {
         }
       }
       
-      // Reload the current page to ensure consistent pagination after uploads
-      await loadAssets(currentPage);
+      // No need to reload here as each file upload already triggered a reload
+      // This removes a redundant reload that could be causing additional delay
     },
-    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles, loadAssets, currentPage]
+    // Using only the dependencies that are actually needed
+    [createFileMetadata, processFileMetadata, createUploadCallbacks, setFiles, setUploadStatus, setUploadProgress]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -708,6 +712,56 @@ export default function PalettePage() {
   const handleUploadNewDesign = useCallback(() => {
     setShowModal(true);
   }, []);
+
+  // Add a function to handle newly uploaded files from the modal
+  const handleFilesUploaded = useCallback((uploadedFiles: FileMetadata[]) => {
+    console.log('Received uploaded files:', uploadedFiles);
+    
+    // Always navigate to page 1 to show new files
+    if (currentPage !== 1) {
+      // If not on page 1, navigate there first
+      handlePageChange(1);
+      
+      // Then add files after a short delay to ensure page has changed
+      setTimeout(() => {
+        // Add the files to the beginning of the state
+        setFiles(prev => {
+          const newFiles = [...uploadedFiles, ...prev];
+          return newFiles.slice(0, pageSize); // Keep only pageSize files
+        });
+        
+        // Update total count
+        setTotalCount(prev => prev + uploadedFiles.length);
+        
+        // Update total pages if needed
+        const newTotalItems = totalCount + uploadedFiles.length;
+        const newTotalPages = Math.ceil(newTotalItems / pageSize);
+        if (newTotalPages > totalPages) {
+          setTotalPages(newTotalPages);
+        }
+      }, 100);
+    } else {
+      // Already on page 1, just add files
+      setFiles(prev => {
+        const newFiles = [...uploadedFiles, ...prev];
+        return newFiles.slice(0, pageSize); // Keep only pageSize files
+      });
+      
+      // Update total count
+      setTotalCount(prev => prev + uploadedFiles.length);
+      
+      // Update total pages if needed
+      const newTotalItems = totalCount + uploadedFiles.length;
+      const newTotalPages = Math.ceil(newTotalItems / pageSize);
+      if (newTotalPages > totalPages) {
+        setTotalPages(newTotalPages);
+      }
+    }
+    
+    // Set a subtle success message
+    setUploadStatus(`Added ${uploadedFiles.length} new files to your palette.`);
+    setTimeout(() => setUploadStatus(''), 3000);
+  }, [setFiles, currentPage, handlePageChange, pageSize, totalCount, totalPages]);
 
   // Add a function to verify selection integrity
   const verifySelectionIntegrity = useCallback(async () => {
@@ -1018,40 +1072,22 @@ export default function PalettePage() {
       const hasNewFiles = localStorage.getItem('paletteHasNewFiles');
       if (hasNewFiles === 'true') {
         console.log('New files detected, available for refresh');
-        // Don't clear the flag until user decides to refresh
-        // localStorage.removeItem('paletteHasNewFiles');
+        // Since we're now automatically adding files, clear the flag
+        localStorage.removeItem('paletteHasNewFiles');
         
-        // Instead of auto-refreshing, show a refresh button
+        // And there's no need to show any refresh notification
         setBgUploadInProgress(false);
-        setUploadStatus('New files have been uploaded. Refresh to view them.');
       }
     };
     
     // Check immediately on mount
     checkForNewFiles();
     
-    // Then check periodically (every 3 seconds)
-    const interval = setInterval(checkForNewFiles, 3000);
+    // Then check more frequently (every 500ms instead of 3000ms)
+    const interval = setInterval(checkForNewFiles, 500);
     
     return () => clearInterval(interval);
   }, []);
-  
-  // Handle manual refresh after upload
-  const handleRefreshAfterUpload = useCallback(() => {
-    // Clear the flags
-    localStorage.removeItem('paletteHasNewFiles');
-    localStorage.removeItem('uploadStatus');
-    
-    // Set loading state
-    setIsLoading(true);
-    
-    // Load the first page to show new files
-    setCurrentPage(1);
-    loadAssets(1);
-    
-    // Clear status
-    setUploadStatus('');
-  }, [loadAssets]);
   
   // Listen for upload status updates from localStorage
   useEffect(() => {
@@ -1122,7 +1158,8 @@ export default function PalettePage() {
           )}
         </div>
 
-        {uploadStatus && (
+        {/* Remove the refresh notification bar since files are now automatically added */}
+        {uploadStatus && uploadStatus !== 'New files have been uploaded. Refresh to view them.' && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
             <h3 className="text-lg font-medium text-gray-700 mb-2">{uploadStatus}</h3>
             <Progress value={uploadProgress} />
@@ -1184,6 +1221,7 @@ export default function PalettePage() {
             closeModal={() => setShowModal(false)}
             createFileMetadata={createFileMetadata}
             fetchAndUpdateBlobDetails={fetchAndUpdateBlobDetails}
+            onFilesUploaded={handleFilesUploaded}
           />
         )}
         
@@ -1220,18 +1258,7 @@ export default function PalettePage() {
           </div>
         )}
 
-        {uploadStatus === 'New files have been uploaded. Refresh to view them.' && (
-          <div className="fixed bottom-4 right-4 bg-white text-gray-800 p-4 rounded-lg shadow-lg z-50 flex items-center">
-            <span className="mr-3">{uploadStatus}</span>
-            <button 
-              onClick={handleRefreshAfterUpload}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
-        )}
-
+        {/* Remove the refresh notification floating bar */}
         {uploadStatus && uploadStatus.includes('Uploading') && (
           <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50 w-80">
             <p className="text-sm font-medium mb-2">{uploadStatus}</p>

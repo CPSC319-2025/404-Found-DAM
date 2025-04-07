@@ -1,11 +1,82 @@
 "use client";
 
-import React, { useState, ChangeEvent, useEffect, useCallback } from "react";
+import React, { useState, ChangeEvent, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, TrashIcon, PlayIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { loadFileContent } from "./Apis/fetchPaletteAssets";
+
+// URL Registry to persist blob URLs across component re-renders
+// This prevents URLs from being revoked when components unmount and remount
+const URLRegistry = {
+  urls: new Map<string, string>(),
+  fileSizes: new Map<string, string>(), // Add storage for file sizes
+  
+  // Store a URL for a blobId
+  register: (blobId: string, url: string, fileSize?: string): void => {
+    if (!blobId) return;
+    // If we already have a URL for this blobId, revoke it first
+    if (URLRegistry.urls.has(blobId)) {
+      const oldUrl = URLRegistry.urls.get(blobId);
+      if (oldUrl && oldUrl.startsWith('blob:') && oldUrl !== url) {
+        URL.revokeObjectURL(oldUrl);
+      }
+    }
+    URLRegistry.urls.set(blobId, url);
+    
+    // Store file size if provided
+    if (fileSize) {
+      URLRegistry.fileSizes.set(blobId, fileSize);
+    }
+    
+    console.log(`Registered URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
+  },
+  
+  // Get a URL for a blobId
+  get: (blobId: string): string | undefined => {
+    return URLRegistry.urls.get(blobId);
+  },
+  
+  // Get file size for a blobId
+  getFileSize: (blobId: string): string | undefined => {
+    return URLRegistry.fileSizes.get(blobId);
+  },
+  
+  // Remove a URL for a blobId
+  remove: (blobId: string): void => {
+    if (!blobId) return;
+    const url = URLRegistry.urls.get(blobId);
+    if (url && url.startsWith('blob:')) {
+      // First remove from registry, then revoke the URL
+      URLRegistry.urls.delete(blobId);
+      URLRegistry.fileSizes.delete(blobId); // Also remove file size
+      console.log(`Revoking URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000); // Small delay to ensure no components are still using it
+    }
+  },
+  
+  // Clean up all URLs
+  clear: (): void => {
+    URLRegistry.urls.forEach((url, blobId) => {
+      if (url && url.startsWith('blob:')) {
+        console.log(`Clearing URL for blobId ${blobId}`);
+        URL.revokeObjectURL(url);
+      }
+    });
+    URLRegistry.urls.clear();
+    URLRegistry.fileSizes.clear(); // Also clear file sizes
+  }
+};
+
+// Clean up all URLs when the window unloads
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    URLRegistry.clear();
+  });
+}
 
 interface Project {
   projectID: number;
@@ -39,156 +110,196 @@ type FileTableProps = {
   handleEditMetadata: (index: number) => void;
 };
 
-// LazyImage component - loads image when visible
-const LazyImage = ({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) => {
-  const [loaded, setLoaded] = useState(!!fileMeta.isLoaded);
-  const [imgUrl, setImgUrl] = useState<string | null>(fileMeta.url || null);
-  const { setFiles } = useFileContext();
-  
-  const loadImage = useCallback(async () => {
-    // Skip loading if already loaded or has URL
-    if (loaded || imgUrl) return;
-    
-    try {
-      const loadedFile = await loadFileContent(fileMeta);
-      if (loadedFile) {
-        setImgUrl(loadedFile.url || null);
-        setLoaded(true);
-        
-        // Update the file in context
-        setFiles(prevFiles => 
-          prevFiles.map(f => f.blobId === fileMeta.blobId ? loadedFile : f)
-        );
-      }
-    } catch (error) {
-      console.error("Error loading image:", error);
-    }
-  }, [fileMeta, loaded, imgUrl, setFiles]);
-  
-  // Load on first render if needed
-  useEffect(() => {
-    // If file already has a URL or is marked as loaded, use it immediately
-    if (fileMeta.url && !imgUrl) {
-      setImgUrl(fileMeta.url);
-      setLoaded(true);
-      return;
-    }
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadImage();
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.05, rootMargin: "50px" } // Lower threshold and add root margin for earlier loading
-    );
-    
-    // Create a ref element
-    const div = document.getElementById(`img-${fileMeta.blobId}`);
-    if (div) {
-      observer.observe(div);
-    }
-    
-    return () => observer.disconnect();
-  }, [fileMeta.blobId, fileMeta.url, imgUrl, loadImage]);
-  
-  return (
-    <div id={`img-${fileMeta.blobId}`} className="h-20 w-20 relative">
-      {!loaded && !imgUrl && (
-        <div className="h-full w-full flex items-center justify-center bg-gray-100 animate-pulse" style={{ animationDuration: '0.7s' }}>
-          <span className="text-gray-400 text-xs">Loading</span>
-        </div>
-      )}
-      {imgUrl && (
-        <img
-          src={imgUrl}
-          alt="Preview"
-          className="object-cover rounded w-full h-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick(imgUrl, fileMeta.file.type);
-          }}
-        />
-      )}
-    </div>
-  );
-};
+// Create a proper file size formatting function
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  // For more accurate size representation
+  if (bytes < 1024) {
+    return bytes + ' Bytes';
+  } else if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + ' KB';
+  } else if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  } else {
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+}
 
-// LazyVideo component - loads video when visible
-const LazyVideo = ({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) => {
-  const [loaded, setLoaded] = useState(!!fileMeta.isLoaded);
-  const [videoUrl, setVideoUrl] = useState<string | null>(fileMeta.url || null);
+// Create a shared component for handling media files
+function LazyMedia({ 
+  fileMeta, 
+  type,
+  isImage,
+  onClick 
+}: { 
+  fileMeta: FileMetadata, 
+  type: 'image' | 'video',
+  isImage: boolean,
+  onClick: (url: string, type: string) => void 
+}) {
+  const [isLoaded, setIsLoaded] = useState(!!fileMeta.isLoaded);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(fileMeta.url || null);
   const { setFiles } = useFileContext();
   
-  const loadVideo = useCallback(async () => {
-    // Skip loading if already loaded or has URL
-    if (loaded || videoUrl) return;
-    
-    try {
-      const loadedFile = await loadFileContent(fileMeta);
-      if (loadedFile) {
-        setVideoUrl(loadedFile.url || null);
-        setLoaded(true);
-        
-        // Update the file in context
-        setFiles(prevFiles => 
-          prevFiles.map(f => f.blobId === fileMeta.blobId ? loadedFile : f)
-        );
-      }
-    } catch (error) {
-      console.error("Error loading video:", error);
-    }
-  }, [fileMeta, loaded, videoUrl, setFiles]);
-  
-  // Load on first render if needed
   useEffect(() => {
-    // If file already has a URL or is marked as loaded, use it immediately
-    if (fileMeta.url && !videoUrl) {
-      setVideoUrl(fileMeta.url);
-      setLoaded(true);
+    // Case 1: Check URL registry first
+    if (fileMeta.blobId && URLRegistry.get(fileMeta.blobId)) {
+      const registeredUrl = URLRegistry.get(fileMeta.blobId);
+      const registeredFileSize = URLRegistry.getFileSize(fileMeta.blobId);
+      
+      if (registeredUrl && registeredUrl !== mediaSrc) {
+        setMediaSrc(registeredUrl);
+        setIsLoaded(true);
+        
+        // Update parent with registered file size if available
+        if (registeredFileSize) {
+          setFiles(prev => prev.map(file => {
+            if (file.blobId === fileMeta.blobId) {
+              return {
+                ...file,
+                url: registeredUrl,
+                isLoaded: true,
+                fileSize: registeredFileSize
+              };
+            }
+            return file;
+          }));
+        }
+        return;
+      }
+    }
+    
+    // Case 2: Use URL from fileMeta
+    if (fileMeta.url && fileMeta.url !== mediaSrc) {
+      setMediaSrc(fileMeta.url);
+      setIsLoaded(true);
+      
+      if (fileMeta.blobId) {
+        URLRegistry.register(fileMeta.blobId, fileMeta.url, fileMeta.fileSize);
+      }
       return;
     }
     
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadVideo();
-          observer.disconnect();
+    // Case 3: Create URL from raw file
+    if (!mediaSrc && fileMeta.file instanceof File && fileMeta.file.size > 0) {
+      const newUrl = URL.createObjectURL(fileMeta.file);
+      setMediaSrc(newUrl);
+      setIsLoaded(true);
+      
+      const fileSize = formatFileSize(fileMeta.file.size);
+      
+      if (fileMeta.blobId) {
+        URLRegistry.register(fileMeta.blobId, newUrl, fileSize);
+      }
+      
+      setFiles(prev => prev.map(file => {
+        if (file === fileMeta || (fileMeta.blobId && file.blobId === fileMeta.blobId)) {
+          return {
+            ...file,
+            url: newUrl,
+            isLoaded: true,
+            fileSize: fileSize
+          };
         }
-      },
-      { threshold: 0.05, rootMargin: "50px" } // Lower threshold and add root margin for earlier loading
-    );
-    
-    // Create a ref element
-    const div = document.getElementById(`video-${fileMeta.blobId}`);
-    if (div) {
-      observer.observe(div);
+        return file;
+      }));
+      return;
     }
     
-    return () => observer.disconnect();
-  }, [fileMeta.blobId, fileMeta.url, videoUrl, loadVideo]);
-  
+    // Case 4: Fetch from server using blobId
+    if (fileMeta.blobId && !mediaSrc) {
+      let isCancelled = false;
+      
+      const fetchMedia = async () => {
+        try {
+          const updatedFileMeta = await loadFileContent(fileMeta);
+          
+          if (!isCancelled && updatedFileMeta?.url) {
+            if (fileMeta.blobId) {
+              URLRegistry.register(fileMeta.blobId, updatedFileMeta.url, updatedFileMeta.fileSize);
+            }
+            
+            setMediaSrc(updatedFileMeta.url);
+            setIsLoaded(true);
+            
+            // Calculate file size if missing
+            if (!updatedFileMeta.fileSize && updatedFileMeta.file instanceof File && updatedFileMeta.file.size > 0) {
+              updatedFileMeta.fileSize = formatFileSize(updatedFileMeta.file.size);
+            }
+            
+            setFiles(prev => prev.map(file => {
+              if (file.blobId === fileMeta.blobId) {
+                return updatedFileMeta;
+              }
+              return file;
+            }));
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            console.error(`Error loading ${type}:`, error);
+          }
+        }
+      };
+      
+      fetchMedia();
+      
+      return () => {
+        isCancelled = true;
+      };
+    }
+  }, [fileMeta, mediaSrc, setFiles, type]);
+
+  // Render different content based on type
   return (
-    <div id={`video-${fileMeta.blobId}`} className="h-20 w-20 relative">
-      {!loaded && !videoUrl && (
-        <div className="h-full w-full flex items-center justify-center bg-gray-100 animate-pulse" style={{ animationDuration: '0.7s' }}>
-          <span className="text-gray-400 text-xs">Loading</span>
+    <div 
+      className={`relative w-24 h-24 flex items-center justify-center overflow-hidden bg-gray-100 rounded-md ${!isImage ? 'cursor-pointer' : ''}`} 
+      onClick={(e) => {
+        e.stopPropagation();
+        if (mediaSrc) {
+          onClick(mediaSrc, fileMeta.file.type);
+        }
+      }}
+    >
+      {isLoaded && mediaSrc ? (
+        isImage ? (
+          <img
+            src={mediaSrc}
+            alt={fileMeta.file.name}
+            className="object-contain max-w-full max-h-full"
+          />
+        ) : (
+          <>
+            <video
+              src={mediaSrc}
+              className="object-contain max-w-full max-h-full"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-indigo-500 bg-opacity-75 rounded-full p-2">
+                <PlayIcon className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          </>
+        )
+      ) : (
+        <div className="flex items-center justify-center">
+          <svg className="animate-spin h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
         </div>
-      )}
-      {videoUrl && (
-        <video
-          src={videoUrl}
-          className="object-cover rounded w-full h-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick(videoUrl, fileMeta.file.type);
-          }}
-        />
       )}
     </div>
   );
-};
+}
+
+// Re-implement LazyImage and LazyVideo as wrappers around LazyMedia
+function LazyImage({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) {
+  return <LazyMedia fileMeta={fileMeta} type="image" isImage={true} onClick={onClick} />;
+}
+
+function LazyVideo({ fileMeta, onClick }: { fileMeta: FileMetadata, onClick: (url: string, type: string) => void }) {
+  return <LazyMedia fileMeta={fileMeta} type="video" isImage={false} onClick={onClick} />;
+}
 
 // Pagination component
 const Pagination = ({ 
@@ -321,6 +432,7 @@ export default function FileTable({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
+  const [previewBlobId, setPreviewBlobId] = useState<string | null>(null);
 
   function handleSelectAll(e: ChangeEvent<HTMLInputElement>) {
     if (e.target.checked) {
@@ -592,12 +704,31 @@ export default function FileTable({
     setPreviewUrl(url);
     setPreviewType(fileType);
     setIsModalOpen(true);
+    
+    // Try to find which blobId this URL corresponds to
+    files.forEach(file => {
+      if (file.url === url && file.blobId) {
+        setPreviewBlobId(file.blobId);
+      }
+    });
   }
+  
   function closeModal() {
     setIsModalOpen(false);
-    setPreviewUrl(null);
+    setPreviewBlobId(null);
     setPreviewType(null);
+    // We don't clear previewUrl here as it might cause a flash of no content
   }
+  
+  // Override the removeFile function to also clean up URLs from registry
+  const handleRemoveFile = useCallback((index: number) => {
+    const file = files[index];
+    if (file.blobId) {
+      // When a file is removed, remove its URL from the registry
+      URLRegistry.remove(file.blobId);
+    }
+    removeFile(index);
+  }, [files, removeFile]);
 
   return (
     <div className="overflow-auto">
@@ -750,7 +881,7 @@ export default function FileTable({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeFile(index);
+                      handleRemoveFile(index);
                     }}
                     className="text-red-600 hover:text-red-900"
                   >
