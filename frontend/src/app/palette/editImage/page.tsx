@@ -237,7 +237,7 @@ export default function EditImagePage() {
   if (!fileData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-500 text-lg">File not found in context.</p>
+        <p className="text-red-500 text-lg">Please go back to palette after refresh.</p>
       </div>
     );
   }
