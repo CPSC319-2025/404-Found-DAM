@@ -598,7 +598,7 @@ namespace Infrastructure.DataAccess
                 .FirstOrDefaultAsync(a => a.ProjectID == projectID && a.BlobID == blobId) 
                 ?? throw new DataNotFoundException($"Asset with BlobID '{blobId}' in project {projectID} not found.");
             _context.Assets.Remove(asset);
-            bool blobDeleted = await _blobStorageService.DeleteAsync(asset, "project-assets");
+            bool blobDeleted = await _blobStorageService.DeleteAsync(asset, $"project-{projectID}-assets");
             if (!blobDeleted)
             {
                 throw new Exception("Failed to delete asset from blob storage.");
