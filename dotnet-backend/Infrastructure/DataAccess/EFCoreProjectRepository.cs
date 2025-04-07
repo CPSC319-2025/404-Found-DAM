@@ -80,16 +80,23 @@ namespace Infrastructure.DataAccess
             List<int> unfoundProjectIDs = new List<int>();
             Dictionary<int, DateTime> NewArchivedProjects = new Dictionary<int, DateTime>();
             Dictionary<int, DateTime> ProjectsArchivedAlready = new Dictionary<int, DateTime>();
+            List<AssetMetadata> assetMetadataToRemove = new List<AssetMetadata>();
+            List<AssetTag> assetTagsToRemove = new List<AssetTag>();
+
             try 
             {            
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-                Console.WriteLine("Fetch all projects in a single query");
+                // Console.WriteLine("Fetch all projects in a single query");
                 // Fetch all projects in a single query
                 var projects = await _context.Projects
                     .Include(p => p.ProjectMemberships)
-                    .ThenInclude(pm => pm.User)
+                        .ThenInclude(pm => pm.User)
+                    .Include(p => p.Assets)
+                        .ThenInclude(a => a.AssetMetadata)
+                    .Include(p => p.Assets)
+                        .ThenInclude(a => a.AssetTags)
                     .Where(p => projectIDs.Contains(p.ProjectID))
                     .ToListAsync();
 
@@ -113,11 +120,29 @@ namespace Infrastructure.DataAccess
                         project.Active = false;
                         project.ArchivedAt = DateTime.UtcNow;
                         NewArchivedProjects[project.ProjectID] = project.ArchivedAt.Value;
+
+                        // Process all its assets; for those that are still in palette, remove the projectID, and delete associated assetmetadata and tags
+                        List<Asset> assets = project.Assets.ToList();
+                        foreach (Asset a in assets) 
+                        {
+                            if (a.assetState == Asset.AssetStateType.UploadedToPalette)
+                            {
+                                a.ProjectID = null;
+                                List<AssetMetadata> metadataToRemove = a.AssetMetadata.ToList();
+                                List<AssetTag> tagsToRemove = a.AssetTags.ToList();
+                    
+                                // null-coalescing operator to handle cases where the lists-to-be-removed are null
+                                assetMetadataToRemove.AddRange(metadataToRemove ?? new List<AssetMetadata>());
+                                assetTagsToRemove.AddRange(tagsToRemove ?? new List<AssetTag>());
+                            }
+                        }
                     }
                 }
                 
                 // Console.WriteLine("Save the change");
                 // Save the change
+                _context.AssetMetadata.RemoveRange(assetMetadataToRemove ?? Enumerable.Empty<AssetMetadata>());
+                _context.AssetTags.RemoveRange(assetTagsToRemove ?? Enumerable.Empty<AssetTag>());
                 await _context.SaveChangesAsync();
                 return (unfoundProjectIDs, NewArchivedProjects, ProjectsArchivedAlready);
             }
