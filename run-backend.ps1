@@ -1,7 +1,7 @@
-if [ ! -f "./dotnet-backend/APIs/appsettings.json" ]; then
-  echo "❌ Missing dotnet-backend/APIs/appsettings.json"
-  exit 1
-fi
+if (-not (Test-Path -Path ".\dotnet-backend\APIs\appsettings.json")) {
+    Write-Host "❌ Missing dotnet-backend\APIs\appsettings.json"
+    exit 1
+}
 
 try {
     docker info > $null
