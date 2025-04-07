@@ -41,6 +41,7 @@ export default function Navbar() {
 
   return (
     <>
+      {/* Mobile Navigation */}
       <nav className="sm:hidden bg-navbar p-2 fixed top-0 left-0 right-0 z-50 flex justify-between items-center">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -95,7 +96,8 @@ export default function Navbar() {
         </div>
       )}
 
-      <nav className="hidden sm:block group transition-all duration-300 w-24 hover:w-64 bg-navbar p-2 fixed sm:relative z-50">
+      {/* Desktop Navigation */}
+      <nav className="hidden sm:block group transition-all duration-300 w-20 hover:w-64 bg-navbar p-2 fixed sm:relative z-50">
         <div className="pl-3">
           <div className="flex justify-center mb-4 overflow-hidden">
             <Link href="https://www.ae.ca/">
@@ -114,7 +116,7 @@ export default function Navbar() {
                   className="flex items-center p-2 rounded text-gray-500 hover:text-blue-500 px-3"
                 >
                   <span className="mr-2">{page.icon}</span>
-                  <span className="text-lg whitespace-nowrap transition-all duration-300 opacity-0 group-hover:opacity-100 pl-2">
+                  <span className="text-lg whitespace-nowrap transition-all duration-300 opacity-0 group-hover:opacity-100 pl-2 pointer-events-none group-hover:pointer-events-auto">
                     {page.title}
                   </span>
                 </Link>

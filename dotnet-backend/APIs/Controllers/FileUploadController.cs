@@ -120,39 +120,46 @@ namespace APIs.Controllers
                     if (mergeResult.Success)
                     {
                         Console.WriteLine("fileuploadcontroller.upload chunk mergeResult.Sucess");
-                        try
+                        
+                        // Fire and forget activity logging to not block the response
+                        _ = Task.Run(async () => 
                         {
-                            string theDescription = "";
-
-                            var user = await userService.GetUser(userId);
-                            var assetName = await projectService.GetAssetNameByBlobIdAsync(mergeResult.BlobId);
-
-                            if (verboseLogs) {
-                                theDescription = $"{userId} uploaded \"{assetName}\" to their palette"; // $"{userId} uploaded {formFile.FileName} to their palette";
-
-                            } else {
-                                theDescription = $"{user.Email} uploaded \"{assetName}\" to their palette";
-                            }
-
-                            if (logDebug) {
-                                theDescription += "[Add Log called by FileUploadController.UploadChunk - (result.IsLastChunk && result.AllChunksReceived)]";
-                                Console.WriteLine(theDescription);
-                            }
-
-                            var log = new CreateActivityLogDto
+                            try
                             {
-                                userID = userId,
-                                changeType = "Uploaded",
-                                description = theDescription,
-                                projID = 0, // no project
-                                assetID = mergeResult.BlobId,
-                                isAdminAction = false
-                            };
+                                string theDescription = "";
 
-                            activityLogService.AddLogAsync(log);
-                        } catch (Exception ex) {
-                            Console.WriteLine("Failed to write log - FileUploadController.UploadChunk");
-                        }
+                                var user = await userService.GetUser(userId);
+                                var assetName = await projectService.GetAssetNameByBlobIdAsync(mergeResult.BlobId);
+
+                                if (verboseLogs) {
+                                    theDescription = $"{userId} uploaded '{assetName}' to their palette"; 
+                                } else {
+                                    theDescription = $"{user.Email} uploaded '{assetName}' to their palette";
+                                }
+
+                                if (logDebug) {
+                                    theDescription += "[Add Log called by FileUploadController.UploadChunk - (result.IsLastChunk && result.AllChunksReceived)]";
+                                    Console.WriteLine(theDescription);
+                                }
+
+                                var log = new CreateActivityLogDto
+                                {
+                                    userID = userId,
+                                    changeType = "Uploaded",
+                                    description = theDescription,
+                                    projID = 0, // no project
+                                    assetID = mergeResult.BlobId,
+                                    isAdminAction = false
+                                };
+
+                                await activityLogService.AddLogAsync(log);
+                            } 
+                            catch (Exception ex) 
+                            {
+                                Console.WriteLine($"Failed to write log - FileUploadController.UploadChunk: {ex.Message}");
+                            }
+                        });
+
                         return Results.Ok(new
                         {
                             message = "File uploaded and merged successfully",
@@ -168,8 +175,6 @@ namespace APIs.Controllers
                             title: "Error merging chunks"
                         );
                     }
-
-                    
                 }
 
                 // For chunk uploads

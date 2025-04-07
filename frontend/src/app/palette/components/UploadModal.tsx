@@ -29,13 +29,15 @@ interface UploadModalProps {
   closeModal: () => void;
   createFileMetadata: (file: File) => FileMetadata;
   fetchAndUpdateBlobDetails: (blobId: string) => Promise<void>;
+  onFilesUploaded?: (files: FileMetadata[]) => void;
 }
 
 export default function UploadModal({
   projects,
   closeModal,
   createFileMetadata,
-  fetchAndUpdateBlobDetails
+  fetchAndUpdateBlobDetails,
+  onFilesUploaded
 }: UploadModalProps) {
   const { setFiles } = useFileContext();
   const [currentStep, setCurrentStep] = useState(1);
@@ -53,6 +55,7 @@ export default function UploadModal({
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [uploadedCount, setUploadedCount] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
   
   // Auto-populate description and location when project is selected
   useEffect(() => {
@@ -282,59 +285,118 @@ export default function UploadModal({
     }
     
     setIsUploading(true);
-    const uploadedBlobIds: string[] = [];
-    let successCount = 0;
+    const filesToUpload = [...uploadedFiles];
+    const blobIdsToAssociate: string[] = [];
+    const uploadedFileMetadata: FileMetadata[] = [];
     
-    for (const file of uploadedFiles) {
-      // Create file metadata
-      const fileMeta = createFileMetadata(file);
-      fileMeta.description = description;
-      fileMeta.location = location;
-      fileMeta.project = selectedProject;
-      fileMeta.tags = selectedTags;
-      fileMeta.tagIds = selectedTagIds;
+    // Set flag to indicate background upload in progress
+    localStorage.setItem('bgUploadInProgress', 'true');
+    
+    // Close modal early, but keep a reference to the uploaded files
+    setTimeout(() => {
+      // Remove the alert notification
+      // alert("Files are uploading in the background. You can continue working.");
       
-      // Upload file in chunks without adding to files state yet
-      setUploadingFileName(file.name);
-      setUploadingProgress(0);
+      // Close modal
+      closeModal();
       
-      const callbacks: UploadProgressCallbacks = {
-        onProgress: (progress: number, status: string) => {
-          setUploadingProgress(progress);
-        },
-        onSuccess: async (blobId?: string) => {
-          setUploadingProgress(20);
-          
-          if (blobId) {
-            // Add blobId to our tracking array
-            uploadedBlobIds.push(blobId);
+      // Clear state for next time
+      setUploadedFiles([]);
+      setCurrentStep(1);
+      setProcessingFiles([]);
+      setProcessedFiles([]);
+      setSelectedTags([]);
+      setSelectedTagIds([]);
+      setUploadedCount(0);
+    }, 500);
+    
+    // Start uploads in background without awaiting completion
+    (async () => {
+      let successCount = 0;
+      
+      for (const file of filesToUpload) {
+        // Create file metadata
+        const fileMeta = createFileMetadata(file);
+        fileMeta.description = description;
+        fileMeta.location = location;
+        fileMeta.project = selectedProject;
+        fileMeta.tags = selectedTags;
+        fileMeta.tagIds = selectedTagIds;
+        
+        // Upload file in chunks without adding to files state yet
+        setUploadingFileName(file.name);
+        setUploadingProgress(0);
+        
+        const callbacks: UploadProgressCallbacks = {
+          onProgress: (progress: number, status: string) => {
+            // Update local state
+            setUploadingProgress(progress);
+            setUploadStatus(`Uploading ${file.name}: ${status}`);
             
-            // Instead of using processFileMetadata (which adds to files state),
-            // manually add the file with all metadata at once
-            fileMeta.blobId = blobId;
+            // Store in localStorage for the main page to read
+            localStorage.setItem('uploadStatus', `Uploading ${file.name}: ${status}`);
+            localStorage.setItem('uploadProgress', progress.toString());
+          },
+          onSuccess: async (blobId?: string) => {
+            // Show completed progress
+            setUploadingProgress(100);
+            setUploadStatus(`File ${file.name} uploaded successfully`);
             
-            // Don't add to files state directly - we'll reload the page instead
-            // to respect pagination
-            successCount++;
-            setUploadedCount(prev => prev + 1);
+            // Store in localStorage for the main page to read
+            localStorage.setItem('uploadStatus', `File ${file.name} uploaded successfully`);
+            localStorage.setItem('uploadProgress', '100');
             
-            // Fetch and update blob details
-            await fetchAndUpdateBlobDetails(blobId);
+            if (blobId) {
+              // Add blobId to our tracking array for project association
+              blobIdsToAssociate.push(blobId);
+              
+              // Update fileMeta with the blobId
+              fileMeta.blobId = blobId;
+              fileMeta.url = URL.createObjectURL(file);
+              fileMeta.isLoaded = true;
+              
+              // Add to our local tracking array for direct state update
+              uploadedFileMetadata.push(fileMeta);
+              
+              // Don't add to files state directly - will be picked up on next loadAssets
+              successCount++;
+              setUploadedCount(prev => prev + 1);
+              
+              // Fetch and update blob details
+              await fetchAndUpdateBlobDetails(blobId);
+            }
+            
+            // Clear status after delay
+            setTimeout(() => {
+              localStorage.removeItem('uploadStatus');
+              localStorage.removeItem('uploadProgress');
+            }, 2000);
+          },
+          onError: (error: string) => {
+            console.error(`Error uploading ${file.name}: ${error}`);
+            setUploadStatus(`Error uploading ${file.name}: ${error}`);
+            
+            // Store in localStorage for the main page to read
+            localStorage.setItem('uploadStatus', `Error uploading ${file.name}: ${error}`);
+            
+            // Clear status after delay
+            setTimeout(() => {
+              localStorage.removeItem('uploadStatus');
+              localStorage.removeItem('uploadProgress');
+            }, 5000);
           }
-        },
-        onError: (error: string) => {
-          alert(`Error uploading ${file.name}: ${error}`);
-        }
-      };
+        };
+        
+        await uploadFileChunked(file, callbacks);
+      }
       
-      await uploadFileChunked(file, callbacks);
-    }
-    
-    // After all files have been uploaded, associate them with the project and tags
-    if (uploadedBlobIds.length > 0) {
-      try {
-        // Only associate files with project if a project is selected
-        if (selectedProject) {
+      // After all files have been uploaded, associate them with the project and tags
+      if (blobIdsToAssociate.length > 0 && selectedProject) {
+        try {
+          // Update status to show we're associating files with project
+          localStorage.setItem('uploadStatus', `Associating ${blobIdsToAssociate.length} files with project...`);
+          localStorage.setItem('uploadProgress', '90');
+          
           const token = localStorage.getItem("token");
           const projectId = parseInt(selectedProject);
           
@@ -349,7 +411,7 @@ export default function UploadModal({
               },
               body: JSON.stringify({
                 ProjectID: projectId,
-                BlobIDs: uploadedBlobIds,
+                BlobIDs: blobIdsToAssociate,
                 TagIDs: selectedTagIds,
                 MetadataEntries: []
               }),
@@ -359,50 +421,41 @@ export default function UploadModal({
           if (!response.ok) {
             throw new Error(`Failed to associate assets with project: ${response.status}`);
           }
+        } catch (error) {
+          console.error("Error associating assets with project:", error);
         }
-      } catch (error) {
-        console.error("Error associating assets with project:", error);
-        alert("Files were uploaded but there was an issue linking them to the project. Please check your project dashboard.");
       }
-    }
-    
-    // Store a flag indicating that we need to refresh and go to page 1
-    if (successCount > 0) {
-      // Set a flag in localStorage so the main page knows to reload page 1
-      localStorage.setItem('paletteRefreshPage', '1');
       
-      // Use a small delay to avoid race conditions
-      setTimeout(() => {
-        setIsUploading(false);
-        closeModal();
+      // Add all uploaded files directly to parent component's state
+      if (uploadedFileMetadata.length > 0 && onFilesUploaded) {
+        onFilesUploaded(uploadedFileMetadata);
+      }
+      
+      // Set a flag in localStorage to indicate new files available
+      if (successCount > 0) {
+        localStorage.setItem('paletteHasNewFiles', 'true');
         
-        // Clear state
-        setUploadedFiles([]);
-        setCurrentStep(1);
-        setProcessingFiles([]);
-        setProcessedFiles([]);
-        setSelectedTags([]);
-        setSelectedTagIds([]);
-        setUploadedCount(0);
+        // Show a completion message
+        localStorage.setItem('uploadStatus', `Upload complete. ${successCount} files uploaded successfully.`);
+        localStorage.setItem('uploadProgress', '100');
         
-        // Display a temporary message to user
-        alert(`Successfully uploaded ${successCount} file(s). Refreshing to display new files.`);
-        
-        // Force a page refresh to pick up the new files with correct pagination
-        window.location.reload();
-      }, 500);
-    } else {
-      setIsUploading(false);
-      closeModal();
-      setUploadedFiles([]);
-      setCurrentStep(1);
-      setProcessingFiles([]);
-      setProcessedFiles([]);
-      setSelectedTags([]);
-      setSelectedTagIds([]);
-      setUploadedCount(0);
-    }
-  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, closeModal]);
+        // No need for refresh notification anymore, clear after short delay
+        setTimeout(() => {
+          localStorage.removeItem('uploadProgress');
+          localStorage.removeItem('uploadStatus');
+          localStorage.removeItem('paletteHasNewFiles');
+        }, 3000);
+      } else {
+        // Clear any leftover status if no files were successfully uploaded
+        localStorage.removeItem('uploadStatus');
+        localStorage.removeItem('uploadProgress');
+      }
+      
+      // Clear background upload flag
+      localStorage.removeItem('bgUploadInProgress');
+    })();
+    
+  }, [uploadedFiles, selectedProject, description, location, selectedTags, selectedTagIds, createFileMetadata, fetchAndUpdateBlobDetails, closeModal, onFilesUploaded]);
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -594,7 +647,7 @@ export default function UploadModal({
           
           {isUploading && (
             <div className="mt-4">
-              <p className="text-sm">Uploading {uploadingFileName}</p>
+              <p className="text-sm">{uploadStatus}</p>
               <Progress value={uploadingProgress} />
             </div>
           )}

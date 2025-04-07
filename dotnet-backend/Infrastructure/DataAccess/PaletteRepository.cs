@@ -457,29 +457,53 @@ namespace Infrastructure.DataAccess {
         public async Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId, bool convertToWebp = true, IImageService? imageService = null)  {
             try 
             {
-                byte[] fileData = File.ReadAllBytes(filePath);
+                byte[] fileData = await File.ReadAllBytesAsync(filePath);
+                bool conversionAttempted = false;
                 
                 // Check if file is an image and if conversion is required
                 if (mimeType.StartsWith("image/") && !mimeType.EndsWith("webp") && convertToWebp && imageService != null)
                 {
-                    try 
+                    // Only attempt conversion for images smaller than 10MB to avoid long processing times
+                    if (fileData.Length < 10 * 1024 * 1024)
                     {
-                        // Convert to webp directly without compression
-                        byte[] webpLossyBuffer = imageService.toWebpNetVips(fileData, false);
-                        fileData = webpLossyBuffer;
-                        
-                        // Update filename and mimetype
-                        string fileNameNoExtension = Path.GetFileNameWithoutExtension(filename);
-                        filename = fileNameNoExtension + ".webp";
-                        string[] mimeTypeParts = mimeType.Split('/');
-                        if (mimeTypeParts.Length > 0) 
+                        conversionAttempted = true;
+                        try 
                         {
-                            mimeType = mimeTypeParts[0] + "/" + "webp";
+                            // Process image conversion in a separate task with timeout
+                            var conversionTask = Task.Run(() => imageService.toWebpNetVips(fileData, false));
+                            
+                            // Set a timeout for conversion (5 seconds)
+                            if (await Task.WhenAny(conversionTask, Task.Delay(5000)) == conversionTask)
+                            {
+                                // Task completed within timeout
+                                byte[] webpLossyBuffer = conversionTask.Result;
+                                
+                                // Only use conversion if it resulted in smaller file
+                                if (webpLossyBuffer.Length < fileData.Length)
+                                {
+                                    fileData = webpLossyBuffer;
+                                    
+                                    // Update filename and mimetype
+                                    string fileNameNoExtension = Path.GetFileNameWithoutExtension(filename);
+                                    filename = fileNameNoExtension + ".webp";
+                                    string[] mimeTypeParts = mimeType.Split('/');
+                                    if (mimeTypeParts.Length > 0) 
+                                    {
+                                        mimeType = mimeTypeParts[0] + "/" + "webp";
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // Conversion took too long, skip it
+                                Console.WriteLine($"Image conversion timeout for {filename}");
+                            }
                         }
-                    }
-                    catch (Exception)
-                    {
-                        // Failed to convert, continue with original format
+                        catch (Exception ex)
+                        {
+                            // Failed to convert, continue with original format
+                            Console.WriteLine($"Failed to convert image: {ex.Message}");
+                        }
                     }
                 }
                 
@@ -507,8 +531,9 @@ namespace Infrastructure.DataAccess {
                 
                 return asset;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error in UploadMergedChunkToDb: {ex.Message}");
                 throw;
             }
         }
