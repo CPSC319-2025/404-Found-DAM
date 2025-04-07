@@ -573,6 +573,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
             onClose={() => downloadAssetWrapper(false, requestedDownloadAsset)}
             onConfirm={() => downloadAssetWrapper(true, requestedDownloadAsset)}
             messages={[]}
+            canCancel={false}
           />
         </div>
       )}

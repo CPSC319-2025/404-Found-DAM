@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { Project, User } from "@/app/types";
 import { useDropzone } from "react-dropzone";
 import { ArrowDownIcon } from "@heroicons/react/24/solid";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import JSZip from "jszip";
@@ -92,10 +93,12 @@ function Items({
   currentItems,
   openPreview,
   downloadAssetConfirm,
+  showAssetMetadata,
 }: {
   currentItems?: any[];
   openPreview: any;
   downloadAssetConfirm: any,
+  showAssetMetadata: any,
 }) {
   return (
     <div className="items min-h-[70vh] overflow-y-auto mt-4 rounded-lg p-4">
@@ -204,6 +207,14 @@ function Items({
                   <div className="flex gap-3">
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
+                      onClick={() => showAssetMetadata(asset)}
+                    >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                        <DocumentTextIcon className="h-5 w-5" />
+                      </span>
+                    </button>
+                    <button
+                      className="text-indigo-600 hover:text-indigo-900"
                       onClick={() => downloadAssetConfirm(asset)}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
@@ -252,6 +263,61 @@ export default function ProjectsPage() {
 
   const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
   const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
+
+  const [isPreviewAssetMetadata, setIsPreviewAssetMetadata] = useState(false);
+  const [assetMetadataFields, setAssetMetadataFields] = useState<any[]>([]);
+  const [projectMetadataFields, setProjectMetadataFields] = useState<any[]>([]);
+  const [assetMetadataName, setAssetMetadataName] = useState<string>("");
+
+  const showAssetMetadata = async (asset: any) => {
+    const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch asset metadata (Status: ${response.status} - ${response.statusText})`
+      );
+      return;
+    }
+
+    const data = await response.json();
+
+    const responseP = await fetchWithAuth(`projects/${asset.projectID}`);
+
+    if (!responseP.ok) {
+      throw new Error("Failed to get project.");
+    }
+
+    const project = await responseP.json();
+
+    const metadataFields = data.fields
+      .filter((field: any) => {
+        const foundField = project.metadataFields.find((pmf: any) => pmf.fieldID === field.fieldId);
+        if (foundField && foundField.isEnabled) {
+          return true;
+        } else {
+          return false;
+        }
+      })
+      .map((field: any) => {
+        return {
+          name: field.fieldName,
+          label: field.fieldName,
+          type: field.fieldType,
+          placeholder: "",
+          value: field.fieldValue
+        }
+      });
+
+    if (metadataFields.length < 1) {
+      toast.warn("No custom metadata associated to this asset");
+      return;
+    }
+
+    setAssetMetadataFields(metadataFields);
+
+    setAssetMetadataName(asset.filename);
+
+    setIsPreviewAssetMetadata(true);
+  }
 
   const downloadAssetConfirm = async (asset: any) => {
     if (asset.mimetype.includes('image')) {
@@ -880,6 +946,7 @@ export default function ProjectsPage() {
                 currentItems={paginatedAssets}
                 openPreview={openPreview}
                 downloadAssetConfirm={downloadAssetConfirm}
+                showAssetMetadata={showAssetMetadata}
               />
               <Pagination
                 count={Math.ceil(currentAssets.length / 10)}
@@ -1044,6 +1111,7 @@ export default function ProjectsPage() {
             onClose={() => downloadAssetWrapper(false, requestedDownloadAsset)}
             onConfirm={() => downloadAssetWrapper(true, requestedDownloadAsset)}
             messages={[]}
+            canCancel={false}
           />
         </div>
       )}
@@ -1074,6 +1142,19 @@ export default function ProjectsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {isPreviewAssetMetadata && (
+        <GenericForm
+          title={"Custom Metadata: " + assetMetadataName}
+          isModal={true}
+          fields={assetMetadataFields}
+          onSubmit={() => {}}
+          onCancel={() => setIsPreviewAssetMetadata(false)}
+          isEdit={false}
+          noRequired={true}
+          submitButtonText=""
+        />
       )}
     </div>
   );
