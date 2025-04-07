@@ -20,6 +20,7 @@ namespace Core.Interfaces
         Task<string?> GetTagNameByIdAsync(int tagID);
 
         Task<string?> GetProjectNameByIdAsync(int projectID);
+        Task DeleteAssetFromProject(int projectId, string blobId);
         Task<string?> GetCustomMetadataNameByIdAsync(int fieldID);
     }
 }
