@@ -86,6 +86,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const [formData, setFormData] = useState<FormData>({});
 
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
   const fetchTags = async (): Promise<string[]> => {
     try {
       const response = await fetchWithAuth("/tags");
@@ -291,9 +293,20 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         return fetchProject().then((project) => ({ project, tags }));
       })
       .then(({ project, tags }) => {
-        const updatedFormFields = [...editProjectFormFields];
-
         setProjectName(project.name!);
+
+        if (
+          (user?.superadmin ||
+          project.admins.find((admin) => admin.userID === user!.userID)) && project.active
+        ) {
+          setFormDisabled(false);
+        } else {
+          setLoading(false);
+          setPermissionDenied(true);
+          return;
+        }
+
+        const updatedFormFields = [...editProjectFormFields];
 
         updatedFormFields.forEach((field) => {
           if (field.name === "location") {
@@ -341,13 +354,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           prev.filter((user) => !selectedAdmins.includes(user.userID))
         );
 
-        if (
-          (user?.superadmin ||
-          project.admins.find((admin) => admin.userID === user!.userID)) && project.active
-        ) {
-          setFormDisabled(false);
-        }
-
         setLoading(false);
       })
       .catch((error) => {
@@ -394,9 +400,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   return (
     <div className="sm:p-6 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">
-        {"Edit Project: " + projectName}
-      </h1>
+      {!permissionDenied && (
+        <h1 className="text-2xl font-bold mb-4">
+          {"Edit Project: " + projectName}
+        </h1>
+      )}
+
+      {permissionDenied && (
+        <h1 className="text-2xl font-bold mb-4">
+          {"Unable to edit Project: " + projectName + ". Permission Denied."}
+        </h1>
+      )}
 
       {loading && (
         <div className="flex justify-center items-center mb-4">
@@ -405,7 +419,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
         </div>
       )}
 
-      {!loading && (
+      {!loading && !permissionDenied && (
         <GenericForm
           title=""
           isModal={false}

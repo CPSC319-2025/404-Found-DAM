@@ -58,9 +58,9 @@ export default function Login({ setUser }: LoginProps) {
               className="absolute inset-y-0 right-4 text-gray-600"
             >
               {showPassword ? (
-                <EyeSlashIcon className="size-5 inset-y-0 flex items hover:scale-105 transition-transform duration-200" />
+                <EyeSlashIcon className="w-5 h-5 inset-y-0 flex items hover:scale-105 transition-transform duration-200" />
               ) : (
-                <EyeIcon className="size-5 inset-y-0 flex items hover:scale-105 transition-transform duration-200" />
+                <EyeIcon className="w-5 h-5 inset-y-0 flex items hover:scale-105 transition-transform duration-200" />
               )}
             </button>
           </div>

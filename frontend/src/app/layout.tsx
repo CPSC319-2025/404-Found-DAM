@@ -36,11 +36,11 @@ export default function RootLayout({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const handleLogout = () => {
-    logout();
-    setUser(null);
-    setDropdownOpen(false); // Close the dropdown after logout
-  };
+  // const handleLogout = () => {
+  //   logout();
+  //   setUser(null);
+  //   setDropdownOpen(false); // Close the dropdown after logout
+  // };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,28 +113,6 @@ export default function RootLayout({
           <FileProvider>
             <div className="flex min-h-screen flex-col sm:flex-row relative">
               <Navbar />
-              <div className="fixed bottom-4 right-4 block z-50" ref={dropdownRef}>
-                <div className="relative">
-                  <button
-                    ref={buttonRef}
-                    onClick={() => setDropdownOpen(!isDropdownOpen)}
-                    className="bg-gray-300 p-2 rounded-full hover:bg-gray-300"
-                  >
-                    <CogIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
-                  </button>
-
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left p-2 text-red-600 hover:bg-gray-100"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
               <main className="p-4 flex-1 mt-16 sm:mt-0 md:sm-64">
                 {children}
               </main>
