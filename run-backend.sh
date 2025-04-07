@@ -22,6 +22,7 @@ if ! docker ps | grep -q $CONTAINER_NAME; then
 else
   echo "MSSQL container is already running."
 fi
+sleep 5
 
 echo "Applying EF migrations..."
      
