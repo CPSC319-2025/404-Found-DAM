@@ -466,7 +466,7 @@ namespace APIs.Controllers
 
                         theDescription = $"{username} (User ID: {submitterID}) deleted (Blob ID: {blobId}) from project {projectName} (Project ID: {projectID})";
                     } else {
-                        theDescription = $"{user.Email} deleted {assetName} from project {projectName}";
+                        theDescription = $"{user.Email} deleted '{assetName}' from project '{projectName}'";
                     }
 
                     if (string.IsNullOrEmpty(assetName)) {
