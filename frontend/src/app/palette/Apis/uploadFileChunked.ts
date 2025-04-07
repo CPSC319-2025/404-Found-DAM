@@ -62,7 +62,7 @@ export async function uploadFileChunked(
         uploadedChunks++;
         
         const progress = Math.min(100, Number(((uploadedChunks) * chunkProgress).toFixed(1)));
-        onProgress(progress, `Chunk ${uploadedChunks}/${totalChunks} uploaded successfully`);
+        onProgress(progress, `Uploading to database may take a few minutes for large videos.`);
       }
     }
     

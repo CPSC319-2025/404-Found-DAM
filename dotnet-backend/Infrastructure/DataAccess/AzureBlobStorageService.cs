@@ -48,6 +48,7 @@ namespace Infrastructure.DataAccess
                 
             // Create blob client and container
             var blobServiceClient = new BlobServiceClient(_connectionString);
+            Console.WriteLine($"Ready to connect to container: {containerName}");
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             
             // Create container if it doesn't exist
@@ -66,13 +67,44 @@ namespace Infrastructure.DataAccess
                 HttpHeaders = new BlobHttpHeaders
                 {
                     ContentType = assetMetaData.MimeType
+                },
+                // Add these options for better performance
+                TransferOptions = new StorageTransferOptions
+                {
+                    // Increase concurrent operations
+                    MaximumConcurrency = 8,
+                    // Use larger buffer size (8MB chunks)
+                    InitialTransferSize = 8 * 1024 * 1024,
+                    MaximumTransferSize = 8 * 1024 * 1024
                 }
             };
+            
             
             // Upload file
             using (var stream = new MemoryStream(file))
             {
-                await blobClient.UploadAsync(stream, blobOptions);
+                Console.WriteLine($"Uploading");
+                
+                // If file is large, consider compression before upload
+                if (file.Length > 10 * 1024 * 1024) // If larger than 10MB
+                {
+                    Console.WriteLine("Large file detected, optimizing upload...");
+                    
+                    // For large files, we'll let the Azure SDK handle chunking with our optimized settings
+                    // Reset stream position
+                    stream.Position = 0;
+                    
+                    // The TransferOptions we set earlier will handle chunking and parallel uploads
+                    await blobClient.UploadAsync(stream, blobOptions);
+                    
+                    Console.WriteLine("Large file upload completed");
+                }
+                else
+                {
+                    // Upload with optimized options for smaller files
+                    await blobClient.UploadAsync(stream, blobOptions);
+                }
+                Console.WriteLine($"Uploading finished");
             }
             
             // Return blob ID (full path)

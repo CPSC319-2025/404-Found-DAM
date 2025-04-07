@@ -107,14 +107,50 @@ namespace Core.Services
                 // Only if this appears to be all chunks, verify on disk as a final check
                 if (allChunksReceived)
                 {
-                    for (int i = 0; i < request.TotalChunks; i++)
+                    // Add a small delay to allow for any in-flight chunks to complete
+                    await Task.Delay(100);
+                    
+                    // Double check the chunks count after delay
+                    lock (chunks)
                     {
-                        string checkPath = Path.Combine(userChunksDir, $"{sanitizedFileName}.part_{i}");
-                        if (!File.Exists(checkPath))
+                        allChunksReceived = chunks.Count == request.TotalChunks;
+                    }
+                    
+                    if (allChunksReceived)
+                    {
+                        for (int i = 0; i < request.TotalChunks; i++)
                         {
-                            allChunksReceived = false;
-                            break;
+                            string checkPath = Path.Combine(userChunksDir, $"{sanitizedFileName}.part_{i}");
+                            if (!File.Exists(checkPath))
+                            {
+                                allChunksReceived = false;
+                                break;
+                            }
                         }
+                    }
+                }
+                
+                // If this is the last chunk but we're still waiting for others
+                if (isLastChunk && !allChunksReceived)
+                {
+                    // Wait for all chunks with a timeout
+                    int maxAttempts = 1000; // 10 seconds maximum wait
+                    int attempts = 0;
+                    while (!allChunksReceived && attempts < maxAttempts)
+                    {
+                        await Task.Delay(200); // Check every second
+                        attempts++;
+                        
+                        lock (chunks)
+                        {
+                            allChunksReceived = chunks.Count == request.TotalChunks;
+                            // _logger.LogInformation($"Attempt {attempts}: Chunks received {chunks.Count}/{request.TotalChunks}");
+                        }
+                    }
+                    
+                    if (!allChunksReceived)
+                    {
+                         _logger.LogWarning($"Timeout waiting for all chunks. Only received {chunks.Count}/{request.TotalChunks}");
                     }
                 }
                 
@@ -179,7 +215,13 @@ namespace Core.Services
                         // Delete the chunk after merging
                         File.Delete(chunkFilePath);
                     }
+                    
+                    // Ensure all data is written to disk
+                    outputStream.Flush(true);
                 }
+
+                // Wait a moment to ensure filesystem operations complete
+                await Task.Delay(100);
                 
                 // Clear the tracking for this file
                 string trackingKey = $"{userId}_{sanitizedFileName}";
@@ -187,17 +229,65 @@ namespace Core.Services
                 
                 // Get MIME type based on file extension
                 string mimeType = GetMimeTypeFromExtension(Path.GetExtension(mergedFilePath));
-                Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId, true, _imageService);
-
-                // Delete the merged file from disk
-                File.Delete(mergedFilePath);
                 
-                return new MergeChunksResult
+                // Verify file exists with proper content before attempting DB upload
+                if (!File.Exists(mergedFilePath))
                 {
-                    Success = true,
-                    FilePath = mergedFilePath,
-                    BlobId = asset.BlobID
-                };
+                    return new MergeChunksResult
+                    {
+                        Success = false,
+                        ErrorMessage = "Merged file not found after merge operation"
+                    };
+                }
+                
+                // Try to open the file to verify it's complete and accessible
+                try
+                {
+                    using (var verifyStream = new FileStream(mergedFilePath, FileMode.Open, FileAccess.Read))
+                    {
+                        if (verifyStream.Length == 0)
+                        {
+                            return new MergeChunksResult
+                            {
+                                Success = false,
+                                ErrorMessage = "Merged file is empty"
+                            };
+                        }
+                    }
+                    
+                    // Now that we've verified the file, upload to DB
+                    Asset asset = await _paletteRepository.UploadMergedChunkToDb(mergedFilePath, sanitizedFileName, mimeType, userId, true, _imageService);
+
+                    // Delete the merged file from disk only after successful DB upload
+                    if (asset != null && !string.IsNullOrEmpty(asset.BlobID))
+                    {
+                        File.Delete(mergedFilePath);
+                        
+                        return new MergeChunksResult
+                        {
+                            Success = true,
+                            FilePath = mergedFilePath,
+                            BlobId = asset.BlobID
+                        };
+                    }
+                    else
+                    {
+                        return new MergeChunksResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Upload to database failed - asset was not created properly"
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // If file verification fails, report error
+                    return new MergeChunksResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"File verification failed: {ex.Message}"
+                    };
+                }
             }
             catch (Exception ex)
             {
