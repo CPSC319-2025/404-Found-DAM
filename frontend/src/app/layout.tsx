@@ -113,7 +113,7 @@ export default function RootLayout({
           <FileProvider>
             <div className="flex min-h-screen flex-col sm:flex-row relative">
               <Navbar />
-              <div className="fixed bottom-4 right-4 block" ref={dropdownRef}>
+              <div className="fixed bottom-4 right-4 block z-50" ref={dropdownRef}>
                 <div className="relative">
                   <button
                     ref={buttonRef}
@@ -124,7 +124,7 @@ export default function RootLayout({
                   </button>
 
                   {isDropdownOpen && (
-                    <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32 z-60">
+                    <div className="absolute right-0 bottom-full mb-2 bg-white border rounded shadow-md w-32">
                       <button
                         onClick={handleLogout}
                         className="w-full text-left p-2 text-red-600 hover:bg-gray-100"
