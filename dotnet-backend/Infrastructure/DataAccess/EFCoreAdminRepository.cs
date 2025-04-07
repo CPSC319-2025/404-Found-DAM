@@ -43,10 +43,11 @@ namespace Infrastructure.DataAccess
                 await _context.Tags.AddRangeAsync(tagsToCreate);
             }
 
-            foreach (var tag in tagsToCreate)
-            {
-                Console.WriteLine($"Creating Tag: {tag.Name}, Tag ID: {tag.TagID}");
-            }
+            // DON'T NEED THIS.
+            // foreach (var tag in tagsToCreate)
+            // {
+            //     Console.WriteLine($"Creating Tag: {tag.Name}, Tag ID: {tag.TagID}");
+            // }
 
             var updatedProjectTagList = new List<ProjectTag>();
             foreach (var projectTag in projectTagList)
