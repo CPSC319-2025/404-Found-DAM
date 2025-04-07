@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Video from "next/video";
-import { ArrowDownTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, TrashIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 import Pagination from "@mui/material/Pagination";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import {
@@ -88,7 +87,7 @@ function Items({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {currentItems.map((asset: AssetWithSrc) => (
-              <tr key={asset.blobID} className="hover:bg-gray-50" onClick={() => showAssetMetadata(asset)}>
+              <tr key={asset.blobID} className="hover:bg-gray-50"> 
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {asset.filename}
@@ -101,7 +100,7 @@ function Items({
                         <span className="text-gray-400 text-xs">Loading</span>
                       </div>
                     )}
-                    {asset.src && asset.mimetype.includes("image") && (
+                    {asset.src && asset.mimetype!.includes("image") && (
                       <Image
                         src={asset.src}
                         alt={`${asset.filename}`}
@@ -111,10 +110,9 @@ function Items({
                         onClick={() => openPreview(asset)}
                       />
                     )}
-                    {asset.src && !asset.mimetype.includes("image") && (
+                    {asset.src && !asset.mimetype!.includes("image") && (
                       <video
                         src={asset.src ?? ""}
-                        alt={`${asset.filename}`}
                         width={120}
                         height={120}
                         className="object-cover rounded w-full h-full cursor-pointer"
@@ -150,6 +148,14 @@ function Items({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex gap-3">
+                    <button
+                      className="text-indigo-600 hover:text-indigo-900"
+                      onClick={() => showAssetMetadata(asset)}
+                    >
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 transition">
+                        <DocumentTextIcon className="h-5 w-5" />
+                      </span>
+                    </button>
                     <button
                       className="text-indigo-600 hover:text-indigo-900"
                       onClick={() => downloadAssetConfirm(asset)}
@@ -222,8 +228,48 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const [isPreviewAssetMetadata, setIsPreviewAssetMetadata] = useState(false);
   const [assetMetadataFields, setAssetMetadataFields] = useState<any[]>([]);
+  const [projectMetadataFields, setProjectMetadataFields] = useState<any[]>([]);
+  const [assetMetadataName, setAssetMetadataName] = useState<string>("");
 
-  const showAssetMetadata = async () => {
+  const showAssetMetadata = async (asset: any) => {
+    const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch asset metadata (Status: ${response.status} - ${response.statusText})`
+      );
+      return;
+    }
+
+    const data = await response.json();
+
+    const metadataFields = data.fields
+      .filter((field: any) => {
+        const foundField = projectMetadataFields.find((pmf: any) => pmf.fieldID === field.fieldId);
+        if (foundField && foundField.isEnabled) {
+          return true;
+        } else {
+          return false;
+        }
+      })
+      .map((field: any) => {
+        return {
+          name: field.fieldName,
+          label: field.fieldName,
+          type: field.fieldType,
+          placeholder: "",
+          value: field.fieldValue
+        }
+      });
+
+    if (metadataFields.length < 1) {
+      toast.warn("No custom metadata associated to this asset");
+      return;
+    }
+
+    setAssetMetadataFields(metadataFields);
+
+    setAssetMetadataName(asset.filename);
+
     setIsPreviewAssetMetadata(true);
   }
 
@@ -401,6 +447,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   useEffect(() => {
     getProject()
       .then((project: ProjectWithTags) => {
+        console.log({project});
         setUsers(project.admins.concat(project.regularUsers));
         setProjectName(project.name!);
         setProjectDescription(project.description);
@@ -410,6 +457,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         setIsAdmin(adminFound);
         const isSuperAdmin = user?.superadmin || false;
         setIsAdmin(adminFound || isSuperAdmin);
+        setProjectMetadataFields(project.metadataFields!);
       })
       .catch((error) => {
         console.error("Error fetching project:", error);
@@ -522,7 +570,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           <PopupModal
             title="Would you like to add a watermark to the image?"
             isOpen={true}
-            onClose={() => downloadAssetWrapper(false)}
+            onClose={() => downloadAssetWrapper(false, requestedDownloadAsset)}
             onConfirm={() => downloadAssetWrapper(true, requestedDownloadAsset)}
             messages={[]}
           />
@@ -559,13 +607,14 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
       {isPreviewAssetMetadata && (
         <GenericForm
-          title=""
+          title={"Custom Metadata: " + assetMetadataName}
           isModal={true}
           fields={assetMetadataFields}
           onSubmit={() => {}}
           onCancel={() => setIsPreviewAssetMetadata(false)}
           isEdit={false}
           noRequired={true}
+          submitButtonText=""
         />
       )}
     </>

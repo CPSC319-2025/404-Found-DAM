@@ -562,6 +562,7 @@ export default function GenericForm({
                   </div>
                 ) : field.type.toLowerCase() === "number" ? (
                   <input
+                    readOnly={!isEdit}
                     id={field.name}
                     name={field.name}
                     type="number"
@@ -575,23 +576,26 @@ export default function GenericForm({
                     }`}
                   />
                 ) : field.type.toLowerCase() === "boolean" ? (
-                  <select
-                    id={field.name}
-                    name={field.name}
-                    value={String(formData[field.name])}
-                    onChange={handleChange}
-                    className={`w-full p-2 border rounded ${
-                      formErrors[field.name]
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select...</option>
-                    <option value={"true"}>Yes</option>
-                    <option value={"false"}>No</option>
-                  </select>
+                  isEdit ? (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={String(formData[field.name])}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="">Select...</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  ) : (
+                    <div className="p-2 border rounded">
+                      {formData[field.name] === 'true' ? 'Yes' : formData[field.name] === 'false' ? 'No' : '—'}
+                    </div>
+                  )
                 ) : (
                   <input
+                    readOnly={!isEdit}
                     id={field.name}
                     name={field.name}
                     type="text"

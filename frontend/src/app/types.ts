@@ -43,6 +43,7 @@ export interface Project {
   assetCount: number;
   admins: User[];
   regularUsers: User[];
+  metadataFields?: any[];
 }
 
 export interface Asset {

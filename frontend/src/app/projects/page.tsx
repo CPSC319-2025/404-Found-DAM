@@ -157,7 +157,6 @@ function Items({
                     {asset.src && !asset.mimetype.includes("image") && (
                       <video
                         src={asset.src ?? ""}
-                        alt={`${asset.filename}`}
                         width={120}
                         height={120}
                         className="object-cover rounded w-full h-full cursor-pointer"
@@ -1042,7 +1041,7 @@ export default function ProjectsPage() {
           <PopupModal
             title="Would you like to add a watermark to the image?"
             isOpen={true}
-            onClose={() => downloadAssetWrapper(false)}
+            onClose={() => downloadAssetWrapper(false, requestedDownloadAsset)}
             onConfirm={() => downloadAssetWrapper(true, requestedDownloadAsset)}
             messages={[]}
           />
