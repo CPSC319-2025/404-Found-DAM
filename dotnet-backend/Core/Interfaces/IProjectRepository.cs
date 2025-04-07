@@ -25,5 +25,4 @@ namespace Core.Interfaces
         Task DeleteAssetFromProjectInDb(int projectId, string blobId);
         Task<string?> GetCustomMetadataNameByIdAsync(int fieldID);
     }
-
 }

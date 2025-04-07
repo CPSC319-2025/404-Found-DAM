@@ -7,14 +7,15 @@ interface PopupModalProps {
   onConfirm: () => void;
   title?: string;
   messages: string[];
+  canCancel?: boolean;
 }
 
-export default function PopupModal({ isOpen, onClose, onConfirm, title, messages }: PopupModalProps) {
+export default function PopupModal({ isOpen, onClose, onConfirm, title, messages, canCancel = true }: PopupModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node) && canCancel) {
         onClose();
       }
     }

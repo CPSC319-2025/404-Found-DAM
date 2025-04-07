@@ -32,4 +32,5 @@ if ($containerStarted) {
     dotnet run --project .\dotnet-backend\APIs --seed
 } else {
     Write-Host "Database already up. Running backend without seed"
+    dotnet run --project .\dotnet-backend\APIs
 }

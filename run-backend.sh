@@ -32,4 +32,5 @@ if [ "$CONTAINER_STARTED" = true ]; then
   dotnet run --project ./dotnet-backend/APIs --seed
 else
   echo "Database already up. Running backend without seed"
+  dotnet run --project ./dotnet-backend/APIs
 fi

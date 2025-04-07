@@ -56,6 +56,7 @@ interface GenericFormProps {
   ) => void | Promise<void>;
   showExtraHelperText?: boolean;
   noRequired?: boolean;
+  isEdit?: boolean;
 }
 
 export default function GenericForm({
@@ -73,6 +74,7 @@ export default function GenericForm({
   extraButtonCallback,
   showExtraHelperText = false,
   noRequired = false,
+  isEdit = true,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +101,6 @@ export default function GenericForm({
   const buttonCount = (hasExtraButton ? 1 : 0) + (hasCancelButton ? 1 : 0) + 1; // submit is always rendered
   const buttonAlignment = buttonCount === 3 ? "justify-center" : "justify-end";
 
-  // Helper to update a specific field value
   const updateField = (field: string, value: any) => {
     setFormData((prevData) => ({ ...prevData, [field]: value }));
   };
@@ -561,6 +562,7 @@ export default function GenericForm({
                   </div>
                 ) : field.type.toLowerCase() === "number" ? (
                   <input
+                    readOnly={!isEdit}
                     id={field.name}
                     name={field.name}
                     type="number"
@@ -574,23 +576,26 @@ export default function GenericForm({
                     }`}
                   />
                 ) : field.type.toLowerCase() === "boolean" ? (
-                  <select
-                    id={field.name}
-                    name={field.name}
-                    value={String(formData[field.name])}
-                    onChange={handleChange}
-                    className={`w-full p-2 border rounded ${
-                      formErrors[field.name]
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select...</option>
-                    <option value={"true"}>Yes</option>
-                    <option value={"false"}>No</option>
-                  </select>
+                  isEdit ? (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={String(formData[field.name])}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="">Select...</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  ) : (
+                    <div className="p-2 border rounded">
+                      {formData[field.name] === 'true' ? 'Yes' : formData[field.name] === 'false' ? 'No' : '—'}
+                    </div>
+                  )
                 ) : (
                   <input
+                    readOnly={!isEdit}
                     id={field.name}
                     name={field.name}
                     type="text"
@@ -618,7 +623,6 @@ export default function GenericForm({
           </div>
 
           {extraButtonText && extraButtonCallback ? (
-            // Three-button layout (full width rows)
             <div className="flex flex-col space-y-2">
               <button
                 type="submit"
@@ -646,7 +650,6 @@ export default function GenericForm({
               </button>
             </div>
           ) : (
-            // Two-button layout (right aligned)
             <div className="flex justify-end space-x-2">
               {(isModal || hasEdited) && (
                 <button
@@ -654,16 +657,18 @@ export default function GenericForm({
                   onClick={onCancel}
                   className="bg-gray-300 text-black p-2 rounded"
                 >
-                  Cancel
+                  {isEdit ? "Cancel" : "Close"}
                 </button>
               )}
-              <button
-                type="submit"
-                className="bg-blue-500 text-white p-2 rounded disabledButton"
-                disabled={disabled || !hasEdited}
-              >
-                {submitButtonText}
-              </button>
+              {isEdit && (
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white p-2 rounded disabledButton"
+                  disabled={disabled || !hasEdited}
+                >
+                  {submitButtonText}
+                </button>
+              )}
             </div>
           )}
 
