@@ -22,6 +22,7 @@ namespace Core.Interfaces
         Task<string?> GetAssetNameByBlobIdAsync(string blobID);
         Task<string?> GetTagNameByIdAsync(int tagId);
         Task<string?> GetProjectNameByIdAsync(int projectID);
+        Task<string?> GetCustomMetadataNameByIdAsync(int fieldID);
     }
 
 }

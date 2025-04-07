@@ -147,9 +147,9 @@ namespace APIs.Controllers
                         string theDescription = "";
 
                         if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {userID}) assigned tags ({tagName}) (Tag ID: {request.TagId}) to asset {await paletteService.GetAssetNameByBlobIdAsync(request.BlobId)} (Asset ID: {request.BlobId})";
+                            theDescription = $"{username} (User ID: {userID}) assigned tags ({tagName}) (Tag ID: {request.TagId}) to asset '{assetName}' (Asset ID: {request.BlobId})";
                         } else {
-                            theDescription = $"{user.Email} assigned tags ({tagName}) to {assetName}";
+                            theDescription = $"{user.Email} assigned tags ({tagName}) to '{assetName}'";
                         }
 
                         if (logDebug) {
@@ -221,11 +221,11 @@ namespace APIs.Controllers
                         string theDescription = "";
                         if (verboseLogs)
                         {
-                            theDescription = $"{username} (User ID: {userId}) assigned project tags [{string.Join(", ", tagNames)}] to Asset {assetName} (Asset ID: {request.BlobId})";
+                            theDescription = $"{username} (User ID: {userId}) assigned project tags [{string.Join(", ", tagNames)}] to '{assetName}' (Asset ID: {request.BlobId})";
                         }
                         else
                         {
-                            theDescription = $"{user.Email} assigned project tags ({string.Join(", ", tagNames)}) to {assetName}";
+                            theDescription = $"{user.Email} assigned project tags ({string.Join(", ", tagNames)}) to '{assetName}'";
                         }
 
                         if (logDebug)
@@ -479,9 +479,9 @@ namespace APIs.Controllers
                         {
                             string theDescription = "";
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {userId}) uploaded asset {file.FileName} (Asset ID: {file.FileName}) to their palette";
+                                theDescription = $"{username} (User ID: {userId}) uploaded asset '{file.FileName}' (Asset ID: {file.FileName}) to their palette";
                             } else {
-                                theDescription = $"{user.Email} uploaded {file.FileName} to their palette";
+                                theDescription = $"{user.Email} uploaded '{file.FileName}' to their palette";
                             }
 
                             if (logDebug) {
@@ -561,9 +561,9 @@ namespace APIs.Controllers
                 string theDescription = "";
                 try {
                     if (verboseLogs) {
-                        theDescription = $"{username} (User ID: {userId}) deleted asset {assetName} (Asset ID: {deleteRequest.Name}) from their palette.";
+                        theDescription = $"{username} (User ID: {userId}) deleted '{assetName}' (Asset ID: {deleteRequest.Name}) from their palette.";
                     } else {
-                        theDescription = $"{user.Email} deleted asset {assetName} from their palette";
+                        theDescription = $"{user.Email} deleted '{assetName}' from their palette";
                     }
                     if (logDebug) {
                         theDescription += "[Add log called by PaletteController.DeletePaletteAsset]";
@@ -637,9 +637,9 @@ namespace APIs.Controllers
 
                             if (verboseLogs) {
 
-                                theDescription = $"{username} (User ID: {submitterID}) added asset {assetName} (Asset ID: {blobID}) into project {projectName} (Project ID: {projectID}).";
+                                theDescription = $"{username} (User ID: {submitterID}) added '{assetName}' (Asset ID: {blobID}) into project '{projectName}' (Project ID: {projectID}).";
                             } else {
-                                theDescription = $"{user.Email} added {assetName} into project {projectName}";
+                                theDescription = $"{user.Email} added '{assetName}' into project '{projectName}'";
                             }
 
                             if (logDebug) {
@@ -737,9 +737,9 @@ namespace APIs.Controllers
                             string theDescription = "";
                             if (verboseLogs) {
 
-                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from '{assetName}' (Asset ID: {blobId})";
                             } else {
-                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
+                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from '{assetName}'";
                             }
                             if (logDebug) {
                                 theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count > 0)]";
@@ -796,9 +796,9 @@ namespace APIs.Controllers
                             string theDescription = "";
 
                             if (verboseLogs) {
-                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from Asset {assetName} (Asset ID: {blobId})";
+                                theDescription = $"{username} (User ID: {submitterID}) removed tags [{string.Join(", ", tagNames)}] from '{assetName}' (Asset ID: {blobId})";
                             } else {
-                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from {assetName}";
+                                theDescription = $"{user.Email} removed tags ({string.Join(", ", tagNames)}) from '{assetName}'";
                             }
                             if (logDebug) {
                                 theDescription += "[Add Log called by PaletteController.RemoveTagsFromAssets] - else if (result.RemovedAssociations.Count > 0 && result.NotFoundAssociations.Count == 0)";
