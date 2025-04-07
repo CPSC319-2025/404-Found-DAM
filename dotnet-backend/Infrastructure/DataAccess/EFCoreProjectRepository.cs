@@ -213,80 +213,69 @@ namespace Infrastructure.DataAccess
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-            // Check if the requestor is a member of the project
-            bool isMember = await _context.ProjectMemberships
-                .AnyAsync(pm => pm.ProjectID == req.projectID && pm.UserID == requesterID);
-            
-            if (isMember) 
-            {
-                // Retrieve matched Assets and their tags
-                IQueryable<Asset> query = _context.Assets
-                    .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
-                    .Include(a => a.AssetTags)
-                        .ThenInclude(at => at.Tag);
-                                     
-                bool isQueryEmpty = !await query.AnyAsync(); 
+            // Retrieve matched Assets and their tags
+            IQueryable<Asset> query = _context.Assets
+                .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
+                .Include(a => a.AssetTags)
+                    .ThenInclude(at => at.Tag);
+                                    
+            bool isQueryEmpty = !await query.AnyAsync(); 
 
-                if (isQueryEmpty) 
-                {   
-                    throw new DataNotFoundException("No results were found");
-                }
-                else 
-                {
-                    // Apply filters
-                    if (req.assetType.ToLower() != "all")
-                    {
-                        query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
-                    }
-
-                    if (req.postedBy.HasValue && req.postedBy.Value > 0)
-                    {
-                        query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
-                    }
-
-                    if (!string.IsNullOrEmpty(req.tagName))
-                    {
-                        query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
-                    }
-
-                    if (req.fromDate.HasValue)
-                    {
-                        DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
-                        query = query.Where(a => a.LastUpdated >= utcFromDate);
-                    }
-
-                    if (req.toDate.HasValue)
-                    {
-                        DateTime utcToDate = req.toDate.Value.ToUniversalTime();
-                        query = query.Where(a => a.LastUpdated <= utcToDate);
-                    }
-
-                    // number of total assets
-                    int totalAssetCount = await query.CountAsync();
-
-                    // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
-                   
-                    int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
-                    
-                    List<Asset> assets = await query
-                    .OrderBy(a => a.FileName)
-                    .Skip((req.pageNumber - 1) * req.assetsPerPage)
-                    .Take(req.assetsPerPage)
-                    .Include(a => a.User)
-                    .ToListAsync();
-
-                    // Get asset blobSASUrl
-                    List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
-                    string containerName = "project-" + req.projectID.ToString() + "-assets";
-                    List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
-
-                    
-                    return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
-                }
+            if (isQueryEmpty) 
+            {   
+                throw new DataNotFoundException("No results were found");
             }
             else 
             {
-                throw new DataNotFoundException("Requester not a member of the project.");
+                // Apply filters
+                if (req.assetType.ToLower() != "all")
+                {
+                    query = query.Where(a => a.MimeType.ToLower().StartsWith(req.assetType.ToLower()));
+                }
+
+                if (req.postedBy.HasValue && req.postedBy.Value > 0)
+                {
+                    query = query.Where(a => a.User != null && a.User.UserID == req.postedBy.Value);
+                }
+
+                if (!string.IsNullOrEmpty(req.tagName))
+                {
+                    query = query.Where(a => a.AssetTags.Any(at => at.Tag.Name == req.tagName));
+                }
+
+                if (req.fromDate.HasValue)
+                {
+                    DateTime utcFromDate = req.fromDate.Value.ToUniversalTime();
+                    query = query.Where(a => a.LastUpdated >= utcFromDate);
+                }
+
+                if (req.toDate.HasValue)
+                {
+                    DateTime utcToDate = req.toDate.Value.ToUniversalTime();
+                    query = query.Where(a => a.LastUpdated <= utcToDate);
+                }
+
+                // number of total assets
+                int totalAssetCount = await query.CountAsync();
+
+                // Perform pagination, and do nested eager loads to include AssetMetadata for each Asset and MetadataField for each AssetMetadata.
+                
+                int totalFilteredAssetCount = query.Count(); // Count the filtered assets before paginated.
+                
+                List<Asset> assets = await query
+                .OrderBy(a => a.FileName)
+                .Skip((req.pageNumber - 1) * req.assetsPerPage)
+                .Take(req.assetsPerPage)
+                .Include(a => a.User)
+                .ToListAsync();
+
+                // Get asset blobSASUrl
+                List<(string, string)> assetIdNameTuples = assets.Select(a => (a.BlobID, a.FileName)).ToList();
+                string containerName = "project-" + req.projectID.ToString() + "-assets";
+                List<string> assetBlobSASUrlList = await _blobStorageService.DownloadAsync(containerName, assetIdNameTuples);
+
+                
+                return (assets, totalFilteredAssetCount, assetBlobSASUrlList);
             }
         }
 
