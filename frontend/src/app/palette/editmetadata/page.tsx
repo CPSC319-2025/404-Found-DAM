@@ -560,21 +560,37 @@ export default function EditMetadataPage() {
                         {field.fieldName} <span className="text-xs text-gray-400">({field.fieldType})</span>
                       </label>
                       {field.fieldType === "Boolean" ? (
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                            checked={metadataValues[field.fieldID] || false}
-                            onChange={(e) => {
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className={`px-4 py-2 rounded-md cursor-pointer border transition-colors ${
+                              metadataValues[field.fieldID] === true 
+                                ? "bg-blue-100 border-blue-500 text-blue-700 font-medium" 
+                                : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => {
                               setMetadataValues({
                                 ...metadataValues,
-                                [field.fieldID]: e.target.checked
+                                [field.fieldID]: true
                               });
                             }}
-                          />
-                          <span className="ml-2 text-gray-700">
-                            {metadataValues[field.fieldID] ? "Yes" : "No"}
-                          </span>
+                          >
+                            Yes
+                          </div>
+                          <div 
+                            className={`px-4 py-2 rounded-md cursor-pointer border transition-colors ${
+                              metadataValues[field.fieldID] === false 
+                                ? "bg-blue-100 border-blue-500 text-blue-700 font-medium" 
+                                : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                            }`}
+                            onClick={() => {
+                              setMetadataValues({
+                                ...metadataValues,
+                                [field.fieldID]: false
+                              });
+                            }}
+                          >
+                            No
+                          </div>
                         </div>
                       ) : (
                         <input
