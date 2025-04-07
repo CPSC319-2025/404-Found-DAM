@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useFileContext } from "@/app/context/FileContext";
 import { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { loadFileContent } from "../Apis";
 
 export default function EditMetadataPage() {
   const searchParams = useSearchParams();
@@ -41,19 +42,25 @@ export default function EditMetadataPage() {
   // Fetch project tags and blob details when component mounts
   useEffect(() => {
     if (fileData) {
-      if (fileData.project) {
+      // Only fetch project tags if we don't already have them
+      if (fileData.project && projectTags.length === 0) {
         fetchProjectTags(fileData.project);
       }
       
-      // If we have a blobId, fetch its details directly
-      if (fileData.blobId) {
+      // If we have a blobId and no metadata values, fetch its details directly
+      if (fileData.blobId && Object.keys(metadataValues).length === 0) {
         fetchBlobDetails(fileData.blobId);
         fetchBlobFields(fileData.blobId);
       }
     }
-  }, [fileData]);
+  }, [fileData, projectTags.length, metadataValues]);
 
   async function fetchBlobDetails(blobId: string) {
+    // Only fetch if we don't already have the data
+    if (selectedTags.length > 0) {
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -214,8 +221,8 @@ export default function EditMetadataPage() {
           throw new Error(`Failed to assign tag: ${response.status}`);
         }
         
-        const data = await response.json();
-        console.log("Tag assigned successfully:", data);
+        // No need to wait for data response, just log success
+        console.log("Tag assigned successfully");
         
         // Update local state with the new tag
         setSelectedTags([...selectedTags, tagName]);
@@ -293,7 +300,7 @@ export default function EditMetadataPage() {
         
         console.log(`Tag "${tagToRemove}" removed successfully`);
         
-        // Update local state to remove the tag
+        // Update local state to remove the tag - no refetch needed
         setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
         
         // Also update the file metadata in the context
@@ -401,13 +408,45 @@ export default function EditMetadataPage() {
     }
   }
 
-  function handleEditImage() {
+  async function handleEditImage() {
     // Navigate to a new page under /palette/ for image editing
     if (!fileName) {
       console.error("File name is missing!");
       return;
     }
-    router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
+
+    setIsLoading(true);
+    try {
+      // Check if we have the raw file content
+      if (!fileData.isLoaded && fileData.blobId) {
+        // Need to load the file content first
+        const blob = await loadFileContent(fileData.blobId);
+        if (!blob) {
+          throw new Error("Failed to load file content");
+        }
+        
+        // Create a new File object from the blob
+        const file = new File([blob], fileData.file.name, { type: blob.type });
+        
+        // Create an object URL for preview
+        const objectUrl = URL.createObjectURL(blob);
+        
+        // Update the file metadata in context with the loaded content
+        updateMetadata(fileIndex, {
+          file: file,
+          url: objectUrl,
+          isLoaded: true
+        });
+      }
+
+      // Now navigate to the edit image page
+      router.push(`/palette/editImage?file=${encodeURIComponent(fileName)}`);
+    } catch (error) {
+      console.error("Error preparing file for editing:", error);
+      alert("Failed to prepare file for editing. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // Function to check if file is a video based on extension
@@ -641,7 +680,15 @@ export default function EditMetadataPage() {
                 } text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 shadow-md hover:shadow-lg flex items-center`}
                 title={isVideo ? "Video files cannot be edited" : "Edit Image"}
               >
-                {isVideo ? (
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Preparing Image...
+                  </>
+                ) : isVideo ? (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
