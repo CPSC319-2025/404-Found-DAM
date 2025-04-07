@@ -30,9 +30,9 @@ namespace APIs.Controllers
         .WithOpenApi();
 
         // Update an existing asset by blobId
-        app.MapPut("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService) =>
+        app.MapPut("/palette/assets/{blobId}", async (string blobId, HttpRequest request, IPaletteService paletteService, HttpContext context) =>
         {
-            return await UpdateAsset(blobId, request, paletteService);
+            return await UpdateAsset(blobId, request, paletteService, context);
         })
         .WithName("UpdateAsset")
         .WithOpenApi();
@@ -839,10 +839,17 @@ namespace APIs.Controllers
             }
         }
 
-        private static async Task<IResult> UpdateAsset(string blobId, HttpRequest request, IPaletteService paletteService)
+        private static async Task<IResult> UpdateAsset(string blobId, HttpRequest request, IPaletteService paletteService, HttpContext context)
         {
             try
             {
+                // Get services from IServiceProvider
+                var serviceProvider = GetServiceProvider(context);
+                var activityLogService = serviceProvider.GetRequiredService<IActivityLogService>();
+                var projectService = serviceProvider.GetRequiredService<IProjectService>();
+                var userService = serviceProvider.GetRequiredService<IUserService>();
+
+
                 // Check if the request has form data
                 if (!request.HasFormContentType || request.Form.Files.Count == 0)
                 {
@@ -897,6 +904,43 @@ namespace APIs.Controllers
                     
                     if (result.Success)
                     {
+                        // add log
+                        try {
+                            var assetName = await paletteService.GetAssetNameByBlobIdAsync(blobId);
+                            var user = await userService.GetUser(userId);
+                            string username = user.Name;
+
+                            string theDescription = "";
+                            if (verboseLogs)
+                            {
+                                theDescription = $"{username} (User ID: {userId}) edited asset '{assetName}' (Asset ID: {blobId}).";
+                            }
+                            else
+                            {
+                                theDescription = $"{user.Email} edited '{assetName}'";
+                            }
+
+                            if (logDebug)
+                            {
+                                theDescription += "[Add Log called by PaletteController.UpdateAsset]";
+                                Console.WriteLine(theDescription);
+                            }
+
+                            var logDto = new CreateActivityLogDto
+                            {
+                                userID = userId,
+                                changeType = "Edited",
+                                description = theDescription,
+                                projID = -1, // Assuming no specific project is associated here.
+                                assetID = blobId,
+                                isAdminAction = !AdminActionTrue
+                            };
+
+                            await activityLogService.AddLogAsync(logDto);
+
+                        } catch (Exception ex) {
+                            Console.WriteLine("Failed to add log - PaletteController.UpdateAsset");
+                        }
                         return Results.Ok(new { 
                             message = $"Asset with blobId {blobId} updated successfully",
                             asset = result 
