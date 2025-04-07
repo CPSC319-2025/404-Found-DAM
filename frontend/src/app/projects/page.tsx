@@ -738,6 +738,11 @@ export default function ProjectsPage() {
       const formData = new FormData();
       formData.append("file", zipBlob, `${importedProjectFile.name}.zip`);
 
+      toast.info("Importing project...");
+
+      setImportedProjectFile(null);
+      setImportProjectModalOpen(false);
+
       const response = await fetchWithAuth("/project/import", {
         method: "POST",
         body: formData as BodyInit,
@@ -745,8 +750,6 @@ export default function ProjectsPage() {
       });
 
       if (response.ok) {
-        setImportedProjectFile(null);
-        setImportProjectModalOpen(false);
         toast.success("Imported project successfully.");
         doSearch();
       } else {
