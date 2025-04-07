@@ -20,5 +20,6 @@ namespace Core.Interfaces
         Task<string?> GetTagNameByIdAsync(int tagID);
 
         Task<string?> GetProjectNameByIdAsync(int projectID);
+        Task<string?> GetCustomMetadataNameByIdAsync(int fieldID);
     }
 }

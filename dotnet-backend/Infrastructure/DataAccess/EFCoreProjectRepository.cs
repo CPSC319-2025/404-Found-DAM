@@ -511,6 +511,15 @@ namespace Infrastructure.DataAccess
                 .Select(p => p.Name)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) {
+            using var context = _contextFactory.CreateDbContext();
+
+            return await context.ProjectMetadataFields
+                .Where(f => f.FieldID == fieldID)
+                .Select(f => f.FieldName)
+                .FirstOrDefaultAsync();
+        }
         
         public async Task AddAssetTagAssociationAsync(string imageId, int tagId)
         {

@@ -128,10 +128,10 @@ namespace APIs.Controllers
                             var assetName = await projectService.GetAssetNameByBlobIdAsync(mergeResult.BlobId);
 
                             if (verboseLogs) {
-                                theDescription = $"{userId} uploaded \"{assetName}\" to their palette"; // $"{userId} uploaded {formFile.FileName} to their palette";
+                                theDescription = $"{userId} uploaded '{assetName}' to their palette"; // $"{userId} uploaded {formFile.FileName} to their palette";
 
                             } else {
-                                theDescription = $"{user.Email} uploaded \"{assetName}\" to their palette";
+                                theDescription = $"{user.Email} uploaded '{assetName}' to their palette";
                             }
 
                             if (logDebug) {
