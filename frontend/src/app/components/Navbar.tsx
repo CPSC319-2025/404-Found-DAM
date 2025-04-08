@@ -48,7 +48,7 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setUser(null);
-    router.push("/projects");
+    // router.push("/projects");
   };
 
   return (

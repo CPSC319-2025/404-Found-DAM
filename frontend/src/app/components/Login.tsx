@@ -22,7 +22,7 @@ export default function Login({ setUser }: LoginProps) {
       await login(email, password);
       const user = await getUserFromToken();
       setUser(user);
-      router.push("/projects");
+      // router.push("/projects");
     } catch (error) {
       toast.error((error as Error).message, { toastId: "LoginError" });
     }
