@@ -10,7 +10,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { useUser } from "../context/UserContext";
 import { logout } from "../utils/api/auth";
-import { useRouter } from "next/navigation";
 
 interface Page {
   path: string;
@@ -43,12 +42,10 @@ const pages: Page[] = [
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setUser } = useUser();
-  const router = useRouter();
 
   const handleLogout = () => {
     logout();
     setUser(null);
-    // router.push("/projects");
   };
 
   return (

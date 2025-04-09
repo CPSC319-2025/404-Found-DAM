@@ -4,7 +4,6 @@ import { useState } from "react";
 import { login, getUserFromToken } from "@/app/utils/api/auth";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
 
 interface LoginProps {
   setUser: (user: any) => void;
@@ -14,7 +13,6 @@ export default function Login({ setUser }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevents page reload
@@ -22,7 +20,6 @@ export default function Login({ setUser }: LoginProps) {
       await login(email, password);
       const user = await getUserFromToken();
       setUser(user);
-      // router.push("/projects");
     } catch (error) {
       toast.error((error as Error).message, { toastId: "LoginError" });
     }
