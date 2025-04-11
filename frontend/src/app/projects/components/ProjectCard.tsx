@@ -86,7 +86,7 @@ export default function ProjectCard({
       })
 
       if (response.status === 400) {
-        throw new Error(`project ${id} already archived`);
+        throw new Error(`project "${name}" already archived`);
       }
       
       if (!response.ok) {
