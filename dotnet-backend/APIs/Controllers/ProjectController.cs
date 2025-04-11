@@ -170,7 +170,7 @@ namespace APIs.Controllers
             }        
         }
 
-        private static async Task<IResult> ArchiveProjects(ArchiveProjectsReq req, IProjectService projectService, HttpContext context)
+        private static async Task<IResult> ArchiveProjects(ArchiveProjectReq req, IProjectService projectService, HttpContext context)
         {
             // May need to add varification to check if client data is bad.
 
@@ -185,7 +185,7 @@ namespace APIs.Controllers
                 // var projectService = serviceProvider.GetRequiredService<IProjectService>();
                 var userService = serviceProvider.GetRequiredService<IUserService>();
 
-                ArchiveProjectsRes result = await projectService.ArchiveProjects(req.projectIDs);
+                ArchiveProjectRes result = await projectService.ArchiveProject(req.projectID);
 
                 int submitterID = Convert.ToInt32(context.Items["userId"]);
 
@@ -194,33 +194,30 @@ namespace APIs.Controllers
                 }
                 try
                 {
-                    foreach (var projectID in req.projectIDs)
-                    {
-                        var user = await userService.GetUser(submitterID);
-                        string username = user.Name;
-                        var project = await projectService.GetProject(projectID);
-                        var projectName = project.name;
-                        string theDescription = "";
-                        if (verboseLogs) {
-                            theDescription = $"{username} (User ID: {submitterID}) archived project '{projectName}' (Project ID: {projectID})";
-                        } else {
-                            theDescription = $"{user.Email} archived project '{projectName}'";
-                        }
-
-                        if (logDebug) {
-                            theDescription += "[Add Log called by ProjectController.ArchiveProjects]";
-                            Console.WriteLine(theDescription);
-                        }
-                        await activityLogService.AddLogAsync(new CreateActivityLogDto
-                        {
-                            userID = submitterID, 
-                            changeType = "Archived",
-                            description = theDescription,
-                            projID = projectID,
-                            assetID = "", 
-                            isAdminAction = adminActionTrue
-                        });
+                    var user = await userService.GetUser(submitterID);
+                    string username = user.Name;
+                    var project = await projectService.GetProject(req.projectID);
+                    var projectName = project.name;
+                    string theDescription = "";
+                    if (verboseLogs) {
+                        theDescription = $"{username} (User ID: {submitterID}) archived project '{projectName}' (Project ID: {req.projectID})";
+                    } else {
+                        theDescription = $"{user.Email} archived project '{projectName}'";
                     }
+
+                    if (logDebug) {
+                        theDescription += "[Add Log called by ProjectController.ArchiveProjects]";
+                        Console.WriteLine(theDescription);
+                    }
+                    await activityLogService.AddLogAsync(new CreateActivityLogDto
+                    {
+                        userID = submitterID, 
+                        changeType = "Archived",
+                        description = theDescription,
+                        projID = req.projectID,
+                        assetID = "", 
+                        isAdminAction = adminActionTrue
+                    });
 
                 } catch (Exception ex) {
                     Console.WriteLine("Failed to add log - ProjectController.ArchiveProjects");
@@ -228,9 +225,13 @@ namespace APIs.Controllers
                 return Results.Ok(result);
 
             }
-            catch (PartialSuccessException ex)
+            catch (InvalidOperationException ex)
             {
-                return Results.Ok(ex.Message);
+                return Results.BadRequest(ex.Message);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
             }
             catch (Exception ex)
             {

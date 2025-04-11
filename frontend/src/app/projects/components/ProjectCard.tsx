@@ -82,9 +82,13 @@ export default function ProjectCard({
     try {
       const response = await fetchWithAuth("projects/archive", {
         method: "PATCH",
-        body: JSON.stringify({ projectIDs: [Number(id)] })
+        body: JSON.stringify({ projectID: Number(id) })
       })
 
+      if (response.status === 400) {
+        throw new Error(`Project "${name}" already archived`);
+      }
+      
       if (!response.ok) {
         throw new Error(`Failed to archive project: ${response.statusText}`);
       }

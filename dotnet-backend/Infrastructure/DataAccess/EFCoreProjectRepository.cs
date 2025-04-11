@@ -74,12 +74,8 @@ namespace Infrastructure.DataAccess
         }
 
 
-        public async Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs)
+        public async Task ArchiveProjectInDb(int projectID)
          {
-            // Create empty lists and dictionaries for storing process results
-            List<int> unfoundProjectIDs = new List<int>();
-            Dictionary<int, DateTime> NewArchivedProjects = new Dictionary<int, DateTime>();
-            Dictionary<int, DateTime> ProjectsArchivedAlready = new Dictionary<int, DateTime>();
             List<AssetMetadata> assetMetadataToRemove = new List<AssetMetadata>();
             List<AssetTag> assetTagsToRemove = new List<AssetTag>();
 
@@ -88,38 +84,31 @@ namespace Infrastructure.DataAccess
                 // Set each project Active to false for archiving
                 using DAMDbContext _context = _contextFactory.CreateDbContext();
 
-                // Console.WriteLine("Fetch all projects in a single query");
-                // Fetch all projects in a single query
-                var projects = await _context.Projects
+                // Get the project
+                var project = await _context.Projects
                     .Include(p => p.ProjectMemberships)
                         .ThenInclude(pm => pm.User)
                     .Include(p => p.Assets)
                         .ThenInclude(a => a.AssetMetadata)
                     .Include(p => p.Assets)
                         .ThenInclude(a => a.AssetTags)
-                    .Where(p => projectIDs.Contains(p.ProjectID))
-                    .ToListAsync();
+                    .FirstOrDefaultAsync(p => p.ProjectID == projectID);
 
-                foreach (int projectID in projectIDs)
+                if (project == null) 
                 {
-                    var project = projects.FirstOrDefault(p => p.ProjectID == projectID);
+                    throw new DataNotFoundException("Project does not exist");
+                }
+                else 
+                {
+                    if (!project.Active)   // Porjects already archived
+                    {
+                        throw new InvalidOperationException($"Project {projectID} already archived.");
 
-                    if (project == null)    // Projects not found
-                    {
-                        unfoundProjectIDs.Add(projectID);   
-                    }
-                    else if (!project.Active)   // Porjects already archived
-                    {
-                        if (project.ArchivedAt != null) 
-                        {
-                            ProjectsArchivedAlready[project.ProjectID] = project.ArchivedAt.Value;
-                        }
                     }
                     else    // Projects to be archived
                     {
                         project.Active = false;
                         project.ArchivedAt = DateTime.UtcNow;
-                        NewArchivedProjects[project.ProjectID] = project.ArchivedAt.Value;
 
                         // Process all its assets; for those that are still in palette, remove the projectID, and delete associated assetmetadata and tags
                         List<Asset> assets = project.Assets.ToList();
@@ -137,14 +126,13 @@ namespace Infrastructure.DataAccess
                             }
                         }
                     }
+
                 }
-                
                 // Console.WriteLine("Save the change");
                 // Save the change
                 _context.AssetMetadata.RemoveRange(assetMetadataToRemove ?? Enumerable.Empty<AssetMetadata>());
                 _context.AssetTags.RemoveRange(assetTagsToRemove ?? Enumerable.Empty<AssetTag>());
                 await _context.SaveChangesAsync();
-                return (unfoundProjectIDs, NewArchivedProjects, ProjectsArchivedAlready);
             }
             catch (Exception)
             {
