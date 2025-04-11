@@ -76,51 +76,25 @@ namespace Core.Services
             };
         }
 
-        public async Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs)
+        public async Task<ArchiveProjectRes> ArchiveProject(int projectID)
          {
-            //TODO
-            if (projectIDs.Count == 0) {
-                throw new Exception("Empty projectIDs.");
-            } else {
-                try 
-                {
-                    List<ArchivedProject> projectsNewlyArchived = new List<ArchivedProject>();
-                    List<ArchivedProject> projectsAlreadyArchived = new List<ArchivedProject>();
+            try 
+            {
+                await _repository.ArchiveProjectInDb(projectID);
 
-                    (List<int> unfoundProjectIDs, Dictionary<int, DateTime> NewArchivedProjects, Dictionary<int, DateTime> ProjectsArchivedAlready) 
-                        = await _repository.ArchiveProjectsInDb(projectIDs);
-
-                    if (NewArchivedProjects != null)
-                    {
-                        foreach (KeyValuePair<int, DateTime> pair in NewArchivedProjects)
-                        {
-                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
-                            projectsNewlyArchived.Add(ap);
-                        }
-                    }
-
-                    if (ProjectsArchivedAlready != null)
-                    {
-                        foreach (KeyValuePair<int, DateTime> pair in ProjectsArchivedAlready)
-                        {
-                            ArchivedProject ap = new ArchivedProject{ projectID = pair.Key, archiveTimestampUTC = pair.Value};
-                            projectsAlreadyArchived.Add(ap);
-                        }
-                    } 
-
-                    ArchiveProjectsRes res = new ArchiveProjectsRes
-                    { 
-                        projectsNewlyArchived = projectsNewlyArchived, 
-                        projectsAlreadyArchived = projectsAlreadyArchived, 
-                        unfoundProjectIDs = unfoundProjectIDs 
-                    };
-
-                    return res;
-                }
-                catch (Exception) 
-                {
-                    throw;
-                }
+                return new ArchiveProjectRes {projectID = projectID, archiveTimestampUTC = DateTime.UtcNow};
+            }
+            catch (InvalidOperationException) 
+            {
+                throw;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception) 
+            {
+                throw;
             }
         }
 

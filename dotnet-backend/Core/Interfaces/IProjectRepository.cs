@@ -8,7 +8,7 @@ namespace Core.Interfaces
     {
         // Suffixing InDb to differentiate from service operations.  
         Task<(List<string> successfulAssociations, List<string> failedAssociation)> AssociateAssetsWithProjectInDb(int projectID, List<string> blobIDs, int submitterID);
-        Task<(List<int>, Dictionary<int, DateTime>, Dictionary<int, DateTime>)> ArchiveProjectsInDb(List<int> projectIDs);
+        Task ArchiveProjectInDb(int projectID);
         Task<List<Log>> GetArchivedProjectLogsInDb();
         Task<Project> GetProjectInDb(int projectID);
         Task<(List<Project>, List<User>, List<ProjectMembership>)> GetAllProjectsInDb();

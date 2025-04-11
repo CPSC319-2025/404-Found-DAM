@@ -7,7 +7,7 @@ namespace Core.Interfaces
     {
         // For ProjectController
         Task<AssociateAssetsWithProjectRes> AssociateAssetsWithProject(AssociateAssetsWithProjectReq request, int submitterID);
-        Task<ArchiveProjectsRes> ArchiveProjects(List<int> projectIDs);
+        Task<ArchiveProjectRes> ArchiveProject(int projectID);
         Task<GetArchivedProjectLogsRes> GetArchivedProjectLogs();
         Task<GetProjectRes> GetProject(int projectID);
         Task<GetAllProjectsRes> GetAllProjects(); 
