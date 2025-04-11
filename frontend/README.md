@@ -1,42 +1,73 @@
-### Requirements:
-- npm
+## Frontend
 
-## Getting Started
-```bash
-npm install
+### Requirements
+- React (v18.2)
+- Next.js (v14)
+- Tailwind CSS (v4.0)
 
-npm run dev
-```
+### Required packages
+- See package.json file
 
-### Cheatsheet:
-- each folder in app/ specifies a path in the url (ex. 'localhost:3000/projects')
-- a [slug] folder specifies the page for a dynamic route (ex. 'localhost:3000/projects/2')
-- reusable components go in the @/components folder
-- if you have a component specific to a certain page/path then put it in that folder (ex. ProjectCard.tsx goes in @/projects/components and not @/components/)
-- global variables go in globals.css as well as tailwind.config.ts
-- for icons: https://heroicons.com/
+### Dependencies
+These dependencies are required for the application to run and can be found in the package.json file along with their respective versions:
+- @emotion/react
+- @emotion/styled
+- @heroicons/react
+- @mui/material
+- @types/jszip
+- multiselect-react-dropdown
+- next
+- pintura
+- react
+- react-dom
+- react-dropzone
+- react-easy-crop
+- react-toastify
 
+### Dev Dependencies
+These dependencies are used during development and can also be found in the package.json file along with their respective versions. 
+- @types/node
+- @types/react
+- @types/react-dom
+- eslint
+- eslint-config-next
+- eslint-config-prettier
+- eslint-plugin-prettier
+- form-data
+- gh-pages
+- jszip
+- lint-staged
+- postcss
+- prettier
+- tailwindcss
+- typescript
+- zstd-codec
+- zstd.ts
 
+## Frontend Installation Documentation (Dev Environment)
 
-### For Hoi:
+First you must create a .env file in the current directory:
+- for MAC
+  ```bash
+  touch .env
+  ```
+- for Windows
+  ```
+  New-Item -Path appsettings.json -ItemType File
+  ```
 
-- Core -> entities -> DataModel.cs 
-- To interact with the database, write a file for the 
-  object in Infrastrcutrue/Dataaccess
+Then copy the contents from the file provided in the final submission folder: env.dev
 
-  To interact with the database, write a file for the object in Infrastructure/DataAccess (eg. ActivityLogRepository)
+To install and run the Next.js application for local development run:
 
-APIs (to receive input from and provide resposnse to frontend) go into the APIs/Controllers folder: ActivityLogController
+- for MAC
+  ```bash
+  ./run-frontend.sh
+  ```
 
-Logic and any functionality that does not need to access database goes into Service (Core/Services)
+- for Windows
+  ```bash
+  .\run-frontend.ps1
+  ```
 
-FLOW:
-
-    Frontend calls an endpoint (in ActivityLogController).
-    Controller calls Service.
-    Service calls DataAccess/Repository (if necessary).
-    DataAccess/Repository returns to Service
-    Service returns to Controller
-    Controller returns to frontend.
-
-﻿
+The Next.js application should be running and reachable by navigating in the browser to http://localhost:3000.
