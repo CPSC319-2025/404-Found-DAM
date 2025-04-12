@@ -1,108 +1,89 @@
-### Requirements:
-- .NET 8
+## Backend
 
-## Getting Started
-Navigate to the `dotnet-backend` directory:
+### Requirements
+- .NET 8.0/9.0
+- Entity Framework Core (v9.0.2)
+- ASP.NET Core (v8.0)
+
+### Required packages
+- See Directory.Packages.props file
+
+### Dependencies
+These dependencies are required for the application to run and can be found in the Directory.Packages.props file along with their respective versions:
+- Azure.Storage.Blobs (12.24.0)
+- Microsoft.AspNetCore.Authentication.JwtBearer (8.0.0)
+- Microsoft.AspNetCore.Http (2.3.0)
+- Microsoft.AspNetCore.Http.Features (5.0.17)
+- Microsoft.AspNetCore.Identity (2.3.1)
+- Microsoft.AspNetCore.Mvc.Testing (8.0.13)
+- Microsoft.AspNetCore.OpenApi (8.0.13)
+- Microsoft.EntityFrameworkCore (9.0.2)
+- Microsoft.EntityFrameworkCore.Design (9.0.2)
+- Microsoft.EntityFrameworkCore.SqlServer (9.0.2)
+- Microsoft.Extensions.Hosting (9.0.3)
+- Newtonsoft.Json (13.0.3)
+- NetVips (3.0.0)
+- NetVips.Native.linux-x64 (8.16.1)
+- NetVips.Native.osx-arm64 (8.16.1)
+- NetVips.Native.win-x64 (8.16.0)
+- NetVips.Native.osx-x64 (8.16.0)
+- SixLabors.ImageSharp (3.1.7)
+- CoenM.ImageSharp.ImageHash (1.3.6)
+- Swashbuckle.AspNetCore (6.6.2)
+- System.Text.Json (9.0.3)
+- ZstdSharp.Port (0.7.3)
+- ClosedXML (0.104.2)
+
+### Dev Dependencies
+These dependencies are used during development and testing and can also be found in the Directory.Packages.props file along with their respective versions:
+- Microsoft.NET.Test.Sdk (17.6.0)
+- xunit (2.4.2)
+- xunit.runner.visualstudio (2.4.5)
+- coverlet.collector (6.0.0)
+- NSubstitute (5.3.0)
+
+## Backend Installation Documentation (Dev Environment)
+
+First you must create an appsettings.json file in the current directory:
+- for MAC
+  ```bash
+  touch APIs/appsettings.json
+  ```
+- for Windows
+  ```
+  New-Item -Path APIs/appsettings.json -ItemType File
+  ```
+
+Then copy the contents from the file provided in the final submission folder: appsettings.json.dev
+
+To install and run the .NET API as well as the MySQL database for local development run:
+
+- To ensure Docker is installed and running:
 ```bash
-cd dotnet-backend
+docker ps
 ```
-Execute the following to install packages
+
+- for MAC
+  ```bash
+  ./run-backend.sh
+  ```
+
+- for Windows
+  ```bash
+  .\run-backend.ps1
+  ```
+
+The .NET API should be running and reachable by http://localhost:5155. The MySQL database should also be running and reachable through Docker.
+
+### Resetting local database and API.
+To stop the .NET api simply type <ctrc-c> in the running window. To reset your local database run:
 ```bash
-dotnet restore
+docker ps
 ```
 
-To run the API, navigate to the `APIs` directory and use the following commands to build and start the application:
+Then search for the respective container id then run:
 ```bash
-cd APIs
-
-dotnet run
+docker rm -f <container-id>
 ```
 
-### Cheatsheet:
-- visit 'http://localhost:5155/swagger' to manually try and test.
-
-Every week or so, update your branch with the changes from main. Using GitHub Desktop,
-1. Go to your branch.
-2. Click "Branch" (in the top bar), then "Update from main"
-
-To run backend:
-1. cd to the root folder (404-Found-DAM) and run ./run.sh (only the first time)
-2. press the play button in VSCode, if that doesn't work cd to the dotnet-backend/APIs folder and run "dotnet run".
-- if that doesn't work, cd to the dotnet-backend/APIs folder and run "dotnet build", then do step 2.
-3. go to localhost:5155
-
-If you encounter issues with running the backend
-1. manually go to Docker and delete the containers
-2. run git pull in DataGrip
-3. cd to root folder (404-FOUND-DAM) and run "./run.sh"
---- if you get an error like: An error was generated for warning 'Microsoft.EntityFrameworkCore.Migrations.PendingModelChangesWarning': The model for context 'DAMDbContext' has pending changes. Add a new migration before updating the database. See https://aka.ms/efcore-docs-pending-changes. This exception can be suppressed or logged by passing event ID 'RelationalEventId.PendingModelChangesWarning' to the 'ConfigureWarnings' method in 'DbContext.OnConfiguring' or 'AddDbContext'.
---- then:
---------- 1. cd to dotnet-backend/Infrastructure/Migrations and delete the Migrations folder (this folder).
---------- 2. run this command (2a: mac; 2b: windows):
---------- 3. cd to root folder and run "./run.sh"
-2a:
-dotnet ef migrations add InitialCreate \
-  --project Infrastructure \
-  --startup-project APIs && \
-docker run --platform linux/amd64 -e "ACCEPT_EULA=Y" -e 'SA_PASSWORD=LetsGoTeam!' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-2b:
-dotnet ef migrations add InitialCreate --project ./dotnet-backend/Infrastructure --startup-project ./dotnet-backend/APIs
-& docker run --platform linux/amd64 -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=LetsGoTeam!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-
-expected message after running 2:
-Build started...
-Build succeeded.
-Done. To undo this action, use 'ef migrations remove'
-71885fdfbe4c0370baa37cdccd4e330509c5c96b33a6fd91e1e52f870027036a
-
-4. cd to dotnet-backend/APIs and run "dotnet build" then run "dotnet run"
-
-To run frontend:
-0. Run this in a different terminal than the backend is running
-1. Go (cd) to frontend folder
-2. npm install (only the first time)
-3. npm run dev
-4. go to localhost:3000
-
-You can run either the frontend first or the backend first
-
-To setup connection to DataGrip:
-1. Choose Microsoft SQL Server and enter the below information
-Port:1433
-Username: sa 
-Password: (see Discord)
-Database: DAMDatabase
-
-To interact with the database, write a file for the object in Infrastructure/DataAccess (eg. ActivityLogRepository)
-
-APIs (to receive input from and provide resposnse to frontend) go into the APIs/Controllers folder: ActivityLogController
-
-Logic and any functionality that does not need to access database goes into Service (Core/Services)
-
-FLOW:
-- Frontend calls an endpoint (in ActivityLogController).
-- Controller calls Service.
-- Service calls DataAccess/Repository (if necessary).
-- DataAccess/Repository returns to Service
-- Service returns to Controller
-- Controller returns to frontend.
-
-EXAMPLE FLOW:
-- Frontend calls an endpoint (eg. ActivityLogController)
-- Controller calls Service (eg. ActivityLogService)
-- Service calls DataAccess/Repository (if necessary) (eg. ActivityLogRepository)
-- DataAccess/Repository returns to Service
-- Service returns to Controller
-- Controller returns to frontend
-
-Server is in a blackbox. You don't want people to know what's in your server, except through accessing the APIs
-
-To create/modify an object that will go into the database: Core/Entities/DataModel.cs
-
-Interfaces: go into the Core/Interfaces folder
-- IActivityLogRepository
-- IActivityLogService
-
-Additionally, we are using DTO, e.g. CreateActivityLogDto.cs
-
-
+Now you can run either run-backend.sh or run-backend.ps1 depending on your host OS as mentioned above.
