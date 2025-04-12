@@ -1,11 +1,46 @@
 ## Backend
 
 ### Requirements
-- .NET Core (v8.0)
-- Azure SDK (v1.1.0): for accessing Azure services such as Blob Storage.
-- Azure Entity Framework Core (v9.0.1): ORM for interactions with Azure Database
-- Azure Database for MySQL (v8.0)
-- Docker (v27.5)
+- .NET 8.0/9.0
+- Entity Framework Core (v9.0.2)
+- ASP.NET Core (v8.0)
+
+### Required packages
+- See Directory.Packages.props file
+
+### Dependencies
+These dependencies are required for the application to run and can be found in the Directory.Packages.props file along with their respective versions:
+- Azure.Storage.Blobs (12.24.0)
+- Microsoft.AspNetCore.Authentication.JwtBearer (8.0.0)
+- Microsoft.AspNetCore.Http (2.3.0)
+- Microsoft.AspNetCore.Http.Features (5.0.17)
+- Microsoft.AspNetCore.Identity (2.3.1)
+- Microsoft.AspNetCore.Mvc.Testing (8.0.13)
+- Microsoft.AspNetCore.OpenApi (8.0.13)
+- Microsoft.EntityFrameworkCore (9.0.2)
+- Microsoft.EntityFrameworkCore.Design (9.0.2)
+- Microsoft.EntityFrameworkCore.SqlServer (9.0.2)
+- Microsoft.Extensions.Hosting (9.0.3)
+- Newtonsoft.Json (13.0.3)
+- NetVips (3.0.0)
+- NetVips.Native.linux-x64 (8.16.1)
+- NetVips.Native.osx-arm64 (8.16.1)
+- NetVips.Native.win-x64 (8.16.0)
+- NetVips.Native.osx-x64 (8.16.0)
+- SixLabors.ImageSharp (3.1.7)
+- CoenM.ImageSharp.ImageHash (1.3.6)
+- Swashbuckle.AspNetCore (6.6.2)
+- System.Text.Json (9.0.3)
+- ZstdSharp.Port (0.7.3)
+- ClosedXML (0.104.2)
+
+### Dev Dependencies
+These dependencies are used during development and testing and can also be found in the Directory.Packages.props file along with their respective versions:
+- Microsoft.NET.Test.Sdk (17.6.0)
+- xunit (2.4.2)
+- xunit.runner.visualstudio (2.4.5)
+- coverlet.collector (6.0.0)
+- NSubstitute (5.3.0)
 
 ## Backend Installation Documentation (Dev Environment)
 
