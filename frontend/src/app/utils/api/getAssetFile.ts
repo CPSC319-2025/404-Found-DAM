@@ -55,6 +55,21 @@ export const downloadAsset = async (asset: any, project: any, user: any, addWate
     throw new Error("Asset has not loaded yet! Please try again.")
   }
 
+  // Sean:
+  // Call endpoint to check if file still exists before downloading. If not, throw new Error
+  try {
+    const checkResponse = await fetchWithAuth(`/projects/${project.projectID}/${asset.blobID}`, {
+      method: "GET",
+    });
+
+    if (!checkResponse.ok) {
+      throw new Error("Asset has been deleted");
+    }
+  } catch (error) {
+    throw new Error("Asset has been deleted");
+  }
+
+
   try {
     const downloadLog = {
       userID: user.userID,
