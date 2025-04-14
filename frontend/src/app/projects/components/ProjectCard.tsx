@@ -86,7 +86,13 @@ export default function ProjectCard({
       })
 
       if (response.status === 400) {
-        throw new Error(`Project "${name}" already archived`);
+        toast.error(`Project "${name}" already archived. Refreshing...`);
+        
+        setTimeout(() => {
+          window.location.reload(); // reload page.
+        }, 1500);
+        
+        return;
       }
       
       if (!response.ok) {
