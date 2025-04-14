@@ -233,7 +233,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const showAssetMetadata = async (asset: any) => {
     const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
-    if (response.status === 404) {
+    if (response.status === 410) { // 410 GONE
       const errorData = await response.json();
       toast.error("Asset has been deleted. Refreshing...");
       setTimeout(() => {

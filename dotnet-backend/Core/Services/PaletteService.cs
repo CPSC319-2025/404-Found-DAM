@@ -207,9 +207,17 @@ namespace Core.Services
         {
             try
             {
+                var asset = this.GetAssetByBlobIdAsync(blobId); // sean - prevent async issues with a user trying to view the metadata of a deleted asset.
+                if (asset == null) {
+                    throw new InvalidOperationException();
+                }
                 return await _paletteRepository.GetBlobProjectAndTagsAsync(blobId);
             }
             catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (InvalidOperationException)
             {
                 throw;
             }
@@ -235,6 +243,25 @@ namespace Core.Services
         public async Task<string?> GetAssetNameByBlobIdAsync(string blobID)
         {
             return await _paletteRepository.GetAssetNameByBlobIdAsync(blobID);
+        }
+
+        public async Task<Asset> GetAssetByBlobIdAsync(string blobID) {
+            try
+            {
+                return await _paletteRepository.GetAssetByBlobIdAsync(blobID);
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            } 
+            catch (InvalidOperationException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public async Task<string?> GetProjectNameByIdAsync(int projectID) {

@@ -67,6 +67,14 @@ namespace APIs.Controllers
             {
                 return Results.NotFound(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 410,
+                    title: "Asset has been deleted - 410 GONE"
+                );
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving blob details: {ex.Message}");
