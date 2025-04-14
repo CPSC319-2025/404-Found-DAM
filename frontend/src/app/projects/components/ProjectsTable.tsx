@@ -291,8 +291,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
       // Sean:
       // Call endpoint to check if file still exists before downloading. If not, throw new Error
-      console.log("projID: " + projectID)
-      console.log(asset.blobID);
+      // console.log("projID: " + projectID)
+      // console.log(asset.blobID);
       try {
         const checkResponse = await fetchWithAuth(`/projects/${projectID}/${asset.blobID}`, {
           method: "GET",
