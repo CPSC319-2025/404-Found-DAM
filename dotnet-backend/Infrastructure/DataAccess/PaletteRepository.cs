@@ -673,6 +673,8 @@ namespace Infrastructure.DataAccess {
             return await _context.Assets
                 .Where(a => a.BlobID == blobID)
                 .FirstOrDefaultAsync();
+
+                // question: does it make sense to throw InvalidOperationException if I cannot find the blob ID?
         }
 
         public async Task<string?> GetTagNameByIdAsync(int tagId)

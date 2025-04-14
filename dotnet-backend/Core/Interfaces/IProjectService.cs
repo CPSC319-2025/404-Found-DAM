@@ -1,5 +1,6 @@
 using Core.Dtos;
 using Microsoft.AspNetCore.Http;
+using Core.Entities;
 
 namespace Core.Interfaces
 {
@@ -22,5 +23,6 @@ namespace Core.Interfaces
         Task<string?> GetProjectNameByIdAsync(int projectID);
         Task DeleteAssetFromProject(int projectId, string blobId);
         Task<string?> GetCustomMetadataNameByIdAsync(int fieldID);
+        Task<Asset> GetAssetObject(string blobId);
     }
 }
