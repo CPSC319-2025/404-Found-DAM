@@ -235,7 +235,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
     if (response.status === 404) {
       const errorData = await response.json();
-      toast.error("Asset has been deleted");
+      toast.error("Asset has been deleted. Refreshing...");
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -429,6 +429,21 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const confirmDelete = async () => {
     if (!assetToDelete) return;
+    try {
+      const checkResponse = await fetchWithAuth(`/projects/${projectID}/${assetToDelete.blobID}`, {
+          method: "GET",
+        });
+
+        if (!checkResponse.ok) {
+          toast.error("Asset has already been deleted. Refreshing...");
+          setTimeout(() => {
+            // window.location.reload();
+          }, 1500);
+          return;
+        }  
+    } catch (error) {
+
+    }
     try {
       const response = await fetchWithAuth(
         `projects/${projectID}/assets/${assetToDelete.blobID}`,
