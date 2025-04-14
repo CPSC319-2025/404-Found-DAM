@@ -364,7 +364,7 @@ namespace APIs.Controllers
             // var projectService = serviceProvider.GetRequiredService<IProjectService>();
             var userService = serviceProvider.GetRequiredService<IUserService>();
             try
-            {
+            {   
                 var result = await projectService.UpdateProject(projectID, req);
 
                 int submitterID = Convert.ToInt32(context.Items["userId"]);

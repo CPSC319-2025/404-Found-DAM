@@ -381,6 +381,15 @@ namespace Core.Services
 
         public async Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req)
         {
+            // verify that project an admin is attempting to update is not archived (resolve async issue)
+            var project = await _repository.GetProjectInDb(projectID);
+            if (project == null) {
+                throw new DataNotFoundException("Project Not Found");
+            }
+            if (!project.Active) {
+                throw new InvalidOperationException("Cannot modify an archived project");
+            }
+
             return await _repository.UpdateProjectInDb(projectID, req);
         }
         
