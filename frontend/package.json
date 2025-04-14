@@ -23,7 +23,6 @@
     "react-dom": "^18",
     "react-dropzone": "^14.3.8",
     "react-easy-crop": "^5.4.1",
-    "react-hot-toast": "^2.5.2",
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {

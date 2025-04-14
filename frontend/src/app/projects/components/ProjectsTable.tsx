@@ -191,7 +191,7 @@ const downloadAssetWrapper = async (
   user: any
 ) => {
   try {
-    toast.success("Starting download2...");
+    toast.success("Starting download...");
     await downloadAsset(asset, project, user);
   } catch (e) {
     toast.error((e as Error).message);
