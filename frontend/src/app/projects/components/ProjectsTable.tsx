@@ -233,6 +233,14 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const showAssetMetadata = async (asset: any) => {
     const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
+    if (response.status === 404) {
+      const errorData = await response.json();
+      toast.error("Asset has been deleted");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      return;
+    }
     if (!response.ok) {
       console.error(
         `Failed to fetch asset metadata (Status: ${response.status} - ${response.statusText})`
