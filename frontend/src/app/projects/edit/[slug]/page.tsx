@@ -373,6 +373,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
     onLoad();
   }, []);
 
+  useEffect(() => {
+    if (permissionDenied) {
+      toast.error("Permission Denied - Redirecting to main page");
+      const timeout = setTimeout(() => {
+        router.push("/")
+      }, 2500);
+      return () => clearTimeout(timeout);
+    }
+  }, [permissionDenied]);
+
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
     const updatedFormFields = [...editProjectFormFields];
