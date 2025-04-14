@@ -472,6 +472,12 @@ namespace APIs.Controllers
             catch (DataNotFoundException ex)
             {
                 return Results.NotFound(ex.Message);
+            } catch (InvalidOperationException ex) {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 403, // 403 forbidden
+                    title: "Cannot modify an archived project"
+                );
             }
             catch (Exception ex)
             {

@@ -239,9 +239,12 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       const parsedResponse: any = await response.json();
       toast.error(parsedResponse.detail);
       // in the event of any errors (in particular, if the admin tries to modify a project which has been archived, redirect to the home page.)
-      setTimeout(() => {
-        router.push(`/projects`);
-      }, 1500);
+
+      // if (response.status == 403) { // uncomment if you only want to redirect admin to projects page if the admin tries to modify a project which has been archived.
+        setTimeout(() => {
+          router.push(`/projects`);
+        }, 1500);
+      // }
 
       return;
     }
