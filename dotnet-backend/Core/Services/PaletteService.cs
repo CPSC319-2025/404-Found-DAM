@@ -103,6 +103,13 @@ namespace Core.Services
         {
             try
             {
+
+                // Sean - prevent async issues - check that project is active (not archived)
+                bool isActive = await _projectService.VerifyProjectIsActive(projectID);
+                if (!isActive) { // risk of disposed context error!!!
+                    throw new InvalidOperationException();
+                }
+                
                 var (successfulSubmissions, failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID, autoNaming);
 
                 // Log successful submissions -> done in PaletteController.cs

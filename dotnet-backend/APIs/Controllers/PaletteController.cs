@@ -671,6 +671,9 @@ namespace APIs.Controllers
                 // }
                 return Results.Ok(result);
              }
+             catch (InvalidOperationException ex) {
+                return Results.StatusCode(403);
+             }
 
              catch (DataNotFoundException ex)
              {

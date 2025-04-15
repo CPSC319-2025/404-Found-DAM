@@ -618,5 +618,26 @@ namespace Infrastructure.DataAccess
             
             await _context.SaveChangesAsync();
         }
+
+        public async Task<Project> GetProjectObjectOrThrow(int projectID) {
+            {
+                using var _context = _contextFactory.CreateDbContext();
+
+                var project = await _context.Projects
+                    .Include(p => p.ProjectMemberships)
+                    .Include(p => p.ProjectTags).ThenInclude(pt => pt.Tag)
+                    .Include(p => p.ProjectMetadataFields)
+                    .Include(p => p.Assets)
+                    .FirstOrDefaultAsync(p => p.ProjectID == projectID);
+
+                if (project == null)
+                {
+                    throw new DataNotFoundException($"Project with ID {projectID} not found.");
+                }
+
+                return project;
+            }
+
+        }
     }
 }
