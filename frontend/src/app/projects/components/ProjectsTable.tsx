@@ -233,6 +233,14 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const showAssetMetadata = async (asset: any) => {
     const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
+    if (response.status === 410 || response.status === 404) { // please note: the above fetchWithAuth call returns 404 if the asset has been deleted.
+      const errorData = await response.json();
+      toast.error("Asset has been deleted. Refreshing...");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      return;
+    }
     if (!response.ok) {
       console.error(
         `Failed to fetch asset metadata (Status: ${response.status} - ${response.statusText})`
@@ -288,7 +296,39 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const downloadAssetWrapper = async (addWatermark: boolean, asset: any) => {
     setConfirmDownloadPopup(false);
     try {
-      toast.success("Starting download...");
+
+      // Sean:
+      // Call endpoint to check if file still exists before downloading. If not, throw new Error
+      // console.log("projID: " + projectID)
+      // console.log(asset.blobID);
+      try {
+        const checkResponse = await fetchWithAuth(`/projects/${projectID}/${asset.blobID}`, {
+          method: "GET",
+        });
+
+        if (!checkResponse.ok) {
+
+          toast.error("Asset has been deleted. Refreshing...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          return;
+          
+          // throw new Error("Asset has been deleted");
+        }
+      } catch (error) {
+
+        toast.error("Asset has been deleted. Refreshing...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          return;
+        // window.location.reload();
+        // throw new Error("Asset has been deleted");
+      }
+
+
+      toast.success("Starting download..."); // to download one asset from project page
       await downloadAsset(
         asset,
         { projectName, projectID },
@@ -421,11 +461,33 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
   const confirmDelete = async () => {
     if (!assetToDelete) return;
+    // try {
+    //   const checkResponse = await fetchWithAuth(`/projects/${projectID}/${assetToDelete.blobID}`, { // logic moved to backend (i.e. ProjectController.DeleteAsset will resolve with status code 410 GONE)
+    //       method: "GET",
+    //     });
+
+    //     if (!checkResponse.ok) {
+    //       toast.error("Asset has already been deleted. Refreshing...");
+    //       setTimeout(() => {
+    //         // window.location.reload();
+    //       }, 1500);
+    //       return;
+    //     }  
+    // } catch (error) {
+
+    // }
     try {
       const response = await fetchWithAuth(
         `projects/${projectID}/assets/${assetToDelete.blobID}`,
         { method: "DELETE" }
       );
+      if (response.status === 410) {
+        toast.error("Asset has already been deleted. Refreshing...");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        return;
+      }
       if (!response.ok) {
         throw new Error("Failed to delete asset");
       }

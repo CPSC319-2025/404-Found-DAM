@@ -292,6 +292,25 @@ namespace Infrastructure.DataAccess
             }
         }
 
+        public async Task<Asset> GetAssetInDb(int projectID, string assetID)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            var asset = await _context.Assets
+                .Include(a => a.AssetTags)
+                    .ThenInclude(at => at.Tag)
+                .Include(a => a.AssetMetadata)
+                    .ThenInclude(am => am.ProjectMetadataField)
+                .FirstOrDefaultAsync(a => a.ProjectID == projectID && a.BlobID == assetID);
+
+            if (asset == null)
+            {
+                throw new DataNotFoundException($"Asset with ID '{assetID}' in project {projectID} not found.");
+            }
+
+            return asset;
+        }
+
         public async Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req) {
             using var _context = _contextFactory.CreateDbContext();
 
@@ -619,8 +638,8 @@ namespace Infrastructure.DataAccess
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Project> GetProjectObjectOrThrow(int projectID) {
-            {
+        public async Task<Project> GetProjectObjectOrThrow(int projectID)
+        {
                 using var _context = _contextFactory.CreateDbContext();
 
                 var project = await _context.Projects
@@ -636,6 +655,25 @@ namespace Infrastructure.DataAccess
                 }
 
                 return project;
+        }
+        
+        public async Task<Asset> GetAssetObject(string blobId)
+        {
+                using var context = _contextFactory.CreateDbContext();
+
+                var asset = await context.Assets
+                    .Include(a => a.AssetTags)
+                        .ThenInclude(at => at.Tag)
+                    .Include(a => a.AssetMetadata)
+                        .ThenInclude(am => am.ProjectMetadataField)
+                    .FirstOrDefaultAsync(a => a.BlobID == blobId);
+
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with BlobID '{blobId}' not found.");
+                }
+
+                return asset;
             }
 
         }

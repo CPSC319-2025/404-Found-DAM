@@ -33,5 +33,7 @@ namespace Core.Interfaces  {
 
         // Get all fields for a specific blob
         Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId);
+
+        Task<Asset> GetAssetByBlobIdAsync(string blobID);
     }
 }

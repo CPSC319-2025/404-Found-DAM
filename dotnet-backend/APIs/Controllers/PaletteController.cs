@@ -63,6 +63,14 @@ namespace APIs.Controllers
                 var result = await paletteService.GetBlobProjectAndTagsAsync(blobId); //also returns tag id in the same order a s tag
                 return Results.Ok(result);
             }
+            catch (GoneException ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 410,
+                    title: "Asset has been deleted - 410 GONE"
+                );
+            }
             catch (DataNotFoundException ex)
             {
                 return Results.NotFound(new { message = ex.Message });

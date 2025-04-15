@@ -667,14 +667,29 @@ namespace Infrastructure.DataAccess {
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<Asset> GetAssetByBlobIdAsync(string blobID)
+        {
+            using var _context = _contextFactory.CreateDbContext(); // first create context
+            return await _context.Assets
+                .Where(a => a.BlobID == blobID)
+                .FirstOrDefaultAsync();
+
+                // question: does it make sense to throw InvalidOperationException if I cannot find the blob ID?
+        }
+
         public async Task<string?> GetTagNameByIdAsync(int tagId)
         {
             using var context = _contextFactory.CreateDbContext();
-            
-            return await context.Tags
-                .Where(t => t.TagID == tagId)
-                .Select(t => t.Name)
-                .FirstOrDefaultAsync();
+            try {
+                return await context.Tags
+                    .Where(t => t.TagID == tagId)
+                    .Select(t => t.Name)
+                    .FirstOrDefaultAsync();
+            } catch (DataNotFoundException) {
+                throw;
+            } catch (Exception ex) {
+                throw;
+            }
         }
 
         public async Task<string?> GetProjectNameByIdAsync(int projectId)
