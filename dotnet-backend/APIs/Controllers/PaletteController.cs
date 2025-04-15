@@ -679,6 +679,14 @@ namespace APIs.Controllers
                 // }
                 return Results.Ok(result);
              }
+             catch (InvalidOperationException ex) {
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 403,
+                    title: "403 Forbidden"
+                );
+             }
 
              catch (DataNotFoundException ex)
              {

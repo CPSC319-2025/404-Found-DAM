@@ -55,6 +55,11 @@ namespace Core.Services
         
         public async Task<AssociateAssetsWithProjectRes> AssociateAssetsWithProject(AssociateAssetsWithProjectReq request, int submitterID)
         {
+            // Sean - prevent async issues - check that project is active (not archived)
+            bool isActive = await this.VerifyProjectIsActive(request.ProjectID);
+            if (!isActive) {
+                throw new InvalidOperationException();
+            }
             (List<string> successfulAssociations, List<string> failedAssociations) = await _repository.AssociateAssetsWithProjectInDb(request.ProjectID, request.BlobIDs, submitterID);
             foreach (string blobId in successfulAssociations)
             {
@@ -524,6 +529,23 @@ namespace Core.Services
         public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) 
         {
             return await _repository.GetCustomMetadataNameByIdAsync(fieldID);
+        }
+
+        public async Task<bool> VerifyProjectIsActive(int projectID) {
+            var project = await this.GetProjectObjectOrThrow(projectID);
+
+            if (project == null) {
+                throw new DataNotFoundException();
+            }
+
+            return project.Active;
+            
+        }
+
+        public async Task<Project> GetProjectObjectOrThrow(int projectID) {
+
+            return await _repository.GetProjectObjectOrThrow(projectID);
+
         }
     }
 }

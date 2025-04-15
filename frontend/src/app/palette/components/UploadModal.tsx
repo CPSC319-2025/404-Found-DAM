@@ -407,6 +407,15 @@ export default function UploadModal({
               }),
             }
           );
+
+          // if (response.status === 403) { // this gets called when you click "UPLOAD" in the upload pop-up box. However, even if the project has been archived, when you click "UPLOAD", it still uploads the asset and shows them as part of the archived project. Therefore, it's best if this doesn't show an error message to avoid confusion.
+          // However, when you actually try to submit the asset to the archived project, there exists other code that won't allow you to submit.
+          //   const errorData = await response.json();
+          //   toast.error(errorData.detail); // eg. "You cannot submit assets to archived project {projectName}"
+          //   const rawText = await response.text();
+          //   console.log("rawText: ", rawText);
+          //   throw new Error("N/A");
+          // }
           
           if (!response.ok) {
             throw new Error(`Failed to associate assets with project: ${response.status}`);

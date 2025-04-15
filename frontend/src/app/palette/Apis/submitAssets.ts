@@ -1,4 +1,5 @@
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
 
 /**
  * Submits assets to a project
@@ -15,9 +16,23 @@ export async function submitAssets(projectId: string, blobIds: string[], autoNam
       body: JSON.stringify({ blobIDs: blobIds }), // e.g. { "blobIDs": [123, 456] }
     })
 
+    
+
     if (!response.ok) {
-      console.error("Submit assets failed:", response.status);
-      return false;
+      if (response.status === 403) {
+        const errorData = await response.json();
+        toast.error("Some assets were not submitted: " + errorData.detail + " Refreshing..."); // eg. "You cannot submit assets to archived project {projectName}"
+        // console.log("sean0");
+        setTimeout(() => {
+          window.location.reload();
+  
+        }, 3000);
+        
+        // return false;
+      } else {
+        console.error("Submit assets failed:", response.status);
+        return false;
+      }
     }
 
     const data = await response.json();
