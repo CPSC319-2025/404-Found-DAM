@@ -964,7 +964,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {!searchDone && (
+      {/* {!searchDone && (
         <div className="mt-8">
           <h1 className="text-2xl font-semibold mb-4">Searched Assets</h1>
           <div className="flex flex-col items-center justify-center h-64">
@@ -973,7 +973,7 @@ export default function ProjectsPage() {
             </p>
           </div>
         </div>
-      )}
+      )} */}
 
       {newProjectModalOpen && (
         <GenericForm
