@@ -959,7 +959,7 @@ export default function PalettePage() {
       
       if (successCount > 0) {
         setUploadStatus(`Successfully submitted ${successCount} asset(s).`);
-        toast.success(`Successfully submitted ${successCount} asset(s).`);
+        // toast.success(`Successfully submitted ${successCount} asset(s).`);
         
         setTimeout(() => {
           setUploadStatus("");
