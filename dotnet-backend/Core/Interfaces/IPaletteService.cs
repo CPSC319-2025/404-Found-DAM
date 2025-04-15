@@ -27,5 +27,6 @@ namespace Core.Interfaces
         Task<string?> GetTagNameByIdAsync(int tagID);
 
         Task<string?> GetProjectNameByIdAsync(int projectID);
+        Task<Asset> GetAssetByBlobIdAsyncOrThrowException(string blobID);
     }
 }

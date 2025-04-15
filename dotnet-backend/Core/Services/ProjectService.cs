@@ -501,7 +501,24 @@ namespace Core.Services
         
         public async Task DeleteAssetFromProject(int projectId, string blobId)
         {
-            await _repository.DeleteAssetFromProjectInDb(projectId, blobId);
+            // verify that asset hasn't already been deleted (e.g. by another user), if it has, then return InvalidOperationException
+            try {
+                var asset = await this.GetAssetObject(blobId);
+                if (asset == null) {
+                    throw new DataNotFoundException();
+                }
+                await _repository.DeleteAssetFromProjectInDb(projectId, blobId);
+            } catch (DataNotFoundException) {
+                throw;
+            } catch (Exception ex) {
+                throw;
+            }
+        }
+
+        public async Task<Asset> GetAssetObject(string blobId) { // if asset has been deleted, returns DataNotFoundException
+
+            return await _repository.GetAssetObject(blobId);
+
         }
 
         public async Task<string?> GetCustomMetadataNameByIdAsync(int fieldID) 

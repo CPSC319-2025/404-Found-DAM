@@ -637,5 +637,27 @@ namespace Infrastructure.DataAccess
             
             await _context.SaveChangesAsync();
         }
+
+        public async Task<Asset> GetAssetObject(string blobId)
+        {
+            {
+                using var context = _contextFactory.CreateDbContext();
+
+                var asset = await context.Assets
+                    .Include(a => a.AssetTags)
+                        .ThenInclude(at => at.Tag)
+                    .Include(a => a.AssetMetadata)
+                        .ThenInclude(am => am.ProjectMetadataField)
+                    .FirstOrDefaultAsync(a => a.BlobID == blobId);
+
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with BlobID '{blobId}' not found.");
+                }
+
+                return asset;
+            }
+
+        }
     }
 }

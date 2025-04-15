@@ -576,7 +576,12 @@ namespace APIs.Controllers
                 return Results.Ok(new { message = "Asset deleted successfully."});
             }
             catch (DataNotFoundException ex) {
-                return Results.NotFound(ex.Message);
+                // return Results.NotFound(ex.Message);
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 410, // 410 GONE
+                    title: "Asset has been deleted."
+                );
             }
             catch (Exception ex) 
             {
