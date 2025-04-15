@@ -1,5 +1,6 @@
 import { ZstdCodec } from "zstd-codec";
 import { fetchWithAuth } from "@/app/utils/api/api";
+import { toast } from "react-toastify";
 
 
 const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -54,6 +55,9 @@ export const downloadAsset = async (asset: any, project: any, user: any, addWate
   if (!asset.src) {
     throw new Error("Asset has not loaded yet! Please try again.")
   }
+
+
+
 
   try {
     const downloadLog = {
