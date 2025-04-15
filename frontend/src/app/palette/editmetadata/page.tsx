@@ -365,7 +365,7 @@ export default function EditMetadataPage() {
       if (response.status === 403) {
         const errorData = await response.json();
         toast.error(errorData.detail); // eg. "You cannot submit assets to archived project {projectName}"
-        console.log("sean3");
+        // console.log("sean3");
         throw new Error();
       }
       

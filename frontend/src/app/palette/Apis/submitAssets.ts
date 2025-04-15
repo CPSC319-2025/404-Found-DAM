@@ -20,6 +20,11 @@ export async function submitAssets(projectId: string, blobIds: string[], autoNam
       const errorData = await response.json();
       toast.error(errorData.detail); // eg. "You cannot submit assets to archived project {projectName}"
       console.log("sean0");
+      setTimeout(() => {
+        window.location.reload();
+
+      }, 3000);
+      
       // return false;
     }
 
