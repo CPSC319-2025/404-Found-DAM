@@ -106,8 +106,9 @@ namespace Core.Services
 
                 // Sean - prevent async issues - check that project is active (not archived)
                 bool isActive = await _projectService.VerifyProjectIsActive(projectID);
+                string isActiveProjectName = await GetProjectNameByIdAsync(projectID);
                 if (!isActive) { // risk of disposed context error!!!
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("You cannot submit assets to archived project: " + isActiveProjectName);
                 }
                 
                 var (successfulSubmissions, failedSubmissions) = await _paletteRepository.SubmitAssetstoDb(projectID, blobIDs, submitterID, autoNaming);

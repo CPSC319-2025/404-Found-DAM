@@ -6,6 +6,7 @@ import { PencilIcon, TrashIcon, PlayIcon } from "@heroicons/react/24/outline";
 import { useFileContext, FileMetadata } from "@/app/context/FileContext";
 import { fetchWithAuth } from "@/app/utils/api/api";
 import { loadFileContent } from "./Apis/fetchPaletteAssets";
+import { toast } from "react-toastify";
 
 // URL Registry to persist blob URLs across component re-renders
 // This prevents URLs from being revoked when components unmount and remount
@@ -655,6 +656,15 @@ export default function FileTable({
           metadataEntries: []
         }),
       })
+
+      
+
+      // if (response.status === 403) {
+      //   const errorData = await response.json();
+      //   toast.error(errorData.detail); // eg. "You cannot submit assets to archived project {projectName}"
+      //   console.log("sean1"); // this gets printed whenever a user on the palette page selects a project from the dropdown menu and the project has been archived. Note: not on the upload pop-up dialog box but rather the actual palette
+      //   return;
+      // }
 
       if (!response.ok) {
         console.error("Associate asset failed:", response.status);

@@ -346,7 +346,12 @@ namespace APIs.Controllers
             }
             catch (InvalidOperationException ex) // prevent async issue - if user tries to upload an image to an archived project, the frontend will receive this error.
             {
-                return Results.StatusCode(403);
+                return Results.Problem
+                (
+                    detail: ex.Message,
+                    statusCode: 403,
+                    title: "403 Forbidden"
+                );
             }
             catch (DataNotFoundException ex)
             {
