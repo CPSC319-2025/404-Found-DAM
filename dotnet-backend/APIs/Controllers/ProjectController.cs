@@ -392,7 +392,7 @@ namespace APIs.Controllers
             // var projectService = serviceProvider.GetRequiredService<IProjectService>();
             var userService = serviceProvider.GetRequiredService<IUserService>();
             try
-            {
+            {   
                 var result = await projectService.UpdateProject(projectID, req);
 
                 int submitterID = Convert.ToInt32(context.Items["userId"]);
@@ -500,6 +500,12 @@ namespace APIs.Controllers
             catch (DataNotFoundException ex)
             {
                 return Results.NotFound(ex.Message);
+            } catch (InvalidOperationException ex) {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 403, // 403 forbidden
+                    title: "Cannot modify an archived project"
+                );
             }
             catch (Exception ex)
             {

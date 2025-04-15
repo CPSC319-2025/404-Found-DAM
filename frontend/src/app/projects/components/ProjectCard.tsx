@@ -86,7 +86,13 @@ export default function ProjectCard({
       })
 
       if (response.status === 400) {
-        throw new Error(`Project "${name}" already archived`);
+        toast.error(`Project "${name}" already archived. Refreshing...`);
+        
+        setTimeout(() => {
+          window.location.reload(); // reload page.
+        }, 1500);
+        
+        return;
       }
       
       if (!response.ok) {
@@ -182,10 +188,15 @@ export default function ProjectCard({
           )}
 
           <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-            <MenuItem onClick={handleEdit}>{isArchived ? "Show Details" : "Edit"}</MenuItem>
-            <MenuItem onClick={showConfirmArchive} disabled={isArchived}>
-              Archive
-            </MenuItem>
+            {!isArchived &&
+            (<>
+              <MenuItem onClick={handleEdit} disabled={isArchived}>
+                Edit
+              </MenuItem>
+              <MenuItem onClick={showConfirmArchive} disabled={isArchived}>
+                Archive
+              </MenuItem>
+            </>)}
             <MenuItem onClick={handleExport}>Export</MenuItem>
           </Menu>
         </div>

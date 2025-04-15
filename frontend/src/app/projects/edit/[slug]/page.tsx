@@ -237,7 +237,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
       setLoading(false);
 
       const parsedResponse: any = await response.json();
-      toast.error(parsedResponse.detail);
+      toast.error(parsedResponse.detail); // "Cannot modify an archived project"
+      // in the event of any errors (in particular, if the admin tries to modify a project which has been archived, redirect to the home page.)
+
+      // if (response.status == 403) { // uncomment if you only want to redirect admin to projects page if the admin tries to modify a project which has been archived.
+        setTimeout(() => {
+          router.push(`/projects`);
+        }, 1500);
+      // }
 
       return;
     }
@@ -365,6 +372,16 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   useEffect(() => {
     onLoad();
   }, []);
+
+  useEffect(() => {
+    if (permissionDenied) {
+      toast.error("Permission Denied - Redirecting to main page");
+      const timeout = setTimeout(() => {
+        router.push("/")
+      }, 2500);
+      return () => clearTimeout(timeout);
+    }
+  }, [permissionDenied]);
 
   // whenever a user selects an admin/regular user we need to update the form (filter options)
   useEffect(() => {
