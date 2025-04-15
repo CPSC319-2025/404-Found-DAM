@@ -131,6 +131,51 @@ namespace Core.Services
             }
         }
 
+        public async Task<GetAssetRes> GetAsset(int projectID, string assetID)
+        {
+            try
+            {
+                Asset asset = await _repository.GetAssetInDb(projectID, assetID);
+
+                if (asset == null)
+                {
+                    throw new DataNotFoundException($"Asset with ID {assetID} not found in project {projectID}.");
+                }
+
+                GetAssetRes result = new GetAssetRes
+                {
+                    blobID = asset.BlobID,
+                    filename = asset.FileName,
+                    uploadedBy = new ProjectAssetUploadedBy
+                    {
+                        userID = asset.User?.UserID ?? -1,
+                        name = asset.User?.Name ?? "Unknown",
+                        email = asset.User?.Email ?? "Unknown",
+                    },
+                    date = asset.LastUpdated,
+                    filesizeInKB = asset.FileSizeInKB,
+                    mimetype = asset.MimeType,
+                    tags = asset.AssetTags.Select(t => t.Tag.Name).ToList(),
+                    metadata = asset.AssetMetadata.Select(m => new AssetMetadataCustomInfo
+                    {
+                        fieldID = m.FieldID,
+                        // fieldName = m.MetadataField?.FieldName ?? "Unknown",
+                        // fieldValue = m.FieldValue
+                    }).ToList()
+                };
+
+                return result;
+            }
+            catch (DataNotFoundException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         /*
             GetProject method allows all valid users to retrieve any project in the DB, 
             regardless of whether they are part of it or not.
@@ -381,6 +426,15 @@ namespace Core.Services
 
         public async Task<UpdateProjectRes> UpdateProject(int projectID, UpdateProjectReq req)
         {
+            // verify that project an admin is attempting to update is not archived (resolve async issue)
+            var project = await _repository.GetProjectInDb(projectID);
+            if (project == null) {
+                throw new DataNotFoundException("Project Not Found");
+            }
+            if (!project.Active) {
+                throw new InvalidOperationException("Cannot modify an archived project");
+            }
+
             return await _repository.UpdateProjectInDb(projectID, req);
         }
         

@@ -44,6 +44,8 @@ namespace APIs.Controllers
                .WithName("DeleteAsset")
                .WithOpenApi();
 
+            app.MapGet("/projects/{projectID}/{assetID}", GetAsset).WithName("GetAsset").WithOpenApi();
+
 
         }
 
@@ -168,6 +170,32 @@ namespace APIs.Controllers
             {
                 return Results.StatusCode(500);
             }        
+        }
+
+        private static async Task<IResult> GetAsset(int projectID, string assetID, IProjectService projectService, HttpContext context)
+        {
+            try
+            {
+                var asset = await projectService.GetAsset(projectID, assetID);
+                if (asset == null)
+                {
+                    return Results.NotFound($"Asset with ID {assetID} not found in project {projectID}.");
+                }
+
+                return Results.Ok(asset);
+            }
+            catch (DataNotFoundException ex)
+            {
+                return Results.NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 500,
+                    title: "Internal Server Error"
+                );
+            }
         }
 
         private static async Task<IResult> ArchiveProjects(ArchiveProjectReq req, IProjectService projectService, HttpContext context)
@@ -364,7 +392,7 @@ namespace APIs.Controllers
             // var projectService = serviceProvider.GetRequiredService<IProjectService>();
             var userService = serviceProvider.GetRequiredService<IUserService>();
             try
-            {
+            {   
                 var result = await projectService.UpdateProject(projectID, req);
 
                 int submitterID = Convert.ToInt32(context.Items["userId"]);
@@ -472,6 +500,12 @@ namespace APIs.Controllers
             catch (DataNotFoundException ex)
             {
                 return Results.NotFound(ex.Message);
+            } catch (InvalidOperationException ex) {
+                return Results.Problem(
+                    detail: ex.Message,
+                    statusCode: 403, // 403 forbidden
+                    title: "Cannot modify an archived project"
+                );
             }
             catch (Exception ex)
             {

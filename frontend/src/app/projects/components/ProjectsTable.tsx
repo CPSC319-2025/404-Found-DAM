@@ -296,7 +296,39 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const downloadAssetWrapper = async (addWatermark: boolean, asset: any) => {
     setConfirmDownloadPopup(false);
     try {
-      toast.success("Starting download...");
+
+      // Sean:
+      // Call endpoint to check if file still exists before downloading. If not, throw new Error
+      // console.log("projID: " + projectID)
+      // console.log(asset.blobID);
+      try {
+        const checkResponse = await fetchWithAuth(`/projects/${projectID}/${asset.blobID}`, {
+          method: "GET",
+        });
+
+        if (!checkResponse.ok) {
+
+          toast.error("Asset has been deleted. Refreshing...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          return;
+          
+          // throw new Error("Asset has been deleted");
+        }
+      } catch (error) {
+
+        toast.error("Asset has been deleted. Refreshing...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          return;
+        // window.location.reload();
+        // throw new Error("Asset has been deleted");
+      }
+
+
+      toast.success("Starting download..."); // to download one asset from project page
       await downloadAsset(
         asset,
         { projectName, projectID },

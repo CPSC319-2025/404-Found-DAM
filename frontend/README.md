@@ -71,3 +71,5 @@ To install and run the Next.js application for local development run:
   ```
 
 The Next.js application should be running and reachable by navigating in the browser to http://localhost:3000.
+
+END

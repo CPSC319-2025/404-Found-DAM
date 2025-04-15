@@ -292,6 +292,25 @@ namespace Infrastructure.DataAccess
             }
         }
 
+        public async Task<Asset> GetAssetInDb(int projectID, string assetID)
+        {
+            using var _context = _contextFactory.CreateDbContext();
+
+            var asset = await _context.Assets
+                .Include(a => a.AssetTags)
+                    .ThenInclude(at => at.Tag)
+                .Include(a => a.AssetMetadata)
+                    .ThenInclude(am => am.ProjectMetadataField)
+                .FirstOrDefaultAsync(a => a.ProjectID == projectID && a.BlobID == assetID);
+
+            if (asset == null)
+            {
+                throw new DataNotFoundException($"Asset with ID '{assetID}' in project {projectID} not found.");
+            }
+
+            return asset;
+        }
+
         public async Task<UpdateProjectRes> UpdateProjectInDb(int projectID, UpdateProjectReq req) {
             using var _context = _contextFactory.CreateDbContext();
 
