@@ -333,7 +333,7 @@ export default function ProjectsPage() {
     try {
 
       try {
-        const checkResponse = await fetchWithAuth(`/projects/${projectID}/${asset.blobID}`, {
+        const checkResponse = await fetchWithAuth(`/projects/${asset.projectID}/${asset.blobID}`, {
           method: "GET",
         });
 
