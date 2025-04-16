@@ -674,8 +674,6 @@ namespace Infrastructure.DataAccess
                 }
 
                 return asset;
-            }
-
         }
     }
 }
