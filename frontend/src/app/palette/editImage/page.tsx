@@ -84,6 +84,7 @@ export default function EditImagePage() {
   };
   
 
+  // For setting imageSource
   useEffect(() => {
     if (fileData) {
       // If the file already has a URL (from previous loading), use that
@@ -131,6 +132,8 @@ export default function EditImagePage() {
 
       if (!croppedAreaPixels) return;
 
+      ctx.save(); // Save the current state of canvas
+
       const { x, y, width, height } = croppedAreaPixels;
 
       // Apply Resize in the Saving Process
@@ -140,12 +143,16 @@ export default function EditImagePage() {
       canvas.width = resizedWidth;
       canvas.height = resizedHeight;
 
-      // Flip transformations
-      ctx.translate(
-        flip.horizontal ? resizedWidth : 0,
-        flip.vertical ? resizedHeight : 0
-      );
-      ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
+      /*
+        imageSource is already flipped, so doing it again below will undo the flip;
+
+        // // Flip transformations
+        // ctx.translate(
+        //   flip.horizontal ? resizedWidth : 0,
+        //   flip.vertical ? resizedHeight : 0
+        // );
+        // ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
+      */
 
       // Apply rotation
       ctx.translate(resizedWidth / 2, resizedHeight / 2);
@@ -165,16 +172,21 @@ export default function EditImagePage() {
         resizedHeight
       );
 
+      ctx.restore(); // restore the canvas state
+
       canvas.toBlob(async (blob) => {
         if (blob) {
           const editedFile = new File([blob], fileData.file.name, {
             type: blob.type,
           });
 
+          const editedImageUrl = URL.createObjectURL(blob); // Create URL from the Blob
+
           // Update FileContext with resized image
           setFiles((prevFiles) =>
             prevFiles.map((file, index) =>
-              index === fileIndex ? { ...file, file: editedFile } : file
+              // Update file(Data) url so that the the url can be correctly set in the useEffect for setting imageSource
+              index === fileIndex ? { ...file, file: editedFile, url: editedImageUrl } : file  
             )
           );
 
@@ -225,7 +237,7 @@ export default function EditImagePage() {
             }
 
             toast.success("Image updated successfully! Returning to palette...");
-            router.push("/palette"); // Return to palette
+            // router.push("/palette"); // Return to palette
           } catch (error) {
             console.error("Error updating image:", error);
             toast.error(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
