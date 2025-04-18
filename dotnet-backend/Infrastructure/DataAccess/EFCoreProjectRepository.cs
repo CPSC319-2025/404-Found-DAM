@@ -226,6 +226,8 @@ namespace Infrastructure.DataAccess
         {
             using DAMDbContext _context = _contextFactory.CreateDbContext();
 
+            Console.WriteLine("projectrepository.getpaginatedprojectasset 229");
+
             // Retrieve matched Assets and their tags
             IQueryable<Asset> query = _context.Assets
                 .Where(a => a.ProjectID == req.projectID && a.assetState == Asset.AssetStateType.SubmittedToProject)
@@ -268,10 +270,26 @@ namespace Infrastructure.DataAccess
                     query = query.Where(a => a.LastUpdated <= utcToDate);
                 }
 
-                if (!string.IsNullOrEmpty(req.searchQuery))
+                if (!string.IsNullOrEmpty(req.searchWithinOneProjectQuery))
                 {
-                    query = query.Where(a => a.FileName.Contains(req.searchQuery, StringComparison.OrdinalIgnoreCase));
+                    // query = query.Where(a => a.FileName.Contains(req.searchWithinOneProjectQuery, StringComparison.OrdinalIgnoreCase));
+                    string loweredSearchQuery = req.searchWithinOneProjectQuery.ToLower();
+                    query = query.Where(a => a.FileName.ToLower().Contains(loweredSearchQuery));
+
+
                 }
+
+                Console.WriteLine("searchWithinOneProjectQuery: " + req.searchWithinOneProjectQuery);
+                Console.WriteLine("Total after filtering: " + await query.CountAsync());
+
+                List<string> filenames = await query.Select(a => a.FileName).ToListAsync();
+                foreach (var filename in filenames)
+                {
+                    Console.WriteLine("Matching file: " + filename);
+                }
+
+
+                Console.WriteLine("req.searchWithinOneProjectQuery in project_repository: " + req.searchWithinOneProjectQuery); // prints correctly.
 
                 // number of total assets
                 int totalAssetCount = await query.CountAsync();

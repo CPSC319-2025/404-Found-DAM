@@ -370,6 +370,7 @@ namespace Core.Services
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
+                Console.WriteLine("projectservice.getpaginatedprojectasset 373");
                 (
                     List<Asset> retrievedAssets, 
                     int totalFilteredAssetCount,
@@ -377,6 +378,7 @@ namespace Core.Services
                 ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
+                Console.WriteLine("projectservice.getpaginatedprojectasset 380");
 
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination
                 {

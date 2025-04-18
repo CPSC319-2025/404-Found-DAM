@@ -12,6 +12,7 @@ namespace Core.Dtos
         public string? tagName { get; set; }
         public DateTime? fromDate {get; set; }
         public DateTime? toDate {get; set; }
+        public string? searchWithinOneProjectQuery {get; set; }
     }
 
     public class GetPaginatedProjectAssetsRes

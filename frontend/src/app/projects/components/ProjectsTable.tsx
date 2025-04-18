@@ -369,7 +369,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       postedBy: String(selectedUser),
       tagName: String(selectedTag),
       assetType: selectedAssetType,
-      searchWithinOneProject: String(withinOneProjectSearchQuery), // sean
+      // searchWithinOneProject: String(withinOneProjectSearchQuery), // sean
     });
 
     if (startDate) {
@@ -380,7 +380,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       queryParams.append("toDate", getEndOfDayUtc(endDate));
     }
 
+    if (withinOneProjectSearchQuery.trim() !== "") {
+      queryParams.append("searchWithinOneProjectQuery", withinOneProjectSearchQuery.trim());
+    }
+
     const url = `projects/${projectID}/assets/pagination?${queryParams.toString()}`;
+    console.log("Query URL:", url); // log this right before the fetch
     const response = await fetchWithAuth(url);
 
     if (!response.ok) {
@@ -391,6 +396,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
 
     const data = (await response.json()) as PaginatedAssets;
+    console.log("Fetched assets:", data.assets);
+
+
 
     return {
       assets: data.assets,
@@ -512,15 +520,30 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
   };
 
+  // useEffect(() => {
+  //   // upon filter change we go back to page 1
+  //   setCurrentPage(1);
+  //   fetchAssets(1).then(({ assets, assetBlobSASUrlList, totalPages }) => {
+  //     setCurrentItems(assets);
+  //     setTotalPages(totalPages);
+  //     setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
+  //   });
+  // }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
+
   useEffect(() => {
-    // upon filter change we go back to page 1
     setCurrentPage(1);
     fetchAssets(1).then(({ assets, assetBlobSASUrlList, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
-      setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
+  
+      if (assetBlobSASUrlList) {
+        setAssetSrcs(assets, assetBlobSASUrlList);
+      } else {
+        console.warn("assetBlobSASUrlList is undefined on filter change");
+      }
     });
   }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
+  
 
   useEffect(() => {
     getProject()
@@ -545,153 +568,53 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     });
   }, []);
 
+  useEffect(() => {
+    if (withinOneProjectSearchQuery.trim() === "") {
+      fetchAssets(1).then(({ assets }) => setCurrentAssets(assets));
+    }
+  }, [withinOneProjectSearchQuery]);
 
-
-  // const doWithinOneProjectSearch = async () => {
-  //   if (!withinOneProjectSearchQuery.trim()) {
-  //     setCurrentAssets([]);
-  //     setSearchDone(false);
-  //     return;
-  //   }
-
-  //   try {
-  //     const response = await fetchWithAuth(
-  //       `/search?query=${encodeURIComponent(withinOneProjectSearchQuery)}` // this endpoint searches across all projects, thus I then filter to only include assets inside this one project.
-  //     );
-      
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       console.log("Response:", data);
-
-  //       console.log("typeof (data.assets[0].projectID): " + typeof (data.assets[0].projectID)); // data.assets[0].projectID is of type number
-  //       console.log("typeof (projectID): " + typeof (projectID)); // projectID is of type string
-  //       const currentProjectID = parseInt(projectID, 10);
-
-
-  //       // const filteredAssets = filterAssets(
-  //       //   data.assets.filter((a) => a.projectID === currentProjectID),
-  //       //   withinOneProjectSearchQuery,
-  //       //   selectedUser,
-  //       //   selectedTag,
-  //       //   selectedAssetType,
-  //       //   startDate,
-  //       //   endDate
-  //       // );
-
-  //       const projectAssets = data.assets.filter((a: { projectID: number; }) => a.projectID === currentProjectID);
-
-  //       const filenameMatchedAssets = projectAssets.filter((a: { filename: string; }) =>
-  //         a.filename.toLowerCase().includes(withinOneProjectSearchQuery.toLowerCase())
-  //       );
-
-  //       // const filteredAssets = filterAssets(
-  //       //   filenameMatchedAssets,
-  //       //   withinOneProjectSearchQuery,
-  //       //   selectedUser,
-  //       //   selectedTag,
-  //       //   selectedAssetType,
-  //       //   startDate,
-  //       //   endDate
-  //       // );
-
-  //       if (filteredAssets.length === 0) {
-  //         console.log("No assets found matching the query within this project.");
-  //         setCurrentItems([]);
-  //         setSearchDone(true);
-  //       } else {
-  //         console.log("Filtered assets:", filteredAssets);
-  //       }
-
-  //       setCurrentAssets(filenameMatchedAssets); // keep full query-matching list
-  //       setCurrentItems(filteredAssets);         // dropdown-filtered display
-  //       setSearchDone(true);
-
-  //     } else {
-  //       throw new Error("Failed to search assets.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Search error:", error);
-  //     toast.error("Failed to search assets. Please try again.");
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   const reFiltered = filterAssets(
-  //     currentAssets,
-  //     withinOneProjectSearchQuery,
-  //     selectedUser,
-  //     selectedTag,
-  //     selectedAssetType,
-  //     startDate,
-  //     endDate
-  //   );
-  //   setCurrentItems(reFiltered);
-  // }, [
-  //   selectedUser,
-  //   selectedTag,
-  //   selectedAssetType,
-  //   startDate,
-  //   endDate,
-  //   withinOneProjectSearchQuery,
-  //   currentAssets,
-  // ]);
-  
-
-  // const filterAssets = (
-  //   assets: AssetWithSrc[],
-  //   query: string,
-  //   selectedUser?: number,
-  //   selectedTag?: string,
-  //   selectedType?: string,
-  //   startDate?: string,
-  //   endDate?: string
-  // ) => {
-  //   return assets.filter((asset) => {
-  //     const matchQuery = asset.filename
-  //       .toLowerCase()
-  //       .includes(query.toLowerCase());
-  
-  //     const matchUser = selectedUser ? asset.uploadedBy.userID === selectedUser : true;
-  //     const matchTag = selectedTag ? asset.tags?.includes(selectedTag) : true;
-  //     const matchType =
-  //       selectedAssetType && selectedAssetType !== "all"
-  //         ? asset.mimetype?.startsWith(selectedAssetType)
-  //         : true;
-  
-  //     const matchDate =
-  //       (!startDate || new Date(asset.date) >= new Date(startDate)) &&
-  //       (!endDate || new Date(asset.date) <= new Date(endDate));
-  
-  //     return matchQuery && matchUser && matchTag && matchType && matchDate;
-  //   });
-  // };
-  
 
   // const handleWithinOneProjectSearch = async () => {
   //   setIsLoading(true);
-  //   const startTime = Date.now();
+  //   // fetchAssets(1);
   //   try {
-  //     await doWithinOneProjectSearch();
-  //   } catch (error) {
-  //     console.error("Search error:", error);
+  //     const { assets } = await fetchAssets(1); // start from first page
+  //     console.log("Fetched assets_handleWithinOneProjectSearch:", assets);
+  //     setCurrentAssets(assets);
+  //     // setAssetSrcs(assets, assetBlobSASUrlList);
+  //     setSearchDone(true);
+  //   } catch (err) {
+  //     console.error("Search failed", err);
   //   } finally {
-  //     const elapsed = Date.now() - startTime;
-  //     const minDelay = 200;
-  //     if (elapsed < minDelay) {
-  //       setTimeout(() => {
-  //         setIsLoading(false);
-  //       }, minDelay - elapsed);
-  //     } else {
-  //       setIsLoading(false);
-  //     }
+  //     setIsLoading(false);
   //   }
   // };
 
-  // useEffect(() => {
-  //     if (!withinOneProjectSearchQuery.trim()) {
-  //       doWithinOneProjectSearch(); // This resets the search
-  //     }
-  //   }, [withinOneProjectSearchQuery]);
+  const handleWithinOneProjectSearch = async () => {
+    setIsLoading(true);
+    try {
+      const { assets, assetBlobSASUrlList } = await fetchAssets(1);
+
+      setCurrentAssets(assets);
+
+      if (assetBlobSASUrlList) {
+        setAssetSrcs(assets, assetBlobSASUrlList);
+      } else {
+        console.warn("assetBlobSASUrlList is undefined");
+    }
+
+      setSearchDone(true);
+    } catch (err) {
+      console.error("Search failed", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+
+  
+  
 
   return (
     <>
@@ -704,17 +627,21 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           placeholder="Search assets..."
           className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
           onChange={(e) => setWithinOneProjectSearchQuery(e.target.value)}
-          onKeyDown={(e) => {e.key === "Enter"} 
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleWithinOneProjectSearch();
+            }
+          }} 
             // && doWithinOneProjectSearch()}
         />
-        {/* {withinOneProjectSearchQuery.trim() !== "" && (
+        {withinOneProjectSearchQuery.trim() !== "" && (
           <button
             onClick={handleWithinOneProjectSearch}
             className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
           >
             {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
           </button>
-        )} */}
+        )}
       </div>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
