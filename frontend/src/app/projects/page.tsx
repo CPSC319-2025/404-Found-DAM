@@ -841,7 +841,19 @@ export default function ProjectsPage() {
       doSearch(); // This resets to the main screen (all projects)
     }
   }, [query]);
+  const [showArchived, setShowArchived] = useState(false);
 
+  const toggleShowArchived = () => {
+    setShowArchived((prev) => !prev);
+  };
+
+  const displayedMyProjects = myProjects.filter(
+    (project) => showArchived || !project.archived
+  );
+
+  const displayedOtherProjects = otherProjects.filter(
+    (project) => showArchived || !project.archived
+  );
   return (
     <div className="p-6 min-h-screen">
       {isLoading && (
@@ -869,6 +881,34 @@ export default function ProjectsPage() {
           )}
         </div>
 
+        {/* {(
+            <button
+              onClick={toggleShowArchived}
+              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+            >
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </button>
+            )} sean1 */} 
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={toggleShowArchived}
+                className="sr-only"
+              />
+              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+              <div
+                className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+                  showArchived ? "translate-x-6 bg-blue-500" : "bg-white"
+                }`}
+              ></div>
+            </div>
+            <span className="ml-3 text-gray-700">
+              {showArchived ? "Hide Archived Projects" : "Show Archived Projects"}
+            </span>
+          </label>
+
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
             <button
@@ -895,6 +935,7 @@ export default function ProjectsPage() {
               New Project
             </button>
           )}
+            
           {user?.superadmin && (
             <button
               onClick={() => setImportProjectModalOpen(true)}
@@ -917,7 +958,7 @@ export default function ProjectsPage() {
             <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
             {myProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {myProjects.map((project) => (
+                {displayedMyProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -942,7 +983,7 @@ export default function ProjectsPage() {
             <div className="mt-8">
               <h1 className="text-2xl font-semibold mb-4">Other Projects</h1>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {otherProjects.map((project) => (
+                {displayedOtherProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
