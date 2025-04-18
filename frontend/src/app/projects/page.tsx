@@ -843,11 +843,10 @@ export default function ProjectsPage() {
   }, [query]);
   const [showArchived, setShowArchived] = useState(false);
 
+// Toggles at top of page.
   const toggleShowArchived = () => {
     setShowArchived((prev) => !prev);
   };
-
-
 
   const [showOnlyProjectsIAmAnAdminOf, setShowOnlyProjectsIAmAnAdminOf] = useState(false);
   // const [showOnlyUserProjects, setShowOnlyUserProjects] = useState(false);
@@ -856,16 +855,36 @@ export default function ProjectsPage() {
     setShowOnlyProjectsIAmAnAdminOf((prev) => !prev);
   };
 
-    const displayedMyProjects = myProjects.filter(
-    (project) =>
-      ((showArchived || !project.archived) &&
-      (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID)))
-    );
+const displayedMyProjects = myProjects.filter((project) => {
+  const isArchived = project.archived;
+  const isAdmin = project.admins.some((admin) => admin.userID === user?.userID);
 
-  const displayedOtherProjects = otherProjects.filter(
-    (project) => ((showArchived || !project.archived) &&
-    (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID)))
-  );
+  if (!showArchived && isArchived) {
+    return false; // exclude archived unless we're showing them
+  }
+
+  if (showOnlyProjectsIAmAnAdminOf && !isAdmin) {
+    return false; // exclude if filtering for admin and user isn't admin
+  }
+
+  return true; // keep project
+});
+
+const displayedOtherProjects = otherProjects.filter((project) => {
+  const isArchived = project.archived;
+  const isAdmin = project.admins.some((admin) => admin.userID === user?.userID);
+
+  if (!showArchived && isArchived) {
+    return false;
+  }
+
+  if (showOnlyProjectsIAmAnAdminOf && !isAdmin) {
+    return false;
+  }
+
+  return true;
+});
+
 
 
   return (
