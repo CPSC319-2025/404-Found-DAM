@@ -1147,7 +1147,7 @@ const displayedOtherProjects = otherProjects.filter((project) => {
             }
           }}
           showExtraHelperText={true}
-          disableOutsideClose={false}
+          disableOutsideClose={confirmOverwriteDescriptionPopup ? true : false}
         />
       )}
 
