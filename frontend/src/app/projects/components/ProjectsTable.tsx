@@ -557,11 +557,11 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     });
   }, []);
 
-  useEffect(() => {
-    if (withinOneProjectSearchQuery.trim() === "") {
-      fetchAssets(1).then(({ assets }) => setCurrentAssets(assets));
-    }
-  }, [withinOneProjectSearchQuery]);
+  // useEffect(() => {
+  //   if (withinOneProjectSearchQuery.trim() === "") {
+  //     fetchAssets(1).then(({ assets }) => setCurrentAssets(assets));
+  //   }
+  // }, [withinOneProjectSearchQuery]);
 
 
   // const handleWithinOneProjectSearch = async () => {
@@ -580,26 +580,26 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   //   }
   // };
 
-  const handleWithinOneProjectSearch = async () => {
-    setIsLoading(true);
-    try {
-      const { assets, assetBlobSASUrlList } = await fetchAssets(1);
+  // const handleWithinOneProjectSearch = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const { assets, assetBlobSASUrlList } = await fetchAssets(1);
 
-      setCurrentAssets(assets);
+  //     setCurrentAssets(assets);
 
-      if (assetBlobSASUrlList) {
-        setAssetSrcs(assets, assetBlobSASUrlList);
-      } else {
-        console.warn("assetBlobSASUrlList is undefined");
-    }
+  //     if (assetBlobSASUrlList) {
+  //       setAssetSrcs(assets, assetBlobSASUrlList);
+  //     } else {
+  //       console.warn("assetBlobSASUrlList is undefined");
+  //   }
 
-      setSearchDone(true);
-    } catch (err) {
-      console.error("Search failed", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     setSearchDone(true);
+  //   } catch (err) {
+  //     console.error("Search failed", err);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   
 
   
