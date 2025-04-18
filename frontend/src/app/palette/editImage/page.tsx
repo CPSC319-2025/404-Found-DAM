@@ -84,6 +84,7 @@ export default function EditImagePage() {
   };
   
 
+  // For setting imageSource
   useEffect(() => {
     if (fileData) {
       // If the file already has a URL (from previous loading), use that
@@ -123,67 +124,88 @@ export default function EditImagePage() {
     if (!imageSource || !croppedAreaPixels || !fileData) return;
 
     const image = new Image();
-    image.src = imageSource;
+    image.src = imageSource; // imageSource is already flipped if flip actions were performed.
     image.onload = () => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      const rotRad = (rotation * Math.PI) / 180;
+      const widthAfterRotation = Math.abs(Math.cos(rotRad) * image.width) + Math.abs(Math.sin(rotRad) * image.height);
+      const heightAfterRotation = Math.abs(Math.sin(rotRad) * image.width) + Math.abs(Math.cos(rotRad) * image.height);
+
+      canvas.width = widthAfterRotation;
+      canvas.height = heightAfterRotation;
+
+      ctx.save(); // Save the current state of canvas
+
+      // Apply rotation to the canvas
+      ctx.translate(widthAfterRotation / 2, heightAfterRotation / 2); // Move the origin (0,0) to the center of the canvas.
+      ctx.rotate(rotRad); // Rotate the canvas coordinate system around the new center origin of the canvas
+      ctx.translate(-image.width / 2, -image.height / 2); // move the origin up by half the image’s height and left by half the image’s width for drawing
+
+      // Draw rotated image
+      ctx.drawImage(image, 0, 0);
+
+      ctx.restore(); // Restore state of canvas
+
+      // Create canvas for cropping rotated canvas source
+      const croppedCanvas = document.createElement('canvas')
+      const croppedCtx = croppedCanvas.getContext('2d')
+
+      if (!croppedCtx) {
+        return null;
+      }
+
       if (!croppedAreaPixels) return;
 
-      const { x, y, width, height } = croppedAreaPixels;
+      croppedCanvas.width = croppedAreaPixels.width;
+      croppedCanvas.height = croppedAreaPixels.height;
 
-      // Apply Resize in the Saving Process
-      const resizedWidth = Math.round(width * resize);
-      const resizedHeight = Math.round(height * resize);
-
-      canvas.width = resizedWidth;
-      canvas.height = resizedHeight;
-
-      // Flip transformations
-      ctx.translate(
-        flip.horizontal ? resizedWidth : 0,
-        flip.vertical ? resizedHeight : 0
-      );
-      ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
-
-      // Apply rotation
-      ctx.translate(resizedWidth / 2, resizedHeight / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.translate(-resizedWidth / 2, -resizedHeight / 2);
-
-      // Ensure the resized dimensions are used in `ctx.drawImage()`
-      ctx.drawImage(
-        image,
-        x,
-        y,
-        width,
-        height,
-        0,
-        0,
-        resizedWidth,
-        resizedHeight
+      croppedCtx.save();
+           
+      // Crop the rotated canvas source
+      // No need to get the resized dimensions because they are already captured by croppedAreaPixels.
+      croppedCtx.drawImage(
+        canvas, // the (rotated) source to draw onto croppedCanvas
+        croppedAreaPixels.x, // x-coordinate of the crop area in the source canvas
+        croppedAreaPixels.y, // y-coordinate of the crop area in the source canvas
+        croppedAreaPixels.width, // width of the crop area in the source canvas
+        croppedAreaPixels.height, // height of the crop area in the source canvas
+        0, // x-position on the croppedCanvas to place the cropped result
+        0, // y-position on the croppedCanvas to place the cropped result
+        croppedAreaPixels.width, // width to draw the cropped result on the croppedCanvas
+        croppedAreaPixels.height // height to draw the cropped result on the croppedCanvas
       );
 
-      canvas.toBlob(async (blob) => {
+      croppedCtx.restore();
+
+      // Make croppedCanvas as blob
+      croppedCanvas.toBlob(async (blob) => {
         if (blob) {
           const editedFile = new File([blob], fileData.file.name, {
             type: blob.type,
           });
 
+          const editedImageUrl = URL.createObjectURL(blob); // Create URL from the Blob
+
           // Update FileContext with resized image
           setFiles((prevFiles) =>
             prevFiles.map((file, index) =>
-              index === fileIndex ? { ...file, file: editedFile } : file
+              // Update file(Data) url so that the the url can be correctly set in the useEffect for updating imageSource
+              index === fileIndex ? { ...file, file: editedFile, url: editedImageUrl } : file
             )
           );
 
           updateMetadata(fileIndex, {
             fileSize: `${blob.size} bytes`,
-            width: resizedWidth,
-            height: resizedHeight,
+            width: croppedAreaPixels.width,
+            height: croppedAreaPixels.height,
             description: "Resized & Edited Image",
           });
+
+          // Reset rotation so that Cropper won't apply these effects to the edited imageSource after the editedImageUrl was updated above
+          setRotation(0);
 
           // Use blobId directly from fileData
           const blobId = fileData.blobId;
@@ -200,7 +222,7 @@ export default function EditImagePage() {
             formData.append("mimeType", blob.type);
             formData.append("userId", "1"); // Using mockedUserId from backend
             
-            console.log("blobId", blobId);
+            // console.log("blobId", blobId);
             // Get auth token
             const token = localStorage.getItem("token");
             
