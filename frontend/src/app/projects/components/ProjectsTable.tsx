@@ -22,6 +22,7 @@ import { downloadAsset } from "@/app/utils/api/getAssetFile";
 import { useUser } from "@/app/context/UserContext";
 import PopupModal from "@/app/components/ConfirmModal";
 import GenericForm from "@/app/components/GenericForm";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -538,10 +539,69 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     });
   }, []);
 
+  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentAssets, setCurrentAssets] = useState<any[]>([]);
+  const [searchDone, setSearchDone] = useState<boolean>(false);
+
+  const doWithinOneProjectSearch = async () => {
+    // const projects = await fetchAllProjects();
+    if (!withinOneProjectSearchQuery.trim()) {
+      setCurrentAssets([]);
+      setSearchDone(false);
+      return;
+    }
+
+    const filteredAssets = currentItems.filter(asset =>
+      asset.filename.toLowerCase().includes(withinOneProjectSearchQuery.toLowerCase())
+    );
+  
+    setCurrentAssets(filteredAssets);
+    setSearchDone(true); // assuming this indicates a search was completed
+  };
+
+  const handleWithinOneProjectSearch = async () => {
+    setIsLoading(true);
+    const startTime = Date.now();
+    try {
+      await doWithinOneProjectSearch();
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const minDelay = 200;
+      if (elapsed < minDelay) {
+        setTimeout(() => {
+          setIsLoading(false);
+        }, minDelay - elapsed);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  };
+
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">{"Project: " + projectName}</h1>
       <h6 className="mb-4">{"Description: " + projectDescription}</h6>
+      <div className="w-full md:w-1/3 flex items-center">
+        <input
+          id="search"
+          type="text"
+          placeholder="Search assets..."
+          className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
+          onChange={(e) => setWithinOneProjectSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && doWithinOneProjectSearch()}
+        />
+        {withinOneProjectSearchQuery.trim() !== "" && (
+          <button
+            onClick={handleWithinOneProjectSearch}
+            className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
+          >
+            {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
+          </button>
+        )}
+      </div>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
           <label className="text-gray-700 text-sm font-medium">
