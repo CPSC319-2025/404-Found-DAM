@@ -264,6 +264,12 @@ export default function ProjectsPage() {
   const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
   const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
 
+  const [confirmOverwriteDescriptionPopup, setConfirmOverwriteDescriptionPopup] = useState(false); // sean
+  const [storedUpdateField, setStoredUpdateField] = useState<Function | null>(null);
+  const [storedPrompt, setStoredPrompt] = useState("");
+  const [storedFormData, setStoredFormData] = useState<any>(null);
+
+
   const [isPreviewAssetMetadata, setIsPreviewAssetMetadata] = useState(false);
   const [assetMetadataFields, setAssetMetadataFields] = useState<any[]>([]);
   const [projectMetadataFields, setProjectMetadataFields] = useState<any[]>([]);
@@ -370,6 +376,34 @@ export default function ProjectsPage() {
       setRequestedDownloadAsset(null);
     }
   };
+
+  const confirmOverwriteDescriptionWrapper = async (userConfirmsOverwriteDescription: boolean, updateFieldParam?: Function, promptParam?: string) => { // sean
+    setConfirmOverwriteDescriptionPopup(false);
+      if (!userConfirmsOverwriteDescription) return
+
+      const updateField = updateFieldParam || storedUpdateField;
+      const prompt = promptParam || storedPrompt;
+      try {
+        const response = await fetch("/api/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await response.json();
+        console.log(data);
+        const generatedDescription = data.description;
+        if (generatedDescription && typeof updateField === "function") {
+          // Update the description field with the AI-generated text
+          updateField("description", generatedDescription);
+          console.log("reached generatedDescription true branch");
+        }
+        console.log("end of overwritedescriptionwrapper function");
+        console.log(generatedDescription);
+        console.log("type of fucntion:" + updateField);
+      } catch (error) {
+        console.error("Error generating AI description:", error);
+      }
+  }
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
@@ -1010,32 +1044,41 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
           extraButtonText="AI Description"
           extraButtonCallback={async (currentFormData, updateField) => {
-            const { name, location, tags } = currentFormData;
+            const { name, location, tags, description } = currentFormData;
             const prompt = `Given the following project details:
             - Project Name: ${name}
             - Project Location: ${location}
             - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
             Generate a project description aimed for Projects in a Digital Asset Management system for Field Engineers. Note that tags are metadata 
             that may be associated with assets in the project. Use tags to come up with descriptive description. Do not include any headings, titles, or extraneous text—only provide a clean description. `;
-            try {
-              const response = await fetch("/api/gemini", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt }),
-              });
-              const data = await response.json();
-              const generatedDescription = data.description;
-              if (generatedDescription) {
-                // Update the description field with the AI-generated text
-                updateField("description", generatedDescription);
-              }
-            } catch (error) {
-              console.error("Error generating AI description:", error);
+
+            if (typeof description === "string" && description.trim() !== "") {
+              setStoredPrompt(prompt);
+              setStoredUpdateField(() => updateField);
+              setConfirmOverwriteDescriptionPopup(true);
+            } else {
+              await confirmOverwriteDescriptionWrapper(true, updateField, prompt);
             }
           }}
           showExtraHelperText={true}
           disableOutsideClose={true}
+          // confirmRemoval={true}
+          // confirmRemovalMessage="Are you sure you want to overwrite the current description?"
+          // noRequired={true}
         />
+      )}
+
+      {confirmOverwriteDescriptionPopup && ( // sean
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Are you sure you want to overwrite current description?"
+            isOpen={true}
+            onClose={() => setConfirmOverwriteDescriptionPopup(false)}
+            onConfirm={() => confirmOverwriteDescriptionWrapper(true)}
+            messages={[]}
+            canCancel={false}
+          />
+        </div>
       )}
 
       {importProjectModalOpen && (
