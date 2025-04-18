@@ -909,6 +909,48 @@ export default function ProjectsPage() {
             </span>
           </label>
 
+            <div className="relative">
+            <select
+              className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
+              onChange={(e) => {
+              const filter = e.target.value;
+              if (filter === "user") {
+                setAllProjects(
+                allProjects.filter((project) =>
+                  project.allUsers?.some(
+                  (projectUser) => projectUser.userID === user?.userID
+                  )
+                )
+                );
+              } else if (filter === "admin") {
+                setAllProjects(
+                allProjects.filter((project) =>
+                  project.admins.some(
+                  (admin) => admin.userID === user?.userID
+                  )
+                )
+                );
+              } else if (filter === "recent") {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                setAllProjects(
+                allProjects.filter(
+                  (project) =>
+                  new Date(project.creationTime) >= thirtyDaysAgo
+                )
+                );
+              } else {
+                doSearch(); // Reset to show all projects
+              }
+              }}
+            >
+              <option value="">Filter Projects</option>
+              <option value="user">I am a user in this project</option>
+              <option value="admin">I am an admin in this project</option>
+              <option value="recent">Project was last updated within 30 days</option>
+            </select>
+            </div>
+
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
             <button
