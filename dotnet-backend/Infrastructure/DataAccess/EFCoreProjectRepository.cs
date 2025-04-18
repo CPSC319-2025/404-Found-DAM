@@ -268,6 +268,11 @@ namespace Infrastructure.DataAccess
                     query = query.Where(a => a.LastUpdated <= utcToDate);
                 }
 
+                if (!string.IsNullOrEmpty(req.searchQuery))
+                {
+                    query = query.Where(a => a.FileName.Contains(req.searchQuery, StringComparison.OrdinalIgnoreCase));
+                }
+
                 // number of total assets
                 int totalAssetCount = await query.CountAsync();
 

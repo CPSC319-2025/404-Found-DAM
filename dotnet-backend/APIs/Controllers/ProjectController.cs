@@ -63,6 +63,7 @@ namespace APIs.Controllers
             string? tagName,
             DateTime? fromDate,
             DateTime? toDate,
+            string? searchQuery,
 
             IProjectService projectService,
             string assetType = DefaultAssetType,
@@ -90,7 +91,8 @@ namespace APIs.Controllers
                     postedBy = postedBy,
                     tagName = tagName,
                     fromDate = fromDate,
-                    toDate = toDate
+                    toDate = toDate,
+                    searchQuery = searchQuery
                 };
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
