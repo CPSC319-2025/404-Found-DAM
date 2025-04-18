@@ -539,8 +539,13 @@ namespace Infrastructure.DataAccess {
             }
         }
 
-        public async Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService)
+        public async Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService, double? resolutionScale = null)
         {
+            /*
+                TODO: 
+                It is not ideal to do anything other than interacting with database/storage in repositories.
+                Image processing should be moved back to palette's UpdateAssetAsync.
+            */
             try
             {
                 using var _context = _contextFactory.CreateDbContext();
@@ -580,6 +585,21 @@ namespace Infrastructure.DataAccess {
                             request.AssetMimeType = mimeTypeParts[0] + "/webp";
                         }
                     }
+                    catch (Exception)
+                    {
+                        // Failed to convert, use original format
+                    }
+                }
+
+                // Change resolution (i.e., resizing images) if needed.
+                if (resolutionScale != null && resolutionScale != 1) 
+                {
+                    try 
+                    {
+                        string dotExtension = "." + request.AssetMimeType.Split('/')[1];
+                        byte[] newResolutionBuffer = imageService.ChangeResolution(fileBytes, dotExtension, resolutionScale.Value);
+                        fileBytes = newResolutionBuffer;
+                    } 
                     catch (Exception)
                     {
                         // Failed to convert, use original format

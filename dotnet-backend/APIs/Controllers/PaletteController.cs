@@ -876,6 +876,12 @@ namespace APIs.Controllers
                 string assetMimeType = request.Form["mimeType"].ToString().ToLower();
                 int userId = int.Parse(request.Form["userId"].ToString());
                 string? toWebpParam = request.Query["toWebp"];
+                double? resolutionScale = null;
+                if (request.Form.ContainsKey("resolutionScale") &&
+                    double.TryParse(request.Form["resolutionScale"], out var scale))
+                {
+                    resolutionScale = scale;
+                }
 
                 bool convertToWebp = true; // set webp conversion default to true 
 
@@ -904,8 +910,6 @@ namespace APIs.Controllers
                 // Check if blob exists
                 try
                 {
-
-
                     // Create update request
                     var updateRequest = new UpdateAssetReq
                     {
@@ -916,7 +920,7 @@ namespace APIs.Controllers
 
                     // Process the updated file
                     var updatedFile = request.Form.Files[0];
-                    var result = await paletteService.UpdateAssetAsync(updatedFile, updateRequest, convertToWebp);
+                    var result = await paletteService.UpdateAssetAsync(updatedFile, updateRequest, convertToWebp, resolutionScale);
                     
                     if (result.Success)
                     {

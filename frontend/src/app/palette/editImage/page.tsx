@@ -221,6 +221,7 @@ export default function EditImagePage() {
             formData.append("file", editedFile);
             formData.append("mimeType", blob.type);
             formData.append("userId", "1"); // Using mockedUserId from backend
+            formData.append("resolutionScale", "0.2"); // Mock for now
             
             // console.log("blobId", blobId);
             // Get auth token
