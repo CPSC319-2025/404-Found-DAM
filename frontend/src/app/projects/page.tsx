@@ -881,62 +881,110 @@ export default function ProjectsPage() {
           )}
         </div>
 
-        {/* {(
-            <button
-              onClick={toggleShowArchived}
-              className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-            >
-              {showArchived ? "Hide Archived" : "Show Archived"}
-            </button>
-            )} sean1 */} 
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={toggleShowArchived}
-                className="sr-only"
-              />
-              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
-              <div
-                className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
-                  showArchived ? "translate-x-6 bg-blue-500" : "bg-white"
-                }`}
-              ></div>
-            </div>
-            <span className="ml-3 text-gray-700">
-              {showArchived ? "Hide Archived Projects" : "Show Archived Projects"}
-            </span>
-          </label>
+        <div>
+          {/* {(
+              <button
+                onClick={toggleShowArchived}
+                className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
+              >
+                {showArchived ? "Hide Archived" : "Show Archived"}
+              </button>
+              )} sean1 */} 
+            <label className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={toggleShowArchived}
+                  className="sr-only"
+                />
+                <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+                <div
+                  className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+                    showArchived ? "translate-x-6 bg-blue-500" : "bg-white"
+                  }`}
+                ></div>
+              </div>
+              <span className="ml-3 text-gray-700">
+                {showArchived ? "Hide Archived Projects" : "Show Archived Projects"}
+              </span>
+            </label>
+          </div>
 
             <div className="relative">
             <select
               className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
               onChange={(e) => {
               const filter = e.target.value;
-              if (filter === "user") {
+                if (filter === "user") {
                 setAllProjects(
-                allProjects.filter((project) =>
+                  allProjects.filter((project) =>
                   project.allUsers?.some(
-                  (projectUser) => projectUser.userID === user?.userID
+                    (projectUser) =>
+                    projectUser.userID === user?.userID
+                  ) &&
+                  !project.admins.some((admin) => admin.userID === user?.userID)
                   )
-                )
                 );
               } else if (filter === "admin") {
+              setAllProjects(
+              allProjects.filter((project) =>
+                project.admins.some(
+                (admin) => admin.userID === user?.userID
+                )
+              )
+              );
+              } else {
+              doSearch(); // Reset to show all projects
+              }
+              }}
+            >
+              <option value="">Filter Projects</option>
+              <option value="user">I am a user in this project</option>
+              <option value="admin">I am an admin in this project</option>
+            </select>
+            </div>
+
+            <div className="relative mt-4">
+            <select
+              className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
+              onChange={(e) => {
+              const filter = e.target.value;
+              const now = new Date();
+              if (filter === "7") {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(now.getDate() - 7);
                 setAllProjects(
-                allProjects.filter((project) =>
-                  project.admins.some(
-                  (admin) => admin.userID === user?.userID
-                  )
+                allProjects.filter(
+                  (project) =>
+                  new Date(project.creationTime) >= sevenDaysAgo
                 )
                 );
-              } else if (filter === "recent") {
+              } else if (filter === "30") {
                 const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                thirtyDaysAgo.setDate(now.getDate() - 30);
                 setAllProjects(
                 allProjects.filter(
                   (project) =>
                   new Date(project.creationTime) >= thirtyDaysAgo
+                )
+                );
+              } else if (filter === "60") {
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(now.getDate() - 60);
+                setAllProjects(
+                allProjects.filter(
+                  (project) =>
+                  new Date(project.creationTime) >= sixtyDaysAgo
+                )
+                );
+              } else if (filter === "90") {
+                const ninetyDaysAgo = new Date();
+                ninetyDaysAgo.setDate(now.getDate() - 90);
+                setAllProjects(
+                allProjects.filter(
+                  (project) =>
+                  new Date(project.creationTime) >= ninetyDaysAgo
                 )
                 );
               } else {
@@ -944,10 +992,11 @@ export default function ProjectsPage() {
               }
               }}
             >
-              <option value="">Filter Projects</option>
-              <option value="user">I am a user in this project</option>
-              <option value="admin">I am an admin in this project</option>
-              <option value="recent">Project was last updated within 30 days</option>
+              <option value="">Filter by Date</option>
+              <option value="7">Created within 7 days</option>
+              <option value="30">Created within 30 days</option>
+              <option value="60">Created within 60 days</option>
+              <option value="90">Created within 90 days</option>
             </select>
             </div>
 
