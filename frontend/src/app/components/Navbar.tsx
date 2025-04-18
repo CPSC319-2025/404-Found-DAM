@@ -7,9 +7,11 @@ import {
   ChartBarIcon,
   Bars3Icon,
   XMarkIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import { useUser } from "../context/UserContext";
-import { logout } from "../utils/api/auth";
+import { logout,  User } from "../utils/api/auth";
+
 
 interface Page {
   path: string;
@@ -17,6 +19,10 @@ interface Page {
   mobileTitle: string;
   icon: ReactNode;
 }
+
+type navProps = {
+  user: User;
+};
 
 const pages: Page[] = [
   {
@@ -39,7 +45,7 @@ const pages: Page[] = [
   },
 ];
 
-export default function Navbar() {
+export default function Navbar({user}: navProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { setUser } = useUser();
 
@@ -111,6 +117,13 @@ export default function Navbar() {
                   <ArrowRightCircleIcon className="w-8 h-8 mr-2" />
                   <span>Logout</span>
                 </button>
+                {/* User Name */}
+                <div className="flex items-center gap-2 p-2 pt-4">
+                  <UserIcon className="w-6 h-6 mr-2 text-gray-600" />
+                  <p className="text-lg font-semibold text-gray-600 truncate">
+                    {user.userName}
+                  </p>
+                </div>
               </li>
             </ul>
           </div>
@@ -151,6 +164,13 @@ export default function Navbar() {
                 <ArrowRightCircleIcon className="w-8 h-8 mr-2" />
                 <span className="text-lg whitespace-nowrap pl-2">Logout</span>
               </button>
+              {/* User Name */}
+              <div className="flex items-center gap-2 px-3 pt-5">
+                <UserIcon className="w-6 h-6 mr-2 text-gray-600" />
+                <p className="text-lg font-semibold text-gray-600 truncate">
+                  {user.userName}
+                </p>
+              </div>
             </li>
           </ul>
         </div>

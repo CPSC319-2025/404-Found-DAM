@@ -10,6 +10,7 @@ export interface User {
   email: string;
   superadmin: boolean;
   projectMemberships: ProjectMembership[];
+  userName: string;
 }
 
 export async function login(email: string, password: string) {
@@ -55,7 +56,8 @@ export async function getUserFromToken() {
       userID: Number(payload.userId),
       email: payload.email,
       superadmin: payload.isSuperAdmin === "True",
-      projectMemberships: parsedProjectMemberships
+      projectMemberships: parsedProjectMemberships,
+      userName: payload.userName,
     } as User;
   } catch (error) {
     console.error("Invalid token:", error);
