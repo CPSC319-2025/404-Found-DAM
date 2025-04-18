@@ -858,13 +858,13 @@ export default function ProjectsPage() {
 
     const displayedMyProjects = myProjects.filter(
     (project) =>
-      (showArchived || !project.archived) &&
-      (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID))
+      ((showArchived || !project.archived) &&
+      (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID)))
     );
 
   const displayedOtherProjects = otherProjects.filter(
-    (project) => showArchived || !project.archived &&
-    (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID))
+    (project) => ((showArchived || !project.archived) &&
+    (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID)))
   );
 
 
@@ -910,7 +910,7 @@ export default function ProjectsPage() {
           }`}
               ></div>
             </div>
-            <span className="ml-3 text-gray-700">Show Only Projects I'm An Admin Of</span>
+            <span className="ml-3 text-gray-700">Show Only Projects Where I'm an Admin</span>
           </label>
         </div>
         <div>
@@ -938,7 +938,7 @@ export default function ProjectsPage() {
                 ></div>
               </div>
               <span className="ml-3 text-gray-700">
-                {showArchived ? "Hide Archived Projects" : "Show Archived Projects"}
+                {showArchived ? "Showing Archived Projects" : "Not Showing Archived Projects"}
               </span>
             </label>
           </div>
