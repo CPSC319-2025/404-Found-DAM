@@ -97,15 +97,20 @@ export const downloadAsset = async (asset: any, project: any, user: any, addWate
       
       ctx.drawImage(originalImage, 0, 0);
 
-      const padding = 10;
+      // const padding = 10;
       const watermarkWidth = originalImage.width * 0.2;
       const watermarkHeight =
         (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+
+      // Making padding proportional as well to avoid going out of bound
+      const padding = originalImage.width * 0.05;
+
       const x = originalImage.width - watermarkWidth - padding;
       const y = originalImage.height - watermarkHeight - padding;
 
       ctx.globalAlpha = 0.5;
       ctx.drawImage(watermarkImage, x, y, watermarkWidth, watermarkHeight);
+      // ctx.drawImage(watermarkImage, 0, 0, watermarkWidth, watermarkHeight);
       ctx.globalAlpha = 1; 
 
       canvas.toBlob((blob) => {
