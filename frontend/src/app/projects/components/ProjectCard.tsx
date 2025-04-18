@@ -212,7 +212,11 @@ export default function ProjectCard({
                 Archive
               </MenuItem>
             </>)}
-            <MenuItem onClick={handleExport} disabled={isExporting}>Export</MenuItem>
+            <MenuItem 
+              onClick={handleExport} 
+              disabled={isExporting}
+              className={isExporting ? "cursor-not-allowed text-gray-400" : ""}
+            >Export</MenuItem>
           </Menu>
         </div>
         <div>
