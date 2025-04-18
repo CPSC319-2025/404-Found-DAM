@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
@@ -854,6 +854,55 @@ export default function ProjectsPage() {
   const displayedOtherProjects = otherProjects.filter(
     (project) => showArchived || !project.archived
   );
+
+  const [showOnlyAdminProjects, setShowOnlyAdminProjects] = useState(false);
+  const [showOnlyUserProjects, setShowOnlyUserProjects] = useState(false);
+
+  const toggleShowOnlyAdminProjects = () => {
+    setShowOnlyAdminProjects((prev) => !prev);
+    if (!showOnlyAdminProjects) {
+      setShowOnlyUserProjects(false); // Ensure the other toggle is off
+    }
+  };
+
+  const toggleShowOnlyUserProjects = () => {
+    setShowOnlyUserProjects((prev) => !prev);
+    if (!showOnlyUserProjects) {
+      setShowOnlyAdminProjects(false); // Ensure the other toggle is off
+    }
+  };
+
+  const filteredMyProjects = useMemo(() => {
+    return displayedMyProjects.filter((project) => {
+      if (showOnlyAdminProjects) {
+        return project.admins.some((admin) => admin.userID === user?.userID);
+      }
+      if (showOnlyUserProjects) {
+        return project.allUsers?.some(
+          (projectUser) =>
+            projectUser.userID === user?.userID &&
+            !project.admins.some((admin) => admin.userID === user?.userID)
+        );
+      }
+      return true;
+    });
+  }, [displayedMyProjects, showOnlyAdminProjects, showOnlyUserProjects, user]);
+
+  const filteredOtherProjects = useMemo(() => {
+    return displayedOtherProjects.filter((project) => {
+      if (showOnlyAdminProjects) {
+        return project.admins.some((admin) => admin.userID === user?.userID);
+      }
+      if (showOnlyUserProjects) {
+        return project.allUsers?.some(
+          (projectUser) =>
+            projectUser.userID === user?.userID &&
+            !project.admins.some((admin) => admin.userID === user?.userID)
+        );
+      }
+      return true;
+    });
+  }, [displayedOtherProjects, showOnlyAdminProjects, showOnlyUserProjects, user]);
   return (
     <div className="p-6 min-h-screen">
       {isLoading && (
@@ -880,7 +929,43 @@ export default function ProjectsPage() {
             </button>
           )}
         </div>
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+          type="checkbox"
+          checked={showOnlyAdminProjects}
+          onChange={toggleShowOnlyAdminProjects}
+          className="sr-only"
+              />
+              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+              <div
+          className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+            showOnlyAdminProjects ? "translate-x-6 bg-blue-500" : "bg-white"
+          }`}
+              ></div>
+            </div>
+            <span className="ml-3 text-gray-700">Show Only Admin Projects</span>
+          </label>
 
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+          type="checkbox"
+          checked={showOnlyUserProjects}
+          onChange={toggleShowOnlyUserProjects}
+          className="sr-only"
+              />
+              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+              <div
+          className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+            showOnlyUserProjects ? "translate-x-6 bg-blue-500" : "bg-white"
+          }`}
+              ></div>
+            </div>
+            <span className="ml-3 text-gray-700">Show Only User Projects</span>
+          </label>
+        </div>
         <div>
           {/* {(
               <button
@@ -910,95 +995,6 @@ export default function ProjectsPage() {
               </span>
             </label>
           </div>
-
-            <div className="relative">
-            <select
-              className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
-              onChange={(e) => {
-              const filter = e.target.value;
-                if (filter === "user") {
-                setAllProjects(
-                  allProjects.filter((project) =>
-                  project.allUsers?.some(
-                    (projectUser) =>
-                    projectUser.userID === user?.userID
-                  ) &&
-                  !project.admins.some((admin) => admin.userID === user?.userID)
-                  )
-                );
-              } else if (filter === "admin") {
-              setAllProjects(
-              allProjects.filter((project) =>
-                project.admins.some(
-                (admin) => admin.userID === user?.userID
-                )
-              )
-              );
-              } else {
-              doSearch(); // Reset to show all projects
-              }
-              }}
-            >
-              <option value="">Filter Projects</option>
-              <option value="user">I am a user in this project</option>
-              <option value="admin">I am an admin in this project</option>
-            </select>
-            </div>
-
-            <div className="relative mt-4">
-            <select
-              className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded shadow leading-tight focus:outline-none focus:shadow-outline"
-              onChange={(e) => {
-              const filter = e.target.value;
-              const now = new Date();
-              if (filter === "7") {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(now.getDate() - 7);
-                setAllProjects(
-                allProjects.filter(
-                  (project) =>
-                  new Date(project.creationTime) >= sevenDaysAgo
-                )
-                );
-              } else if (filter === "30") {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(now.getDate() - 30);
-                setAllProjects(
-                allProjects.filter(
-                  (project) =>
-                  new Date(project.creationTime) >= thirtyDaysAgo
-                )
-                );
-              } else if (filter === "60") {
-                const sixtyDaysAgo = new Date();
-                sixtyDaysAgo.setDate(now.getDate() - 60);
-                setAllProjects(
-                allProjects.filter(
-                  (project) =>
-                  new Date(project.creationTime) >= sixtyDaysAgo
-                )
-                );
-              } else if (filter === "90") {
-                const ninetyDaysAgo = new Date();
-                ninetyDaysAgo.setDate(now.getDate() - 90);
-                setAllProjects(
-                allProjects.filter(
-                  (project) =>
-                  new Date(project.creationTime) >= ninetyDaysAgo
-                )
-                );
-              } else {
-                doSearch(); // Reset to show all projects
-              }
-              }}
-            >
-              <option value="">Filter by Date</option>
-              <option value="7">Created within 7 days</option>
-              <option value="30">Created within 30 days</option>
-              <option value="60">Created within 60 days</option>
-              <option value="90">Created within 90 days</option>
-            </select>
-            </div>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
