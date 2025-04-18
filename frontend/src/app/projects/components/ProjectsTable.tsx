@@ -545,19 +545,30 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [searchDone, setSearchDone] = useState<boolean>(false);
 
   const doWithinOneProjectSearch = async () => {
-    // const projects = await fetchAllProjects();
     if (!withinOneProjectSearchQuery.trim()) {
       setCurrentAssets([]);
       setSearchDone(false);
       return;
     }
 
-    const filteredAssets = currentItems.filter(asset =>
-      asset.filename.toLowerCase().includes(withinOneProjectSearchQuery.toLowerCase())
-    );
-  
-    setCurrentAssets(filteredAssets);
-    setSearchDone(true); // assuming this indicates a search was completed
+    try {
+      const response = await fetchWithAuth(
+        `projects/${projectID}/assets/search?query=${encodeURIComponent(
+          withinOneProjectSearchQuery
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to search assets.");
+      }
+
+      const data = await response.json();
+      setCurrentAssets(data.assets);
+      setSearchDone(true);
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Failed to search assets. Please try again.");
+    }
   };
 
   const handleWithinOneProjectSearch = async () => {
@@ -595,7 +606,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         />
         {withinOneProjectSearchQuery.trim() !== "" && (
           <button
-            onClick={handleWithinOneProjectSearch}
+            onClick={doWithinOneProjectSearch}
             className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
           >
             {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
