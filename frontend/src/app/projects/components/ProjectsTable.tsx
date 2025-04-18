@@ -425,7 +425,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     return tags as string[];
   };
 
-  const setAssetSrcs = (
+  const setAssetSrcs = ( // renders assets onto the screen
     assets: AssetWithSrc[],
     assetBlobSASUrlList: string[]
   ) => {
@@ -553,18 +553,37 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
 
     try {
       const response = await fetchWithAuth(
-        `projects/${projectID}/assets/search?query=${encodeURIComponent(
-          withinOneProjectSearchQuery
-        )}`
+        `/search?query=${encodeURIComponent(withinOneProjectSearchQuery)}` // this endpoint searches across all projects, thus I then filter to only include assets inside this one project.
       );
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Response:", data);
 
-      if (!response.ok) {
+        console.log("typeof (data.assets[0].projectID): " + typeof (data.assets[0].projectID)); // data.assets[0].projectID is of type number
+        console.log("typeof (projectID): " + typeof (projectID)); // projectID is of type string
+        const currentProjectID = parseInt(projectID, 10);
+
+
+        const filteredAssets = data.assets.filter(
+          (asset: any) =>
+            asset.projectID === currentProjectID &&
+            asset.filename.toLowerCase().includes(withinOneProjectSearchQuery.toLowerCase())
+        );
+        if (filteredAssets.length === 0) {
+            console.log("No assets found matching the query within this project.");
+            setCurrentItems([]); // Clear the current items on the page
+            setSearchDone(true); // Mark the search as done
+        } else {
+          console.log("Filtered assets:", filteredAssets);
+        }
+        // setCurrentAssets(data.assets);
+        setCurrentAssets(filteredAssets);
+        setCurrentItems(filteredAssets); // Update the current items on the page
+        setSearchDone(true);
+      } else {
         throw new Error("Failed to search assets.");
       }
-
-      const data = await response.json();
-      setCurrentAssets(data.assets);
-      setSearchDone(true);
     } catch (error) {
       console.error("Search error:", error);
       toast.error("Failed to search assets. Please try again.");
@@ -591,6 +610,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
   };
 
+  useEffect(() => {
+      if (!withinOneProjectSearchQuery.trim()) {
+        doWithinOneProjectSearch(); // This resets the search
+      }
+    }, [withinOneProjectSearchQuery]);
+
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">{"Project: " + projectName}</h1>
@@ -606,7 +631,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
         />
         {withinOneProjectSearchQuery.trim() !== "" && (
           <button
-            onClick={doWithinOneProjectSearch}
+            onClick={handleWithinOneProjectSearch}
             className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
           >
             {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}

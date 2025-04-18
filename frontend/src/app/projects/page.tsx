@@ -875,6 +875,7 @@ export default function ProjectsPage() {
       doSearch(); // This resets to the main screen (all projects)
     }
   }, [query]);
+  
   const [showArchived, setShowArchived] = useState(true);
 
 // Toggles at top of page.
