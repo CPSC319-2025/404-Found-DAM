@@ -213,6 +213,11 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  // const [currentAssets, setCurrentAssets] = useState<any[]>([]);
+  // const [searchDone, setSearchDone] = useState<boolean>(false);
+
   const [users, setUsers] = useState<User[]>([]);
   const [tags, setTags] = useState<string[]>([]);
 
@@ -357,10 +362,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     setPreviewType(null);
   }
 
-  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentAssets, setCurrentAssets] = useState<any[]>([]);
-  const [searchDone, setSearchDone] = useState<boolean>(false);
+
 
   const fetchAssets = async (page: number) => {
     const queryParams = new URLSearchParams({
@@ -520,29 +522,16 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
   };
 
-  // useEffect(() => {
-  //   // upon filter change we go back to page 1
-  //   setCurrentPage(1);
-  //   fetchAssets(1).then(({ assets, assetBlobSASUrlList, totalPages }) => {
-  //     setCurrentItems(assets);
-  //     setTotalPages(totalPages);
-  //     setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
-  //   });
-  // }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
-
   useEffect(() => {
+    // upon filter change we go back to page 1
     setCurrentPage(1);
     fetchAssets(1).then(({ assets, assetBlobSASUrlList, totalPages }) => {
       setCurrentItems(assets);
       setTotalPages(totalPages);
-  
-      if (assetBlobSASUrlList) {
-        setAssetSrcs(assets, assetBlobSASUrlList);
-      } else {
-        console.warn("assetBlobSASUrlList is undefined on filter change");
-      }
+      setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
     });
-  }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
+  }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate, withinOneProjectSearchQuery]);
+
   
 
   useEffect(() => {
@@ -626,22 +615,23 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
           type="text"
           placeholder="Search assets..."
           className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
+          value={withinOneProjectSearchQuery}
           onChange={(e) => setWithinOneProjectSearchQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleWithinOneProjectSearch();
-            }
-          }} 
+          // onKeyDown={(e) => {
+          //   if (e.key === "Enter") {
+          //     handleWithinOneProjectSearch();
+          //   }
+          // }} 
             // && doWithinOneProjectSearch()}
         />
-        {withinOneProjectSearchQuery.trim() !== "" && (
+        {/* {withinOneProjectSearchQuery.trim() !== "" && (
           <button
             onClick={handleWithinOneProjectSearch}
             className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
           >
             {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
           </button>
-        )}
+        )} */}
       </div>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
