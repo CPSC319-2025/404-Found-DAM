@@ -841,7 +841,7 @@ export default function ProjectsPage() {
       doSearch(); // This resets to the main screen (all projects)
     }
   }, [query]);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(true);
 
 // Toggles at top of page.
   const toggleShowArchived = () => {
@@ -929,18 +929,10 @@ const displayedOtherProjects = otherProjects.filter((project) => {
           }`}
               ></div>
             </div>
-            <span className="ml-3 text-gray-700">Show Only Projects Where I'm an Admin</span>
+            <span className="ml-3 text-gray-700">My Admin Projects Only</span>
           </label>
         </div>
         <div>
-          {/* {(
-              <button
-                onClick={toggleShowArchived}
-                className="bg-blue-500 text-white p-2 rounded-md md:ml-4 sm:w-auto"
-              >
-                {showArchived ? "Hide Archived" : "Show Archived"}
-              </button>
-              )} sean1 */} 
             <label className="flex items-center cursor-pointer">
               <div className="relative">
                 <input
@@ -957,10 +949,10 @@ const displayedOtherProjects = otherProjects.filter((project) => {
                 ></div>
               </div>
               <span className="ml-3 text-gray-700">
-                {showArchived ? "Showing Archived Projects" : "Not Showing Archived Projects"}
+                Include Archived Projects
               </span>
             </label>
-          </div>
+        </div>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
           {user?.superadmin && (
