@@ -847,62 +847,27 @@ export default function ProjectsPage() {
     setShowArchived((prev) => !prev);
   };
 
-  const displayedMyProjects = myProjects.filter(
-    (project) => showArchived || !project.archived
-  );
 
-  const displayedOtherProjects = otherProjects.filter(
-    (project) => showArchived || !project.archived
-  );
 
-  const [showOnlyAdminProjects, setShowOnlyAdminProjects] = useState(false);
-  const [showOnlyUserProjects, setShowOnlyUserProjects] = useState(false);
+  const [showOnlyProjectsIAmAnAdminOf, setShowOnlyProjectsIAmAnAdminOf] = useState(false);
+  // const [showOnlyUserProjects, setShowOnlyUserProjects] = useState(false);
 
   const toggleShowOnlyAdminProjects = () => {
-    setShowOnlyAdminProjects((prev) => !prev);
-    if (!showOnlyAdminProjects) {
-      setShowOnlyUserProjects(false); // Ensure the other toggle is off
-    }
+    setShowOnlyProjectsIAmAnAdminOf((prev) => !prev);
   };
 
-  const toggleShowOnlyUserProjects = () => {
-    setShowOnlyUserProjects((prev) => !prev);
-    if (!showOnlyUserProjects) {
-      setShowOnlyAdminProjects(false); // Ensure the other toggle is off
-    }
-  };
+    const displayedMyProjects = myProjects.filter(
+    (project) =>
+      (showArchived || !project.archived) &&
+      (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID))
+    );
 
-  const filteredMyProjects = useMemo(() => {
-    return displayedMyProjects.filter((project) => {
-      if (showOnlyAdminProjects) {
-        return project.admins.some((admin) => admin.userID === user?.userID);
-      }
-      if (showOnlyUserProjects) {
-        return project.allUsers?.some(
-          (projectUser) =>
-            projectUser.userID === user?.userID &&
-            !project.admins.some((admin) => admin.userID === user?.userID)
-        );
-      }
-      return true;
-    });
-  }, [displayedMyProjects, showOnlyAdminProjects, showOnlyUserProjects, user]);
+  const displayedOtherProjects = otherProjects.filter(
+    (project) => showArchived || !project.archived &&
+    (!showOnlyProjectsIAmAnAdminOf || project.admins.some((admin) => admin.userID === user?.userID))
+  );
 
-  const filteredOtherProjects = useMemo(() => {
-    return displayedOtherProjects.filter((project) => {
-      if (showOnlyAdminProjects) {
-        return project.admins.some((admin) => admin.userID === user?.userID);
-      }
-      if (showOnlyUserProjects) {
-        return project.allUsers?.some(
-          (projectUser) =>
-            projectUser.userID === user?.userID &&
-            !project.admins.some((admin) => admin.userID === user?.userID)
-        );
-      }
-      return true;
-    });
-  }, [displayedOtherProjects, showOnlyAdminProjects, showOnlyUserProjects, user]);
+
   return (
     <div className="p-6 min-h-screen">
       {isLoading && (
@@ -934,36 +899,18 @@ export default function ProjectsPage() {
             <div className="relative">
               <input
           type="checkbox"
-          checked={showOnlyAdminProjects}
+          checked={showOnlyProjectsIAmAnAdminOf}
           onChange={toggleShowOnlyAdminProjects}
           className="sr-only"
               />
               <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
               <div
           className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
-            showOnlyAdminProjects ? "translate-x-6 bg-blue-500" : "bg-white"
+            showOnlyProjectsIAmAnAdminOf ? "translate-x-6 bg-blue-500" : "bg-white"
           }`}
               ></div>
             </div>
-            <span className="ml-3 text-gray-700">Show Only Admin Projects</span>
-          </label>
-
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-          type="checkbox"
-          checked={showOnlyUserProjects}
-          onChange={toggleShowOnlyUserProjects}
-          className="sr-only"
-              />
-              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
-              <div
-          className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
-            showOnlyUserProjects ? "translate-x-6 bg-blue-500" : "bg-white"
-          }`}
-              ></div>
-            </div>
-            <span className="ml-3 text-gray-700">Show Only User Projects</span>
+            <span className="ml-3 text-gray-700">Show Only Projects I'm An Admin Of</span>
           </label>
         </div>
         <div>
