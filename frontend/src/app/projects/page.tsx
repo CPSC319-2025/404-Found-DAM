@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import ProjectCard from "./components/ProjectCard";
 import { useUser } from "@/app/context/UserContext";
 import GenericForm, { Field as FormFieldType, FormData as FormDataType, ChangeType } from "@/app/components/GenericForm";
@@ -264,6 +264,12 @@ export default function ProjectsPage() {
   const [confirmDownloadPopup, setConfirmDownloadPopup] = useState(false);
   const [requestedDownloadAsset, setRequestedDownloadAsset] = useState<any>(null);
 
+  const [confirmOverwriteDescriptionPopup, setConfirmOverwriteDescriptionPopup] = useState(false); // sean
+  const [storedUpdateField, setStoredUpdateField] = useState<Function | null>(null);
+  const [storedPrompt, setStoredPrompt] = useState("");
+  const [storedFormData, setStoredFormData] = useState<any>(null);
+
+
   const [isPreviewAssetMetadata, setIsPreviewAssetMetadata] = useState(false);
   const [assetMetadataFields, setAssetMetadataFields] = useState<any[]>([]);
   const [projectMetadataFields, setProjectMetadataFields] = useState<any[]>([]);
@@ -370,6 +376,34 @@ export default function ProjectsPage() {
       setRequestedDownloadAsset(null);
     }
   };
+
+  const confirmOverwriteDescriptionWrapper = async (userConfirmsOverwriteDescription: boolean, updateFieldParam?: Function, promptParam?: string) => { // sean
+    setConfirmOverwriteDescriptionPopup(false);
+      if (!userConfirmsOverwriteDescription) return
+
+      const updateField = updateFieldParam || storedUpdateField;
+      const prompt = promptParam || storedPrompt;
+      try {
+        const response = await fetch("/api/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await response.json();
+        console.log(data);
+        const generatedDescription = data.description;
+        if (generatedDescription && typeof updateField === "function") {
+          // Update the description field with the AI-generated text
+          updateField("description", generatedDescription);
+          console.log("reached generatedDescription true branch");
+        }
+        console.log("end of overwritedescriptionwrapper function");
+        console.log(generatedDescription);
+        console.log("type of fucntion:" + updateField);
+      } catch (error) {
+        console.error("Error generating AI description:", error);
+      }
+  }
 
   const [allProjects, setAllProjects] = useState<ProjectCardProps[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectCardProps[]>([]);
@@ -841,6 +875,51 @@ export default function ProjectsPage() {
       doSearch(); // This resets to the main screen (all projects)
     }
   }, [query]);
+  const [showArchived, setShowArchived] = useState(true);
+
+// Toggles at top of page.
+  const toggleShowArchived = () => {
+    setShowArchived((prev) => !prev);
+  };
+
+  const [showOnlyProjectsIAmAnAdminOf, setShowOnlyProjectsIAmAnAdminOf] = useState(false);
+  // const [showOnlyUserProjects, setShowOnlyUserProjects] = useState(false);
+
+  const toggleShowOnlyAdminProjects = () => {
+    setShowOnlyProjectsIAmAnAdminOf((prev) => !prev);
+  };
+
+const displayedMyProjects = myProjects.filter((project) => {
+  const isArchived = project.archived;
+  const isAdmin = project.admins.some((admin) => admin.userID === user?.userID);
+
+  if (!showArchived && isArchived) {
+    return false; // exclude archived unless we're showing them
+  }
+
+  if (showOnlyProjectsIAmAnAdminOf && !isAdmin) {
+    return false; // exclude if filtering for admin and user isn't admin
+  }
+
+  return true; // keep project
+});
+
+const displayedOtherProjects = otherProjects.filter((project) => {
+  const isArchived = project.archived;
+  const isAdmin = project.admins.some((admin) => admin.userID === user?.userID);
+
+  if (!showArchived && isArchived) {
+    return false;
+  }
+
+  if (showOnlyProjectsIAmAnAdminOf && !isAdmin) {
+    return false;
+  }
+
+  return true;
+});
+
+
 
   return (
     <div className="p-6 min-h-screen">
@@ -867,6 +946,46 @@ export default function ProjectsPage() {
               {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
             </button>
           )}
+        </div>
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+          type="checkbox"
+          checked={showOnlyProjectsIAmAnAdminOf}
+          onChange={toggleShowOnlyAdminProjects}
+          className="sr-only"
+              />
+              <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+              <div
+          className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+            showOnlyProjectsIAmAnAdminOf ? "translate-x-6 bg-blue-500" : "bg-white"
+          }`}
+              ></div>
+            </div>
+            <span className="ml-3 text-gray-700">My Admin Projects Only</span>
+          </label>
+        </div>
+        <div>
+            <label className="flex items-center cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={toggleShowArchived}
+                  className="sr-only"
+                />
+                <div className="block bg-gray-300 w-14 h-8 rounded-full"></div>
+                <div
+                  className={`absolute left-1 top-1 w-6 h-6 rounded-full transition ${
+                    showArchived ? "translate-x-6 bg-blue-500" : "bg-white"
+                  }`}
+                ></div>
+              </div>
+              <span className="ml-3 text-gray-700">
+                Include Archived Projects
+              </span>
+            </label>
         </div>
 
         <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
@@ -895,6 +1014,7 @@ export default function ProjectsPage() {
               New Project
             </button>
           )}
+            
           {user?.superadmin && (
             <button
               onClick={() => setImportProjectModalOpen(true)}
@@ -917,7 +1037,7 @@ export default function ProjectsPage() {
             <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
             {myProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {myProjects.map((project) => (
+                {displayedMyProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -942,7 +1062,7 @@ export default function ProjectsPage() {
             <div className="mt-8">
               <h1 className="text-2xl font-semibold mb-4">Other Projects</h1>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] lg:grid-cols-[repeat(auto-fill,_minmax(320px,_420px))] gap-4">
-                {otherProjects.map((project) => (
+                {displayedOtherProjects.map((project) => (
                   <div key={project.projectID} className="w-full h-full">
                     <ProjectCard
                       id={String(project.projectID)}
@@ -1010,32 +1130,38 @@ export default function ProjectsPage() {
           submitButtonText="Create Project"
           extraButtonText="AI Description"
           extraButtonCallback={async (currentFormData, updateField) => {
-            const { name, location, tags } = currentFormData;
+            const { name, location, tags, description } = currentFormData;
             const prompt = `Given the following project details:
             - Project Name: ${name}
             - Project Location: ${location}
             - Tags: ${Array.isArray(tags) ? tags.join(", ") : tags}
             Generate a project description aimed for Projects in a Digital Asset Management system for Field Engineers. Note that tags are metadata 
             that may be associated with assets in the project. Use tags to come up with descriptive description. Do not include any headings, titles, or extraneous text—only provide a clean description. `;
-            try {
-              const response = await fetch("/api/gemini", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt }),
-              });
-              const data = await response.json();
-              const generatedDescription = data.description;
-              if (generatedDescription) {
-                // Update the description field with the AI-generated text
-                updateField("description", generatedDescription);
-              }
-            } catch (error) {
-              console.error("Error generating AI description:", error);
+
+            if (typeof description === "string" && description.trim() !== "") {
+              setStoredPrompt(prompt);
+              setStoredUpdateField(() => updateField);
+              setConfirmOverwriteDescriptionPopup(true);
+            } else {
+              await confirmOverwriteDescriptionWrapper(true, updateField, prompt);
             }
           }}
           showExtraHelperText={true}
           disableOutsideClose={false}
         />
+      )}
+
+      {confirmOverwriteDescriptionPopup && ( // sean
+        <div onClick={(e) => e.stopPropagation()}>
+          <PopupModal
+            title="Are you sure you want to overwrite current description?"
+            isOpen={true}
+            onClose={() => setConfirmOverwriteDescriptionPopup(false)}
+            onConfirm={() => confirmOverwriteDescriptionWrapper(true)}
+            messages={[]}
+            canCancel={false}
+          />
+        </div>
       )}
 
       {importProjectModalOpen && (
