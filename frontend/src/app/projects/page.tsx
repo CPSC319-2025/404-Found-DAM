@@ -1034,7 +1034,7 @@ export default function ProjectsPage() {
             }
           }}
           showExtraHelperText={true}
-          disableOutsideClose={true}
+          disableOutsideClose={false}
         />
       )}
 
@@ -1107,7 +1107,7 @@ export default function ProjectsPage() {
           confirmRemoval={true}
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
           submitButtonText="Update Tags"
-          disableOutsideClose={true}
+          disableOutsideClose={false}
           noRequired={true}
         />
       )}
