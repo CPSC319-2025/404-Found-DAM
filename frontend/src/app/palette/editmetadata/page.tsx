@@ -323,6 +323,12 @@ export default function EditMetadataPage() {
     } else {
       router.push("/palette");
     }
+
+    toast.warn("Please wait for page to refresh");
+    setTimeout(() => {
+      window.location.reload();
+    }, 3000)
+    
   }
 
   async function saveMetadataToAPI() {
@@ -441,76 +447,340 @@ export default function EditMetadataPage() {
   }
   
 
+  // async function handleSuggestTagsUsingAI() {
+  //   console.log("starting suggest tags using AI");
+  //   if (!fileName) {
+  //     console.error("File name is missing!");
+  //     return;
+  //   }
+
+    
+
+  //   setIsLoading(true);
+  //   try {
+  //     // const handleSubmit = async 
+  //     // (e: React.FormEvent) => {
+  //       // e.preventDefault();
+
+  //       const base64 = await readFileAsBase64(fileData.file); // sean 2
+
+  //       if (!fileData.file) {
+  //         console.warn("No file selected for tagging.");
+  //         return;
+  //       }
+  //       const base64WithHeader = `data:${fileData.file.type};base64,${base64}`;
+    
+  //       const tags = projectTags.join(", ");
+  //       console.log("tags: " + tags);
+  //       const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
+    
+  //       const response = await fetch("/api/geminiWithImage", {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           prompt,
+  //           imageBase64: base64,
+  //         }),
+  //       });
+
+  //         console.log("after post sent to gemini");
+      
+  //         const data = await response.json();
+  //         console.log("response data --- ", data);
+
+  //         // data.relevantTags = "data, cloud";
+  //         // data.relevantTags += "";
+
+  //         // for loop that calls handleTagSelection(tagName: string)
+  //         // setResult(data.relevantTags);
+  //         let userConfirmMessage = "";
+  //         let continueCheck = false; // AI return successful
+
+  //         if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
+  //           userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //         } else if (data.description === "Sorry AI could not suggest any tags") {
+  //           userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //         } else {
+  //           userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
+  //           continueCheck = true;
+  //         }
+
+  //         const userConfirmed = window.confirm(
+  //           userConfirmMessage
+  //         );
+
+  //         if (userConfirmed && data.description != undefined && continueCheck) {
+  //           const suggestedTag = data.description
+  //             handleTagSelection(suggestedTag.toLowerCase());
+  //         }
+
+  //   } catch (error) {
+  //     console.error("suggest tags with AI", error);
+  //     alert("Failed to use AI to suggest tags. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }
+
+  // async function handleSuggestTagsUsingAI() {
+  //   console.log("starting suggest tags using AI");
+  //   if (!fileName) {
+  //     console.error("File name is missing!");
+  //     return;
+  //   }
+  
+  //   setIsLoading(true);
+  //   try {
+  //     if (!fileData.file) {
+  //       console.warn("No file selected for tagging.");
+  //       return;
+  //     }
+      
+  //     // Get the base64 data directly - this already returns a complete data URL
+  //     const base64 = await readFileAsBase64(fileData.file);
+  //     // No need to add headers - they're already included in the response from readAsDataURL
+      
+  //     const tags = projectTags.join(", ");
+  //     console.log("tags: " + tags);
+  //     const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
+  
+  //     const response = await fetch("/api/geminiWithImage", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         prompt,
+  //         imageBase64: base64, // Use the base64 string directly
+  //       }),
+  //     });
+  
+  //     console.log("after post sent to gemini");
+      
+  //     const data = await response.json();
+  //     console.log("response data --- ", data);
+  
+  //     let userConfirmMessage = "";
+  //     let continueCheck = false; // AI return successful
+  
+  //     if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
+  //       userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //     } else if (data.description === "Sorry AI could not suggest any tags") {
+  //       userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //     } else {
+  //       userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
+  //       continueCheck = true;
+  //     }
+  
+  //     const userConfirmed = window.confirm(
+  //       userConfirmMessage
+  //     );
+  
+  //     if (userConfirmed && data.description != undefined && continueCheck) {
+  //       const suggestedTag = data.description;
+  //       handleTagSelection(suggestedTag.toLowerCase());
+  //     }
+  
+  //   } catch (error) {
+  //     console.error("suggest tags with AI", error);
+  //     alert("Failed to prepare file for editing. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }
+
+  // async function handleSuggestTagsUsingAI() {
+  //   console.log("starting suggest tags using AI");
+  //   if (!fileName) {
+  //     console.error("File name is missing!");
+  //     return;
+  //   }
+  
+  //   setIsLoading(true);
+  //   try {
+  //     if (!fileData.file) {
+  //       console.warn("No file selected for tagging.");
+  //       return;
+  //     }
+      
+  //     // Force a clean read of the file each time
+  //     const file = fileData.file;
+  //     const reader = new FileReader();
+      
+  //     // Use a Promise to handle the async FileReader
+  //     const base64 = await new Promise((resolve, reject) => {
+  //       reader.onloadend = () => {
+  //         if (reader.result) resolve(reader.result as string);
+  //         else reject("Failed to read file");
+  //       };
+  //       reader.onerror = reject;
+  //       // Start the read operation fresh
+  //       reader.readAsDataURL(file);
+  //     });
+      
+  //     // Log the beginning of the base64 string to verify it's valid
+  //     console.log("Image base64 starts with:", 
+  //       typeof base64 === 'string' ? base64.substring(0, 50) + "..." : "not a string");
+  //     console.log("Image base64 length:", 
+  //       typeof base64 === 'string' ? base64.length : 0);
+      
+  //     const tags = projectTags.join(", ");
+  //     console.log("tags: " + tags);
+  //     const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
+  
+  //     // Set a timeout to ensure any previous request has completed
+  //     await new Promise(resolve => setTimeout(resolve, 500));
+  
+  //     const response = await fetch("/api/geminiWithImage", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         prompt,
+  //         imageBase64: base64,
+  //       }),
+  //     });
+  
+  //     console.log("after post sent to gemini");
+      
+  //     if (!response.ok) {
+  //       const errorText = await response.text();
+  //       console.error("API error:", response.status, errorText);
+  //       throw new Error(`API returned ${response.status}: ${errorText}`);
+  //     }
+      
+  //     const data = await response.json();
+  //     console.log("response data --- ", data);
+    
+  //       let userConfirmMessage = "";
+  //       let continueCheck = false; // AI return successful
+    
+  //       if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
+  //         userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //       } else if (data.description === "Sorry AI could not suggest any tags") {
+  //         userConfirmMessage = 'Sorry AI could not suggest any tags'
+  //       } else {
+  //         userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
+  //         continueCheck = true;
+  //       }
+    
+  //       const userConfirmed = window.confirm(
+  //         userConfirmMessage
+  //       );
+    
+  //       if (userConfirmed && data.description != undefined && continueCheck) {
+  //         const suggestedTag = data.description;
+  //         handleTagSelection(suggestedTag.toLowerCase());
+  //       }
+    
+  //     } catch (error) {
+  //       console.error("suggest tags with AI", error);
+  //       alert("Failed to suggest tags using AI. Please try again.");
+  //     } finally {
+  //       setIsLoading(false);
+  //   }
+  // }
+
   async function handleSuggestTagsUsingAI() {
     console.log("starting suggest tags using AI");
     if (!fileName) {
       console.error("File name is missing!");
       return;
     }
-
-    
-
+  
     setIsLoading(true);
     try {
-      // const handleSubmit = async 
-      // (e: React.FormEvent) => {
-        // e.preventDefault();
-
-        const base64 = await readFileAsBase64(fileData.file); // sean 2
-
-        if (!fileData.file) {
-          console.warn("No file selected for tagging.");
-          return;
-        }
-        const base64WithHeader = `data:${fileData.file.type};base64,${base64}`;
+      if (!fileData.file) {
+        console.warn("No file selected for tagging.");
+        return;
+      }
+      
+      // Check file size before attempting to read
+      if (fileData.file.size > 10 * 1024 * 1024) { // 10MB limit for example
+        alert("File is too large for AI tagging. Please use a smaller file.");
+        return;
+      }
+      
+      // Force a clean read of the file each time
+      const file = fileData.file;
+      const reader = new FileReader();
+      
+      // Use a Promise to handle the async FileReader
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onloadend = () => {
+          if (reader.result) resolve(reader.result);
+          else reject("Failed to read file");
+        };
+        reader.onerror = () => reject("Error reading file");
+        // Start the read operation fresh
+        reader.readAsDataURL(file);
+      });
+      
+      // Validate the base64 string before sending
+      if (typeof base64 !== 'string' || base64.length < 100) {
+        throw new Error("Invalid base64 data: string is too short");
+      }
+      
+      // Log the beginning of the base64 string to verify it's valid
+      console.log("Image base64 starts with:", 
+        base64.substring(0, 50) + "...");
+      console.log("Image base64 length:", base64.length);
+      
+      const tags = projectTags.join(", ");
+      console.log("tags: " + tags);
+      const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
+  
+      // Set a timeout to ensure any previous request has completed
+      await new Promise(resolve => setTimeout(resolve, 500));
+  
+      // Handle video files differently than images if needed
+      if (isVideoFile(fileData.file.name)) {
+        // You may need special handling for video files
+        // For now, let's just warn the user
+        console.log("Note: Video files may not produce accurate tag suggestions");
+      }
+  
+      const response = await fetch("/api/geminiWithImage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          imageBase64: base64,
+        }),
+      });
+  
+      console.log("after post sent to gemini");
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API error:", response.status, errorText);
+        throw new Error(`API returned ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log("response data --- ", data);
     
-          const tags = projectTags.join(", ");
-          console.log("tags: " + tags);
-          const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
-      
-          const response = await fetch("/api/geminiWithImage", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt,
-              imageBase64: base64,
-            }),
-          });
-
-          console.log("after post sent to gemini");
-      
-          const data = await response.json();
-          console.log("response data --- ", data);
-
-          // data.relevantTags = "data, cloud";
-          // data.relevantTags += "";
-
-          // for loop that calls handleTagSelection(tagName: string)
-          // setResult(data.relevantTags);
-          let userConfirmMessage = "";
-          let continueCheck = false; // AI return successful
-
-          if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
-            userConfirmMessage = 'Sorry AI could not suggest any tags'
-          } else if (data.description === "Sorry AI could not suggest any tags") {
-            userConfirmMessage = 'Sorry AI could not suggest any tags'
-          } else {
-            userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
-            continueCheck = true;
-          }
-
-          const userConfirmed = window.confirm(
-            userConfirmMessage
-          );
-
-          if (userConfirmed && data.description != undefined && continueCheck) {
-            const suggestedTag = data.description
-              handleTagSelection(suggestedTag);
-          }
-
+      let userConfirmMessage = "";
+      let continueCheck = false; // AI return successful
+    
+      if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
+        userConfirmMessage = 'Sorry AI could not suggest any tags';
+      } else if (data.description === "Sorry AI could not suggest any tags") {
+        userConfirmMessage = 'Sorry AI could not suggest any tags';
+      } else {
+        userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`;
+        continueCheck = true;
+      }
+    
+      const userConfirmed = window.confirm(
+        userConfirmMessage
+      );
+    
+      if (userConfirmed && data.description != undefined && continueCheck) {
+        const suggestedTag = data.description;
+        handleTagSelection(suggestedTag.toLowerCase());
+      }
+    
     } catch (error) {
-      console.error("suggest tags with AI", error);
-      alert("Failed to prepare file for editing. Please try again.");
+      console.error("suggest tags with AI Error:", error);
+      alert("Failed to suggest tags using AI. Please try again.");
     } finally {
       setIsLoading(false);
     }
