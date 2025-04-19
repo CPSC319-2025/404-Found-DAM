@@ -278,18 +278,17 @@ namespace Infrastructure.DataAccess
 
 
                 }
-
-                Console.WriteLine("searchWithinOneProjectQuery: " + req.searchWithinOneProjectQuery);
-                Console.WriteLine("Total after filtering: " + await query.CountAsync());
+                // Console.WriteLine("searchWithinOneProjectQuery: " + req.searchWithinOneProjectQuery);
+                // Console.WriteLine("Total after filtering: " + await query.CountAsync());
 
                 List<string> filenames = await query.Select(a => a.FileName).ToListAsync();
-                foreach (var filename in filenames)
-                {
-                    Console.WriteLine("Matching file: " + filename);
-                }
+                // foreach (var filename in filenames)
+                // {
+                //     Console.WriteLine("Matching file: " + filename);
+                // }
 
 
-                Console.WriteLine("req.searchWithinOneProjectQuery in project_repository: " + req.searchWithinOneProjectQuery); // prints correctly.
+                // Console.WriteLine("req.searchWithinOneProjectQuery in project_repository: " + req.searchWithinOneProjectQuery); // prints correctly.
 
                 // number of total assets
                 int totalAssetCount = await query.CountAsync();

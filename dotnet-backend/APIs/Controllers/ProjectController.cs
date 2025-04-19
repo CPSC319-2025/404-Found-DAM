@@ -87,7 +87,7 @@ namespace APIs.Controllers
                     return Results.BadRequest("Search query is too long. Maximum length is 100 characters.");
                 }
 
-                Console.WriteLine("searchWithinOneProjectQuery: " + searchWithinOneProjectQuery);
+                // Console.WriteLine("searchWithinOneProjectQuery: " + searchWithinOneProjectQuery);
 
                 GetPaginatedProjectAssetsReq req = new GetPaginatedProjectAssetsReq
                 {
@@ -102,7 +102,7 @@ namespace APIs.Controllers
                     searchWithinOneProjectQuery = searchWithinOneProjectQuery?.Trim()
                 };
 
-                Console.WriteLine("projectcontroller.getpaginatedprojectasset 98");
+                // Console.WriteLine("projectcontroller.getpaginatedprojectasset 98");
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
                 return Results.Ok(result);
