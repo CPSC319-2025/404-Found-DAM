@@ -39,7 +39,8 @@ namespace Core.Services
             {
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim("isSuperAdmin", user.IsSuperAdmin.ToString()),
-                new Claim("userId", user.UserID.ToString())
+                new Claim("userId", user.UserID.ToString()),
+                new Claim("userName", user.Name)
             };
             
             var membershipsForClaim = user.ProjectMemberships
@@ -75,6 +76,7 @@ namespace Core.Services
             {
                 Token = tokenString,
                 Id = user.UserID,
+                Name = user.Name,
                 Email = user.Email,
                 IsSuperAdmin = user.IsSuperAdmin,
                 ProjectMemberships = membershipsDto

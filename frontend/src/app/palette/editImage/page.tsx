@@ -30,7 +30,9 @@ export default function EditImagePage() {
 
   
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
-  const [resolutionScale, setResolutionScale] = useState("1.0");
+    const [resolutionScale, setResolutionScale] = useState("1.0");
+
+  const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
 
   useEffect(() => {
     if (imageSource) {
@@ -122,6 +124,12 @@ export default function EditImagePage() {
 
 
   const handleSaveImage = async () => {
+    if (isSavingImage) {
+      return;
+    } else {
+      setIsSavingImage(true);
+    }
+
     if (!imageSource || !croppedAreaPixels || !fileData) return;
 
     const image = new Image();
@@ -258,6 +266,9 @@ export default function EditImagePage() {
           } catch (error) {
             console.error("Error updating image:", error);
             toast.error(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          } finally {
+            // Re-enable the button after submission is done
+            setIsSavingImage(false);
           }
         }
       }, fileData.file.type);
@@ -355,10 +366,12 @@ export default function EditImagePage() {
         </button>
   
         <button
-          onClick={handleSaveImage}
-          className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300"
+          onClick={handleSaveImage} disabled={isSavingImage}
+          className={`font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300
+            ${isSavingImage ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 text-white"}
+          `}        
         >
-          Save Image
+          {isSavingImage ? "Saving..." : "Save Image"}
         </button>
       </div>
     </div>

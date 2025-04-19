@@ -112,7 +112,7 @@ export default function RootLayout({
         <UserProvider value={{ user, setUser }}>
           <FileProvider>
             <div className="flex min-h-screen flex-col sm:flex-row relative">
-              <Navbar />
+              <Navbar user={user}/>
               <main className="p-4 flex-1 mt-16 sm:mt-0 md:sm-64">
                 {children}
               </main>

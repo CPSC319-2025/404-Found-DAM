@@ -433,7 +433,15 @@ export default function EditMetadataPage() {
     return videoExtensions.includes(extension);
   }
 
+  function isImageFile(filename: string): boolean {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const extension = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+    return imageExtensions.includes(extension);
+  }
+
   const isVideo = fileData.file.name ? isVideoFile(fileData.file.name) : false;
+  const isImage = fileData.file.name ? isImageFile(fileData.file.name) : false;
+
 
   const getFileTypeInfo = () => {
     if (isVideo) {
@@ -441,11 +449,17 @@ export default function EditMetadataPage() {
         icon: "🎬",
         label: "Video File"
       };
+    } else if (isImage) {
+      return {
+        icon: "🖼️",
+        label: "Image File"
+      };
+    } else { 
+      return {
+        icon: "📄",
+        label: "Misc File"
+      };
     }
-    return {
-      icon: "🖼️",
-      label: "Image File"
-    };
   };
 
   const fileTypeInfo = getFileTypeInfo();
@@ -455,7 +469,7 @@ export default function EditMetadataPage() {
       <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-xl overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-teal-500 px-6 py-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white">
-            {isVideo ? "Video" : "Image"} Metadata Editor
+            {isVideo ? "Video" : isImage? "Image" : "Misc"} Metadata Editor
           </h1>
           <div className="flex items-center text-white bg-white/20 px-4 py-2 rounded-full">
             <span className="text-xl mr-2">{fileTypeInfo.icon}</span>
@@ -641,13 +655,13 @@ export default function EditMetadataPage() {
               </button>
               <button
                 onClick={handleEditImage}
-                disabled={isLoading || isVideo}
+                disabled={isLoading || !isImage}
                 className={`${
-                  isVideo 
+                  !isImage 
                     ? "bg-gray-300 cursor-not-allowed" 
                     : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
                 } text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 shadow-md hover:shadow-lg flex items-center`}
-                title={isVideo ? "Video files cannot be edited" : "Edit Image"}
+                title={!isImage ? "Non-image files cannot be edited" : "Edit Image"}
               >
                 {isLoading ? (
                   <>
@@ -657,7 +671,7 @@ export default function EditMetadataPage() {
                     </svg>
                     Preparing Image...
                   </>
-                ) : isVideo ? (
+                ) : !isImage ? (
                   <>
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
