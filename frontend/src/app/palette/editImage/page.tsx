@@ -222,7 +222,7 @@ export default function EditImagePage() {
             formData.append("file", editedFile);
             formData.append("mimeType", blob.type);
             formData.append("userId", "1"); // Using mockedUserId from backend
-            formData.append("resolutionScale", resolutionScale); // Mock for now
+            formData.append("resolutionScale", resolutionScale); 
             
             // console.log("blobId", blobId);
             // Get auth token
@@ -249,7 +249,12 @@ export default function EditImagePage() {
             }
 
             toast.success("Image updated successfully! Returning to palette...");
-            router.push("/palette"); // Return to palette
+            sessionStorage.setItem('backFromEditImage', 'true'); // Set flag in sessionStorage before returning for full page refresh
+            
+            setTimeout(() => {
+              router.push("/palette"); // Return to palette
+            }, 1500);
+
           } catch (error) {
             console.error("Error updating image:", error);
             toast.error(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);

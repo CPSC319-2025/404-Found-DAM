@@ -75,16 +75,16 @@ export async function fetchPaletteAssets(page: number = 1, pageSize: number = 10
 
     const data = await response.json();
     
-    console.log("API Response:", data);
-    console.log("API Response - data.files:", data.files);
-    console.log("API Response - data.blobUris:", data.blobUris);
+    // console.log("API Response:", data);
+    // console.log("API Response - data.files:", data.files);
+    // console.log("API Response - data.blobUris:", data.blobUris);
     
     if (data.files && data.files.length > 0) {
-      console.log("First file properties:", Object.keys(data.files[0]));
+      // console.log("First file properties:", Object.keys(data.files[0]));
     }
 
     if (!data.files || data.files.length === 0) {
-      console.log("No files in palette");
+      // console.log("No files in palette");
       return { files: [], totalCount: 0, currentPage: 1, totalPages: 1 };
     }
 
@@ -135,7 +135,7 @@ export async function fetchPaletteAssets(page: number = 1, pageSize: number = 10
     const endIdx = Math.min(startIdx + pageSize, allFiles.length);
     const paginatedFiles = allFiles.slice(startIdx, endIdx);
     
-    console.log(`Showing files ${startIdx+1}-${endIdx} of ${totalCount} (Page ${page} of ${totalPages})`);
+    // console.log(`Showing files ${startIdx+1}-${endIdx} of ${totalCount} (Page ${page} of ${totalPages})`);
 
     return {
       files: paginatedFiles,
@@ -157,7 +157,7 @@ export async function loadFileContent(fileMeta: FileMetadata): Promise<FileMetad
   
   try {
     // Download the file using the blob URI
-    console.log("Fetching from blobUri:", fileMeta.blobUri);
+    // console.log("Fetching from blobUri:", fileMeta.blobUri);
     const fileResponse = await fetch(fileMeta.blobUri);
     
     if (!fileResponse.ok) {

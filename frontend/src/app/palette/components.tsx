@@ -31,7 +31,7 @@ const URLRegistry = {
       URLRegistry.fileSizes.set(blobId, fileSize);
     }
     
-    console.log(`Registered URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
+    // console.log(`Registered URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
   },
   
   // Get a URL for a blobId
@@ -52,7 +52,7 @@ const URLRegistry = {
       // First remove from registry, then revoke the URL
       URLRegistry.urls.delete(blobId);
       URLRegistry.fileSizes.delete(blobId); // Also remove file size
-      console.log(`Revoking URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
+      // console.log(`Revoking URL for blobId ${blobId}: ${url.substring(0, 30)}...`);
       setTimeout(() => {
         URL.revokeObjectURL(url);
       }, 1000); // Small delay to ensure no components are still using it
@@ -63,7 +63,7 @@ const URLRegistry = {
   clear: (): void => {
     URLRegistry.urls.forEach((url, blobId) => {
       if (url && url.startsWith('blob:')) {
-        console.log(`Clearing URL for blobId ${blobId}`);
+        // console.log(`Clearing URL for blobId ${blobId}`);
         URL.revokeObjectURL(url);
       }
     });
@@ -449,7 +449,7 @@ export default function FileTable({
       const combinedBlobIds = new Set([...selectedBlobIds, ...allBlobIds]);
       const newBlobIds = Array.from(combinedBlobIds);
       
-      console.log('Selecting all items, new selection:', newBlobIds);
+      // console.log('Selecting all items, new selection:', newBlobIds);
       onSelectionChange(allIndices, newBlobIds);
       
       // Force persist to localStorage 
@@ -465,7 +465,7 @@ export default function FileTable({
         blobId => !currentPageBlobIds.includes(blobId)
       );
       
-      console.log('Deselecting current page, new selection:', newBlobIds);
+      // console.log('Deselecting current page, new selection:', newBlobIds);
       onSelectionChange([], newBlobIds);
       
       // Force persist to localStorage
@@ -486,12 +486,12 @@ export default function FileTable({
       // Deselect the file
       newIndices = selectedIndices.filter(i => i !== index);
       newBlobIds = selectedBlobIds.filter(id => id !== blobId);
-      console.log('Deselecting item:', blobId);
+      // console.log('Deselecting item:', blobId);
     } else {
       // Select the file
       newIndices = [...selectedIndices, index];
       newBlobIds = [...selectedBlobIds, blobId];
-      console.log('Selecting item:', blobId);
+      // console.log('Selecting item:', blobId);
     }
     
     onSelectionChange(newIndices, newBlobIds);
@@ -556,7 +556,7 @@ export default function FileTable({
             return updated;
           });
           
-          console.log(`Tag "${tagToRemove}" removed successfully`);
+          // console.log(`Tag "${tagToRemove}" removed successfully`);
         }
         
       } catch (err) {
@@ -600,7 +600,7 @@ export default function FileTable({
             TagIds: fileMeta.tagIds
           })
         })
-        console.log("Cleared all existing tags");
+        // console.log("Cleared all existing tags");
       } catch (err) {
         console.error("Error clearing tags:", err);
       }
@@ -672,7 +672,7 @@ export default function FileTable({
       }
       
       const data = await response.json();
-      console.log("Association success:", data);
+      // console.log("Association success:", data);
       
       // Remove the file from the table if successfully associated
       if (data.successfulSubmissions?.includes(fileMeta.blobId)) {
