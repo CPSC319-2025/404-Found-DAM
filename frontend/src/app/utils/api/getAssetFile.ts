@@ -97,10 +97,25 @@ export const downloadAsset = async (asset: any, project: any, user: any, addWate
       
       ctx.drawImage(originalImage, 0, 0);
 
-      const padding = 10;
-      const watermarkWidth = originalImage.width * 0.2;
-      const watermarkHeight =
-        (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+      // const padding = 10;
+      // const watermarkWidth = originalImage.width * 0.2;
+      // const watermarkHeight =
+      //   (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+      
+      // Bound both width and height to prevent exceeding 20% of either dimension while preserving ratio 
+      const maxWatermarkWidth = originalImage.width * 0.2;
+      const maxWatermarkHeight = originalImage.height * 0.2;
+      let watermarkWidth = maxWatermarkWidth;
+      let watermarkHeight = (watermarkImage.height / watermarkImage.width) * watermarkWidth;
+      
+      if (watermarkHeight > maxWatermarkHeight) {
+        watermarkHeight = maxWatermarkHeight;
+        watermarkWidth = (watermarkImage.width / watermarkImage.height) * watermarkHeight;
+      }
+
+      // make padding proportional as well to avoid going out of bound
+      const padding = Math.min(originalImage.width, originalImage.height) * 0.05;
+
       const x = originalImage.width - watermarkWidth - padding;
       const y = originalImage.height - watermarkHeight - padding;
 

@@ -310,13 +310,14 @@ namespace Core.Services
             }
         }
         
-        public async Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp)
+        public async Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, double? resolutionScale = null)
         {
             try
             {
                 // For now, call ProcessUploadAsync with the existing blob ID
                 // We'll need to update IPaletteRepository later to add UpdateAssetAsync
-                var asset = await _paletteRepository.UpdateAssetAsync(file, request, convertToWebp, _imageService);
+
+                var asset = await _paletteRepository.UpdateAssetAsync(file, request, convertToWebp, _imageService, resolutionScale);
                 
                 if (asset != null)
                 {

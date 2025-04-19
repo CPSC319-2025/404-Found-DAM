@@ -29,7 +29,7 @@ namespace Core.Interfaces  {
         Task<Asset> UploadMergedChunkToDb(string filePath, string filename, string mimeType, int userId, bool convertToWebp = true, IImageService? imageService = null);
         
         // Update an existing asset by blob ID
-        Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService);
+        Task<Asset> UpdateAssetAsync(IFormFile file, UpdateAssetReq request, bool convertToWebp, IImageService imageService, double? resolutionScale = null);
 
         // Get all fields for a specific blob
         Task<GetBlobFieldsRes> GetBlobFieldsAsync(string blobId);

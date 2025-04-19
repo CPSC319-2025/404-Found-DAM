@@ -11,7 +11,7 @@ namespace Core.Interfaces
     {
         Task<Asset?> ProcessUploadAsync(IFormFile file, UploadAssetsReq request, bool convertToWebp);
         Task<ProcessedAsset[]> ProcessUploadsAsync(List<IFormFile> files, UploadAssetsReq request, bool convertToWebp);
-        Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq req, bool convertToWebp);
+        Task<ProcessedAsset> UpdateAssetAsync(IFormFile file, UpdateAssetReq req, bool convertToWebp, double? resolutionScale = null);
         Task<bool> DeleteAssetAsync(DeletePaletteAssetReq request);
         Task<GetAssetsRes> GetAssets(GetPaletteAssetsReq request);
         Task<List<string>> GetProjectTagsAsync(int projectId);

@@ -30,7 +30,8 @@ export default function EditImagePage() {
 
   
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
-  
+  const [resolutionScale, setResolutionScale] = useState("1.0");
+
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
 
   useEffect(() => {
@@ -229,6 +230,7 @@ export default function EditImagePage() {
             formData.append("file", editedFile);
             formData.append("mimeType", blob.type);
             formData.append("userId", "1"); // Using mockedUserId from backend
+            formData.append("resolutionScale", resolutionScale); 
             
             // console.log("blobId", blobId);
             // Get auth token
@@ -255,7 +257,12 @@ export default function EditImagePage() {
             }
 
             toast.success("Image updated successfully! Returning to palette...");
-            router.push("/palette"); // Return to palette
+            sessionStorage.setItem('backFromEditImage', 'true'); // Set flag in sessionStorage before returning for full page refresh
+            
+            setTimeout(() => {
+              router.push("/palette"); // Return to palette
+            }, 1500);
+
           } catch (error) {
             console.error("Error updating image:", error);
             toast.error(`Failed to update image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -301,22 +308,40 @@ export default function EditImagePage() {
       ) : (
         <p className="text-gray-600">No image selected yet!</p>
       )}
-  
-      {/* Resize Slider */}
-      <div className="flex flex-col items-center gap-2 mt-6">
-        <label className="text-gray-700 font-medium">Resize Image:</label>
-        <input
-          type="range"
-          min="0.5"
-          max="2"
-          step="0.1"
-          value={resize}
-          onChange={(e) => setResize(parseFloat(e.target.value))}
-          className="w-64 h-2 bg-gray-300 rounded-lg"
-        />
-        <span className="text-gray-700 font-semibold">{Math.round(resize * 100)}%</span>
+    <div className="flex flex-row justify-center items-start gap-8 mt-6">
+        {/* Zoom Slider */}
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <label className="text-gray-700 font-medium">Zoom:</label>
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            value={resize}
+            onChange={(e) => setResize(parseFloat(e.target.value))}
+            className="w-64 h-2 bg-gray-300 rounded-lg"
+          />
+          <span className="text-gray-700 font-semibold">{Math.round(resize * 100)}%</span>
+        </div>
+
+        {/* Resolution Dropdown Menu*/}
+        <div className="flex flex-col items-center gap-2 mt-6">
+          <label htmlFor="resolution" className="text-gray-700 font-medium">Resolution (Resizing)</label>
+          <select
+            id="resolution"
+            className="border border-gray-300 rounded px-2 py-1"
+            onChange={(e) => {
+              setResolutionScale(e.target.value);
+            }}
+            value={resolutionScale}
+          >
+            <option value="1.0">High (100%)</option>
+            <option value="0.5">Medium (60%)</option>
+            <option value="0.25">Low (30%)</option>
+          </select>
+        </div>
       </div>
-  
+    
       {/* Action Buttons */}
       <div className="flex gap-4 mt-6">
         <button
