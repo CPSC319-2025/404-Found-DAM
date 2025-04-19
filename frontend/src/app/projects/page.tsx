@@ -1164,11 +1164,8 @@ const displayedOtherProjects = otherProjects.filter((project) => {
             }
           }}
           showExtraHelperText={true}
-          disableOutsideClose={true}
+          disableOutsideClose={confirmOverwriteDescriptionPopup ? true : false}
           isSubmitting={isSubmitting}
-          // confirmRemoval={true}
-          // confirmRemovalMessage="Are you sure you want to overwrite the current description?"
-          // noRequired={true}
         />
       )}
 
@@ -1254,7 +1251,7 @@ const displayedOtherProjects = otherProjects.filter((project) => {
           confirmRemoval={true}
           confirmRemovalMessage="Are you sure you want to remove this tag? Removing it will affect all projects and assets that use the tag."
           submitButtonText="Update Tags"
-          disableOutsideClose={true}
+          disableOutsideClose={false}
           noRequired={true}
         />
       )}
