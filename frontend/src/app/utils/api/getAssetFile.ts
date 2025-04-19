@@ -114,7 +114,7 @@ export const downloadAsset = async (asset: any, project: any, user: any, addWate
       }
 
       // make padding proportional as well to avoid going out of bound
-      const padding = Math.min(originalImage.width, watermarkHeight) * 0.05;
+      const padding = Math.min(originalImage.width, originalImage.height) * 0.05;
 
       const x = originalImage.width - watermarkWidth - padding;
       const y = originalImage.height - watermarkHeight - padding;

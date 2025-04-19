@@ -30,7 +30,7 @@ export default function EditImagePage() {
 
   
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
-    const [resolutionScale, setResolutionScale] = useState("1.0");
+  const [resolutionScale, setResolutionScale] = useState("1.0");
 
   const [isSavingImage, setIsSavingImage] = useState<boolean>(false);
 

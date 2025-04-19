@@ -510,7 +510,7 @@ namespace APIs.Controllers
                     } catch (Exception ex) {
                         Console.WriteLine("Failed to add log - PaletteController.UploadAssets");
                     }
-                    Console.WriteLine($"res: {res}");
+                    // Console.WriteLine($"res: {res}");
                     return Results.Ok(res);
                 }
             } catch (Exception ex) {
