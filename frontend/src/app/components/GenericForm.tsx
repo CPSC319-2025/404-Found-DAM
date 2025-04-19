@@ -57,7 +57,7 @@ interface GenericFormProps {
   showExtraHelperText?: boolean;
   noRequired?: boolean;
   isEdit?: boolean;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
 }
 
 export default function GenericForm({
