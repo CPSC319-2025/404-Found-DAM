@@ -448,7 +448,7 @@ export default function EditMetadataPage() {
       return;
     }
 
-    if (!fileData.file) return;
+    
 
     setIsLoading(true);
     try {
@@ -457,11 +457,16 @@ export default function EditMetadataPage() {
         // e.preventDefault();
 
         const base64 = await readFileAsBase64(fileData.file); // sean 2
+
+        if (!fileData.file) {
+          console.warn("No file selected for tagging.");
+          return;
+        }
         const base64WithHeader = `data:${fileData.file.type};base64,${base64}`;
     
           const tags = projectTags.join(", ");
           console.log("tags: " + tags);
-          const prompt = `You are an image tagging assistant. From the list: [${tags}], return only those relevant to this image. Output as a comma-separated list.`;
+          const prompt = `You are an image tagging assistant. From the list: [${tags}], return one and only one tag that is relevant to this image. If you do not suggest any tags, return "Sorry AI could not suggest any tags"`;
       
           const response = await fetch("/api/geminiWithImage", {
             method: "POST",
@@ -482,27 +487,25 @@ export default function EditMetadataPage() {
 
           // for loop that calls handleTagSelection(tagName: string)
           // setResult(data.relevantTags);
-          let userConfirmMessage = ""
+          let userConfirmMessage = "";
+          let continueCheck = false; // AI return successful
 
           if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
             userConfirmMessage = 'Sorry AI could not suggest any tags'
+          } else if (data.description === "Sorry AI could not suggest any tags") {
+            userConfirmMessage = 'Sorry AI could not suggest any tags'
           } else {
             userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
+            continueCheck = true;
           }
 
           const userConfirmed = window.confirm(
             userConfirmMessage
           );
 
-          if (userConfirmed && data.description != undefined) {
-            const suggestedTags = data.description
-              .split(",")
-              .map((tag: string) => tag.trim())
-              .filter(Boolean);
-
-            for (const tag of suggestedTags) {
-              handleTagSelection(tag);
-            }
+          if (userConfirmed && data.description != undefined && continueCheck) {
+            const suggestedTag = data.description
+              handleTagSelection(suggestedTag);
           }
 
     } catch (error) {
