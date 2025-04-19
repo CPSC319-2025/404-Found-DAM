@@ -457,11 +457,13 @@ export default function EditMetadataPage() {
         // e.preventDefault();
 
         const base64 = await readFileAsBase64(fileData.file); // sean 2
+        const base64WithHeader = `data:${fileData.file.type};base64,${base64}`;
     
           const tags = projectTags.join(", ");
+          console.log("tags: " + tags);
           const prompt = `You are an image tagging assistant. From the list: [${tags}], return only those relevant to this image. Output as a comma-separated list.`;
       
-          const response = await fetch("/api/gemini", {
+          const response = await fetch("/api/geminiWithImage", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -473,19 +475,27 @@ export default function EditMetadataPage() {
           console.log("after post sent to gemini");
       
           const data = await response.json();
-          console.log(data);
+          console.log("response data --- ", data);
 
-          data.relevantTags = "data, cloud";
+          // data.relevantTags = "data, cloud";
+          // data.relevantTags += "";
 
           // for loop that calls handleTagSelection(tagName: string)
           // setResult(data.relevantTags);
+          let userConfirmMessage = ""
+
+          if (!data.description || typeof data.description !== "string" || data.description === undefined || !data.description.trim()) {
+            userConfirmMessage = 'Sorry AI could not suggest any tags'
+          } else {
+            userConfirmMessage = `AI suggests these tags: ${data.description}. Press OK to accept all, Cancel to decline.`
+          }
 
           const userConfirmed = window.confirm(
-            `AI suggests these tags: ${data.relevantTags}. Press OK to accept all, Cancel to decline.`
+            userConfirmMessage
           );
 
-          if (userConfirmed) {
-            const suggestedTags = data.relevantTags
+          if (userConfirmed && data.description != undefined) {
+            const suggestedTags = data.description
               .split(",")
               .map((tag: string) => tag.trim())
               .filter(Boolean);
