@@ -22,6 +22,7 @@ import { downloadAsset } from "@/app/utils/api/getAssetFile";
 import { useUser } from "@/app/context/UserContext";
 import PopupModal from "@/app/components/ConfirmModal";
 import GenericForm from "@/app/components/GenericForm";
+import LoadingSpinner from "@/app/components/LoadingSpinner";
 
 interface ProjectWithTags extends Project {
   tags: Tag[];
@@ -212,6 +213,11 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>(""); // sean
+  const [isLoading, setIsLoading] = useState(false);
+  // const [currentAssets, setCurrentAssets] = useState<any[]>([]);
+  // const [searchDone, setSearchDone] = useState<boolean>(false);
+
   const [users, setUsers] = useState<User[]>([]);
   const [tags, setTags] = useState<string[]>([]);
 
@@ -356,6 +362,8 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     setPreviewType(null);
   }
 
+
+
   const fetchAssets = async (page: number) => {
     const queryParams = new URLSearchParams({
       assetsPerPage: String(10),
@@ -363,6 +371,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       postedBy: String(selectedUser),
       tagName: String(selectedTag),
       assetType: selectedAssetType,
+      // searchWithinOneProject: String(withinOneProjectSearchQuery), // sean
     });
 
     if (startDate) {
@@ -373,7 +382,12 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       queryParams.append("toDate", getEndOfDayUtc(endDate));
     }
 
+    if (withinOneProjectSearchQuery.trim() !== "") {
+      queryParams.append("searchWithinOneProjectQuery", withinOneProjectSearchQuery.trim());
+    }
+
     const url = `projects/${projectID}/assets/pagination?${queryParams.toString()}`;
+    console.log("Query URL:", url); // log this right before the fetch
     const response = await fetchWithAuth(url);
 
     if (!response.ok) {
@@ -384,6 +398,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     }
 
     const data = (await response.json()) as PaginatedAssets;
+    console.log("Fetched assets:", data.assets);
+
+
 
     return {
       assets: data.assets,
@@ -424,7 +441,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     return tags as string[];
   };
 
-  const setAssetSrcs = (
+  const setAssetSrcs = ( // renders assets onto the screen
     assets: AssetWithSrc[],
     assetBlobSASUrlList: string[]
   ) => {
@@ -513,7 +530,9 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
       setTotalPages(totalPages);
       setAssetSrcs(assets, assetBlobSASUrlList! as string[]);
     });
-  }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate]);
+  }, [selectedUser, selectedTag, selectedAssetType, startDate, endDate, withinOneProjectSearchQuery]);
+
+  
 
   useEffect(() => {
     getProject()
@@ -538,10 +557,82 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
     });
   }, []);
 
+  // useEffect(() => {
+  //   if (withinOneProjectSearchQuery.trim() === "") {
+  //     fetchAssets(1).then(({ assets }) => setCurrentAssets(assets));
+  //   }
+  // }, [withinOneProjectSearchQuery]);
+
+
+  // const handleWithinOneProjectSearch = async () => {
+  //   setIsLoading(true);
+  //   // fetchAssets(1);
+  //   try {
+  //     const { assets } = await fetchAssets(1); // start from first page
+  //     console.log("Fetched assets_handleWithinOneProjectSearch:", assets);
+  //     setCurrentAssets(assets);
+  //     // setAssetSrcs(assets, assetBlobSASUrlList);
+  //     setSearchDone(true);
+  //   } catch (err) {
+  //     console.error("Search failed", err);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // const handleWithinOneProjectSearch = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const { assets, assetBlobSASUrlList } = await fetchAssets(1);
+
+  //     setCurrentAssets(assets);
+
+  //     if (assetBlobSASUrlList) {
+  //       setAssetSrcs(assets, assetBlobSASUrlList);
+  //     } else {
+  //       console.warn("assetBlobSASUrlList is undefined");
+  //   }
+
+  //     setSearchDone(true);
+  //   } catch (err) {
+  //     console.error("Search failed", err);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+  
+
+  
+  
+
   return (
     <>
       <h1 className="text-2xl font-bold mb-4">{"Project: " + projectName}</h1>
       <h6 className="mb-4">{"Description: " + projectDescription}</h6>
+      <div className="w-full md:w-1/3 flex items-center">
+        <input
+          id="search"
+          type="text"
+          placeholder="Search assets..."
+          className="w-full rounded-lg py-2 px-4 text-gray-700 bg-white shadow-sm border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ease-in-out duration-150"
+          value={withinOneProjectSearchQuery}
+          onChange={(e) => setWithinOneProjectSearchQuery(e.target.value)}
+          // onKeyDown={(e) => {
+          //   if (e.key === "Enter") {
+          //     handleWithinOneProjectSearch();
+          //   }
+          // }} 
+            // && doWithinOneProjectSearch()}
+        />
+        {/* {withinOneProjectSearchQuery.trim() !== "" && (
+          <button
+            onClick={handleWithinOneProjectSearch}
+            className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg transition hover:bg-blue-600 flex items-center"
+          >
+            {isLoading ? <LoadingSpinner className="h-5 w-5" /> : "Search"}
+          </button>
+        )} */}
+      </div>
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
         <div className="w-full md:flex-1 min-w-0 md:min-w-[150px] mb-4 md:mb-0">
           <label className="text-gray-700 text-sm font-medium">

@@ -275,6 +275,9 @@ export default function ProjectsPage() {
   const [projectMetadataFields, setProjectMetadataFields] = useState<any[]>([]);
   const [assetMetadataName, setAssetMetadataName] = useState<string>("");
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
   const showAssetMetadata = async (asset: any) => {
     const response = await fetchWithAuth(`palette/blob/${asset.blobID}/fields`);
     if (!response.ok) {
@@ -598,6 +601,16 @@ export default function ProjectsPage() {
           : [],
       },
     ];
+
+    // Prevent submission if it's already in progress
+    if (isSubmitting) {
+      toast.warning("Please wait, the project is being added.");
+      return;
+    } else {
+      // Set submitting state to true
+      setIsSubmitting(true)
+    }
+
     try {
       const response = await fetchWithAuth("projects", {
         method: "POST",
@@ -634,6 +647,9 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error((error as Error).message);
+    } finally {
+      // Re-enable the button after submission is done
+      setIsSubmitting(false);
     }
   };
 
@@ -875,6 +891,7 @@ export default function ProjectsPage() {
       doSearch(); // This resets to the main screen (all projects)
     }
   }, [query]);
+  
   const [showArchived, setShowArchived] = useState(true);
 
 // Toggles at top of page.
@@ -1148,6 +1165,7 @@ const displayedOtherProjects = otherProjects.filter((project) => {
           }}
           showExtraHelperText={true}
           disableOutsideClose={confirmOverwriteDescriptionPopup ? true : false}
+          isSubmitting={isSubmitting}
         />
       )}
 

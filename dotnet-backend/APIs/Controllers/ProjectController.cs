@@ -63,6 +63,7 @@ namespace APIs.Controllers
             string? tagName,
             DateTime? fromDate,
             DateTime? toDate,
+            string? searchWithinOneProjectQuery,
 
             IProjectService projectService,
             string assetType = DefaultAssetType,
@@ -81,6 +82,13 @@ namespace APIs.Controllers
             // Call Project Service to handle request
             try
             {
+                if (!string.IsNullOrEmpty(searchWithinOneProjectQuery) && searchWithinOneProjectQuery.Length > 100)
+                {
+                    return Results.BadRequest("Search query is too long. Maximum length is 100 characters.");
+                }
+
+                // Console.WriteLine("searchWithinOneProjectQuery: " + searchWithinOneProjectQuery);
+
                 GetPaginatedProjectAssetsReq req = new GetPaginatedProjectAssetsReq
                 {
                     projectID = projectID,
@@ -90,8 +98,11 @@ namespace APIs.Controllers
                     postedBy = postedBy,
                     tagName = tagName,
                     fromDate = fromDate,
-                    toDate = toDate
+                    toDate = toDate,
+                    searchWithinOneProjectQuery = searchWithinOneProjectQuery?.Trim()
                 };
+
+                // Console.WriteLine("projectcontroller.getpaginatedprojectasset 98");
 
                 GetPaginatedProjectAssetsRes result = await projectService.GetPaginatedProjectAssets(req, requesterID);
                 return Results.Ok(result);

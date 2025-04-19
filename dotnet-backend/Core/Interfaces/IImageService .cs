@@ -8,5 +8,6 @@ namespace Core.Interfaces
         void toWebpImageSharp();
         byte[] toWebpNetVips(byte[] decompressedBuffer, bool lossless);
         void pHashCompare();
+        byte[] ChangeResolution(byte[] fileBytes, string dotExtension, double resolutionScale); 
     }
 }

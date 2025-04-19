@@ -280,6 +280,11 @@ namespace Core.Services
                 result.fullProjectInfos = new List<FullProjectInfo>();
                 result.projectCount = retrievedProjects.Count;
 
+                // Sort retrievedProjects based on archived status (active first)
+                List<Project> sortedRetrievedProjects = retrievedProjects
+                    .OrderByDescending(p => p.Active)
+                    .ToList();
+
                 Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)> projectMembershipMap = new Dictionary<int, (HashSet<UserCustomInfo>, HashSet<UserCustomInfo>)>();
 
                 foreach (ProjectMembership pm in retrievedProjectMemberships) 
@@ -325,7 +330,7 @@ namespace Core.Services
                 }
 
                 HashSet<Project> addedProjects = new HashSet<Project>();
-                foreach (var p in retrievedProjects)
+                foreach (var p in sortedRetrievedProjects)
                 {
                     try
                     {
@@ -370,6 +375,7 @@ namespace Core.Services
             int offset = (req.pageNumber - 1) * req.assetsPerPage;
             try 
             {
+                // Console.WriteLine("projectservice.getpaginatedprojectasset 373");
                 (
                     List<Asset> retrievedAssets, 
                     int totalFilteredAssetCount,
@@ -377,6 +383,7 @@ namespace Core.Services
                 ) = await _repository.GetPaginatedProjectAssetsInDb(req, offset, requesterID);
                 
                 int totalPages = (int)Math.Ceiling((double)totalFilteredAssetCount / req.assetsPerPage);
+                // Console.WriteLine("projectservice.getpaginatedprojectasset 380");
 
                 ProjectAssetsPagination pagination = new ProjectAssetsPagination
                 {

@@ -34,6 +34,27 @@ namespace Core.Services
             }
         }
 
+        public byte[] ChangeResolution(byte[] fileBytes, string dotExtension, double resolutionScale) 
+        {
+            try 
+            {
+                using (var image = NetVips.Image.NewFromBuffer(fileBytes))
+                {
+                    using (var resizedImage = resolutionScale < 0.5
+                        ? image.Resize(resolutionScale, kernel: Enums.Kernel.Mitchell) // for low resolution
+                        : image.Resize(resolutionScale, kernel: Enums.Kernel.Cubic))   // for mid resolution
+                    {
+                        return resizedImage.WriteToBuffer(dotExtension);
+                    }
+                }
+            } 
+            catch (VipsException)
+            {
+                throw;
+            }
+        }
+
+
         
         public void toWebpImageSharp()
         {

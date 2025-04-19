@@ -121,14 +121,14 @@ export default function PalettePage() {
 
   // Add component mount/unmount logging
   useEffect(() => {
-    console.log('PalettePage mounted');
+    // console.log('PalettePage mounted');
     // On component mount, try to restore selections
     const savedSelections = localStorage.getItem('paletteSelections');
     if (savedSelections) {
       try {
         const parsedSelections = JSON.parse(savedSelections);
         if (parsedSelections.length > 0) {
-          console.log('Restoring selections on mount:', parsedSelections);
+          // console.log('Restoring selections on mount:', parsedSelections);
           setSelectedBlobIds(parsedSelections);
         }
       } catch (error) {
@@ -137,7 +137,7 @@ export default function PalettePage() {
     }
     
     return () => {
-      console.log('PalettePage unmounting, current selections:', selectedBlobIds);
+      // console.log('PalettePage unmounting, current selections:', selectedBlobIds);
       // Save selections on unmount as a backup
       if (selectedBlobIds.length > 0) {
         localStorage.setItem('paletteSelections', JSON.stringify(selectedBlobIds));
@@ -150,7 +150,7 @@ export default function PalettePage() {
     setSelectedBlobIds([]);
     setSelectedIndices([]);
     localStorage.removeItem('paletteSelections');
-    console.log('All selections cleared');
+    // console.log('All selections cleared');
   }, []);
 
   // Ensure selections are correctly loaded when returning to the palette
@@ -160,7 +160,7 @@ export default function PalettePage() {
       if (e.key === 'paletteSelections' && e.newValue) {
         try {
           const parsedSelections = JSON.parse(e.newValue);
-          console.log('Storage event detected, updating selections:', parsedSelections);
+          // console.log('Storage event detected, updating selections:', parsedSelections);
           setSelectedBlobIds(parsedSelections);
         } catch (error) {
           console.error('Error parsing selections from storage event:', error);
@@ -172,6 +172,15 @@ export default function PalettePage() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
+  }, []);
+
+  // Auto-refresh page when returning from editmage page
+  useEffect(() => {
+    const backFromEditImage = sessionStorage.getItem('backFromEditImage') === 'true';
+    if (backFromEditImage) {
+      sessionStorage.removeItem('backFromEditImage'); // Clear flag
+      window.location.reload(); // Force full page reload directly   
+    }
   }, []);
 
   // Helper function to get file dimensions from image/video and add to state
@@ -716,7 +725,7 @@ export default function PalettePage() {
 
   // Add a function to handle newly uploaded files from the modal
   const handleFilesUploaded = useCallback((uploadedFiles: FileMetadata[]) => {
-    console.log('Received uploaded files:', uploadedFiles);
+    // console.log('Received uploaded files:', uploadedFiles);
     
     // Always navigate to page 1 to show new files
     if (currentPage !== 1) {
@@ -772,7 +781,7 @@ export default function PalettePage() {
     if (selectedBlobIds.length === 0) return selectedBlobIds;
     
     try {
-      console.log("Verifying selection integrity...");
+      // console.log("Verifying selection integrity...");
       
       const currentPageBlobIds = files
         .map(file => file.blobId)
@@ -791,13 +800,13 @@ export default function PalettePage() {
       );
       
       if (invalidSelections.length > 0) {
-        console.log(`Found ${invalidSelections.length} invalid selections on current page`);
+        // console.log(`Found ${invalidSelections.length} invalid selections on current page`);
         
         const validSelections = selectedBlobIds.filter(id => 
           !invalidSelections.includes(id)
         );
         
-        console.log('Updated valid selections:', validSelections);
+        // console.log('Updated valid selections:', validSelections);
         
         setSelectedBlobIds(validSelections);
         localStorage.setItem('paletteSelections', JSON.stringify(validSelections));
@@ -897,8 +906,8 @@ export default function PalettePage() {
       }
     });
     
-    console.log('Project assignments:', projectAssignments);
-    console.log('Files without project:', filesWithoutProject);
+    // console.log('Project assignments:', projectAssignments);
+    // console.log('Files without project:', filesWithoutProject);
     
     if (filesWithoutProject.length > 0) {
       setIsLoading(false);
@@ -1012,7 +1021,7 @@ export default function PalettePage() {
     // Ensure selections are saved before navigating
     if (selectedBlobIds.length > 0) {
       localStorage.setItem('paletteSelections', JSON.stringify(selectedBlobIds));
-      console.log('Saving selections before edit:', selectedBlobIds);
+      // console.log('Saving selections before edit:', selectedBlobIds);
     }
     
     // Navigate to edit page
@@ -1042,7 +1051,7 @@ export default function PalettePage() {
     const checkForNewFiles = () => {
       const hasNewFiles = localStorage.getItem('paletteHasNewFiles');
       if (hasNewFiles === 'true') {
-        console.log('New files detected, available for refresh');
+        // console.log('New files detected, available for refresh');
         // Since we're now automatically adding files, clear the flag
         localStorage.removeItem('paletteHasNewFiles');
         

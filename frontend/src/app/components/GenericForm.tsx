@@ -57,6 +57,7 @@ interface GenericFormProps {
   showExtraHelperText?: boolean;
   noRequired?: boolean;
   isEdit?: boolean;
+  isSubmitting: boolean;
 }
 
 export default function GenericForm({
@@ -75,6 +76,7 @@ export default function GenericForm({
   showExtraHelperText = false,
   noRequired = false,
   isEdit = true,
+  isSubmitting,
 }: GenericFormProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -627,9 +629,9 @@ export default function GenericForm({
               <button
                 type="submit"
                 className="w-full bg-blue-500 text-white p-2 rounded text-center disabledButton"
-                disabled={disabled || !hasEdited}
+                disabled={disabled || !hasEdited || isSubmitting}
               >
-                {submitButtonText}
+                {isSubmitting ? "Submitting..." : submitButtonText}
               </button>
               <button
                 type="button"
