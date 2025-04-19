@@ -213,7 +213,7 @@ const ProjectsTable = ({ projectID }: { projectID: string }) => {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>("");
+  const [withinOneProjectSearchQuery, setWithinOneProjectSearchQuery] = useState<string>(""); // sean
   const [isLoading, setIsLoading] = useState(false);
   // const [currentAssets, setCurrentAssets] = useState<any[]>([]);
   // const [searchDone, setSearchDone] = useState<boolean>(false);
