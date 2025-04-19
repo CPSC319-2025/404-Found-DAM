@@ -42,6 +42,8 @@ export default function ProjectCard({
 
   const [isArchived, setIsArchived] = useState(archived);
 
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setAnchorEl(event.currentTarget);
@@ -111,6 +113,16 @@ export default function ProjectCard({
 
   const handleExport = async (event: any) => {
     event.stopPropagation();
+
+    // Prevent exporting again if it's already in progress
+    if (isExporting) {
+      toast.warning("Please wait, the project is being exported.");
+      return;
+    } else {
+      // Set submitting state to true
+      setIsExporting(true)
+    }
+    
     toast.success("Exporting project...");
     try {
       const response = await fetchWithAuth(`projects/${id}/export`, {
@@ -132,7 +144,10 @@ export default function ProjectCard({
       link.click();
     } catch (error) {
       toast.error((error as Error).message);
+    } finally {
+      setIsExporting(false);
     }
+
     handleMenuClose();
   }
 
@@ -197,7 +212,11 @@ export default function ProjectCard({
                 Archive
               </MenuItem>
             </>)}
-            <MenuItem onClick={handleExport}>Export</MenuItem>
+            <MenuItem 
+              onClick={handleExport} 
+              disabled={isExporting}
+              className={isExporting ? "cursor-not-allowed text-gray-400" : ""}
+            >Export</MenuItem>
           </Menu>
         </div>
         <div>
